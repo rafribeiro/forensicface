@@ -25,14 +25,7 @@
     "href": "index.html",
     "title": "forensicface",
     "section": "",
-    "text": "This file will become your README and also the index of your documentation."
-  },
-  {
-    "objectID": "index.html#install",
-    "href": "index.html#install",
-    "title": "forensicface",
-    "section": "Install",
-    "text": "Install\npip install forensicface\nou:\nconda install -c fastai forensicface\nO arquivo onnx do modelo de detecção (det_10g.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/\ne o arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/adaface/"
+    "text": "pip install forensicface\nO arquivo onnx do modelo de detecção (det_10g.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/\ne o arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/adaface/"
   },
   {
     "objectID": "index.html#como-utilizar",
@@ -46,6 +39,6 @@
     "href": "index.html#processamento-básico-de-imagens",
     "title": "forensicface",
     "section": "Processamento básico de imagens",
-    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])\n\n\n\nplt.imshow(results['aligned_face'])\n\n<matplotlib.image.AxesImage>\n\n\n\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8556125\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)\n\n\n\nhelp(ff.process_image)"
+    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])\n\n\n\nplt.imshow(results['aligned_face'])\n\n<matplotlib.image.AxesImage>\n\n\n\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8556125\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)\n\n\nBaseado na biblioteca insightface e no repositório adaface"
   }
 ]
