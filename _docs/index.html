@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+<meta name="description" content="An attempt to build a package for forensic face examination">
 
-<title>forensicface - forensicface–A tool for forensic face examination</title>
+<title>forensicface</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -125,11 +125,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="forensicface - forensicface–A tool for forensic face examination">
-<meta property="og:description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+<meta property="og:title" content="forensicface">
+<meta property="og:description" content="An attempt to build a package for forensic face examination">
 <meta property="og:site-name" content="forensicface">
-<meta name="twitter:title" content="forensicface - forensicface–A tool for forensic face examination">
-<meta name="twitter:description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+<meta name="twitter:title" content="forensicface">
+<meta name="twitter:description" content="An attempt to build a package for forensic face examination">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -149,7 +149,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">forensicface–A tool for forensic face examination</h1>
+      <h1 class="quarto-secondary-nav-title">forensicface</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -164,12 +164,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link">forensicface</a>
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">forensicface</a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./forensicface.html" class="sidebar-item-text sidebar-link active">forensicface–A tool for forensic face examination</a>
+  <a href="./forensicface.html" class="sidebar-item-text sidebar-link">forensicface–A tool for forensic face examination</a>
   </div>
 </li>
     </ul>
@@ -181,16 +181,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#forensicface" id="toc-forensicface" class="nav-link active" data-scroll-target="#forensicface">ForensicFace</a></li>
-  <li><a href="#comparação-entre-duas-imagens" id="toc-comparação-entre-duas-imagens" class="nav-link" data-scroll-target="#comparação-entre-duas-imagens">Comparação entre duas imagens</a>
-  <ul class="collapse">
-  <li><a href="#forensicface.compare" id="toc-forensicface.compare" class="nav-link" data-scroll-target="#forensicface.compare">ForensicFace.compare</a></li>
-  </ul></li>
-  <li><a href="#agregação-de-embeddings" id="toc-agregação-de-embeddings" class="nav-link" data-scroll-target="#agregação-de-embeddings">Agregação de embeddings</a>
-  <ul class="collapse">
-  <li><a href="#forensicface.aggregate_embeddings" id="toc-forensicface.aggregate_embeddings" class="nav-link" data-scroll-target="#forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</a></li>
-  <li><a href="#forensicface.aggregate_from_images" id="toc-forensicface.aggregate_from_images" class="nav-link" data-scroll-target="#forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</a></li>
-  </ul></li>
+  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
+  <li><a href="#como-utilizar" id="toc-como-utilizar" class="nav-link" data-scroll-target="#como-utilizar">Como utilizar</a></li>
+  <li><a href="#processamento-básico-de-imagens" id="toc-processamento-básico-de-imagens" class="nav-link" data-scroll-target="#processamento-básico-de-imagens">Processamento básico de imagens</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -199,12 +192,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">forensicface–A tool for forensic face examination</h1>
+<h1 class="title d-none d-lg-block">forensicface</h1>
 </div>
 
 <div>
   <div class="description">
-    An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios
+    An attempt to build a package for forensic face examination
   </div>
 </div>
 
@@ -220,83 +213,67 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/forensicface.py#L7" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="forensicface" class="level3">
-<h3 class="anchored" data-anchor-id="forensicface">ForensicFace</h3>
-<blockquote class="blockquote">
-<pre><code> ForensicFace (model:str='sepaelv2', det_size:int=320, use_gpu:bool=True)</code></pre>
-</blockquote>
-<p>A (forensic) face comparison tool</p>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(use_gpu<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ff</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This file will become your README and also the index of your documentation.</p>
+<section id="install" class="level2">
+<h2 class="anchored" data-anchor-id="install">Install</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install forensicface</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>ou:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-c</span> fastai forensicface</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>O arquivo onnx do modelo de detecção (det_10g.onnx) deve estar na pasta <code>~/.insightface/model/sepaelv2/</code></p>
+<p>e o arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta <code>~/.insightface/model/sepaelv2/adaface/</code></p>
+</section>
+<section id="como-utilizar" class="level2">
+<h2 class="anchored" data-anchor-id="como-utilizar">Como utilizar</h2>
+<p>Importação da classe ForensicFace:</p>
+<p><code>from forensicface.app import ForensicFace</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(det_size<span class="op">=</span><span class="dv">320</span>, use_gpu<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}
 find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
 set det-size: (320, 320)</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>&lt;__main__.ForensicFace at 0x7f4eab4bc3a0&gt;</code></pre>
 </div>
-</div>
-<div class="cell" data-execution_count="14">
+</section>
+<section id="processamento-básico-de-imagens" class="level2">
+<h2 class="anchored" data-anchor-id="processamento-básico-de-imagens">Processamento básico de imagens</h2>
+<p>Obter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>results.keys(), results[<span class="st">'keypoints'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
-<pre><code>(dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face']),
- array([[103.600136, 139.8824  ],
-        [174.26506 , 137.33737 ],
-        [140.28088 , 187.14763 ],
-        [109.09409 , 219.34001 ],
-        [173.40773 , 217.09573 ]], dtype=float32))</code></pre>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>results.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])</code></pre>
 </div>
 </div>
-</section>
-<section id="comparação-entre-duas-imagens" class="level2">
-<h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
-<hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L104" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="forensicface.compare" class="level3">
-<h3 class="anchored" data-anchor-id="forensicface.compare">ForensicFace.compare</h3>
-<blockquote class="blockquote">
-<pre><code> ForensicFace.compare (img1path:str, img2path:str)</code></pre>
-</blockquote>
-<div class="cell" data-execution_count="15">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="15">
-<pre><code>0.8556977</code></pre>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plt.imshow(results[<span class="st">'aligned_face'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.image.AxesImage&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-4-output-2.svg" class="img-fluid"></p>
 </div>
 </div>
-</section>
-</section>
-<section id="agregação-de-embeddings" class="level2">
-<h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
-<hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L115" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="forensicface.aggregate_embeddings" class="level3">
-<h3 class="anchored" data-anchor-id="forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</h3>
-<blockquote class="blockquote">
-<pre><code> ForensicFace.aggregate_embeddings (embeddings, weights=None)</code></pre>
-</blockquote>
-<hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L124" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="forensicface.aggregate_from_images" class="level3">
-<h3 class="anchored" data-anchor-id="forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</h3>
-<blockquote class="blockquote">
-<pre><code> ForensicFace.aggregate_from_images (list_of_image_paths)</code></pre>
-</blockquote>
-<div class="cell" data-execution_count="17">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>])</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<p>Comparar duas imagens faciais e obter o escore de similaridade.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>0.8556125</code></pre>
+</div>
+</div>
+<p>Agregar embeddings de duas imagens faciais em uma única representação</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>agg <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>])</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>agg.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
 <pre><code>(512,)</code></pre>
 </div>
 </div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">help</span>(ff.process_image)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
