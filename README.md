@@ -45,7 +45,7 @@ results.keys()
 plt.imshow(results['aligned_face'])
 ```
 
-    <matplotlib.image.AxesImage at 0x7fbcb31a07c0>
+    <matplotlib.image.AxesImage>
 
 ![](index_files/figure-commonmark/cell-4-output-2.svg)
 
