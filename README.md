@@ -39,13 +39,13 @@ results = ff.process_image("obama.png")
 results.keys()
 ```
 
-    dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])
+    dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])
 
 ``` python
 plt.imshow(results['aligned_face'])
 ```
 
-    <matplotlib.image.AxesImage>
+    <matplotlib.image.AxesImage at 0x7fbcb31a07c0>
 
 ![](index_files/figure-commonmark/cell-4-output-2.svg)
 
@@ -55,7 +55,7 @@ Comparar duas imagens faciais e obter o escore de similaridade.
 ff.compare("obama.png","obama2.png")
 ```
 
-    0.8556125
+    0.8555868
 
 Agregar embeddings de duas imagens faciais em uma única representação
 
@@ -66,6 +66,18 @@ agg.shape
 
     (512,)
 
-Baseado na biblioteca
-[insightface](https://github.com/deepinsight/insightface) e no
-repositório [adaface](https://github.com/mk-minchul/AdaFace)
+## Suporte a MagFace
+
+Modelo de [MagFace](https://github.com/IrvingMeng/MagFace)
+
+``` python
+good = ff.process_image("obama.png")
+bad = ff.process_image("obama2.png")
+good["magface_norm"], bad["magface_norm"]
+```
+
+    (24.875765, 21.319853)
+
+Baseado nos repositórios
+[insightface](https://github.com/deepinsight/insightface) e
+[adaface](https://github.com/mk-minchul/AdaFace)

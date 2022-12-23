@@ -184,6 +184,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
   <li><a href="#como-utilizar" id="toc-como-utilizar" class="nav-link" data-scroll-target="#como-utilizar">Como utilizar</a></li>
   <li><a href="#processamento-básico-de-imagens" id="toc-processamento-básico-de-imagens" class="nav-link" data-scroll-target="#processamento-básico-de-imagens">Processamento básico de imagens</a></li>
+  <li><a href="#suporte-a-magface" id="toc-suporte-a-magface" class="nav-link" data-scroll-target="#suporte-a-magface">Suporte a MagFace</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -223,7 +224,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 class="anchored" data-anchor-id="como-utilizar">Como utilizar</h2>
 <p>Importação da classe ForensicFace:</p>
 <p><code>from forensicface.app import ForensicFace</code></p>
-<div class="cell">
+<div class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(det_size<span class="op">=</span><span class="dv">320</span>, use_gpu<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}
@@ -235,38 +236,50 @@ set det-size: (320, 320)</code></pre>
 <section id="processamento-básico-de-imagens" class="level2">
 <h2 class="anchored" data-anchor-id="processamento-básico-de-imagens">Processamento básico de imagens</h2>
 <p>Obter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)</p>
-<div class="cell">
+<div class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])</code></pre>
 </div>
 </div>
-<div class="cell">
+<div class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>plt.imshow(results[<span class="st">'aligned_face'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>&lt;matplotlib.image.AxesImage&gt;</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7fbcb31a07c0&gt;</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <p><img src="index_files/figure-html/cell-4-output-2.svg" class="img-fluid"></p>
 </div>
 </div>
 <p>Comparar duas imagens faciais e obter o escore de similaridade.</p>
-<div class="cell">
+<div class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>0.8556125</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>0.8555868</code></pre>
 </div>
 </div>
 <p>Agregar embeddings de duas imagens faciais em uma única representação</p>
-<div class="cell">
+<div class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>agg <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>,<span class="st">"obama2.png"</span>])</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>agg.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
+<div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>(512,)</code></pre>
 </div>
 </div>
-<p>Baseado na biblioteca <a href="https://github.com/deepinsight/insightface">insightface</a> e no repositório <a href="https://github.com/mk-minchul/AdaFace">adaface</a></p>
+</section>
+<section id="suporte-a-magface" class="level2">
+<h2 class="anchored" data-anchor-id="suporte-a-magface">Suporte a MagFace</h2>
+<p>Modelo de <a href="https://github.com/IrvingMeng/MagFace">MagFace</a></p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"obama2.png"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"magface_norm"</span>], bad[<span class="st">"magface_norm"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>(24.875765, 21.319853)</code></pre>
+</div>
+</div>
+<p>Baseado nos repositórios <a href="https://github.com/deepinsight/insightface">insightface</a> e <a href="https://github.com/mk-minchul/AdaFace">adaface</a></p>
 
 
 </section>

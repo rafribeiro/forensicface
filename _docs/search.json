@@ -11,7 +11,7 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8556057"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8555722"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
@@ -25,7 +25,7 @@
     "href": "forensicface.html#suporte-a-magface",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.87323, 21.321486)"
+    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(23.225662, 22.580925)"
   },
   {
     "objectID": "index.html",
@@ -46,6 +46,13 @@
     "href": "index.html#processamento-básico-de-imagens",
     "title": "forensicface",
     "section": "Processamento básico de imagens",
-    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'aligned_face'])\n\n\n\nplt.imshow(results['aligned_face'])\n\n<matplotlib.image.AxesImage>\n\n\n\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8556125\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)\n\n\nBaseado na biblioteca insightface e no repositório adaface"
+    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])\n\n\n\nplt.imshow(results['aligned_face'])\n\n<matplotlib.image.AxesImage at 0x7fbcb31a07c0>\n\n\n\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8555868\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)"
+  },
+  {
+    "objectID": "index.html#suporte-a-magface",
+    "href": "index.html#suporte-a-magface",
+    "title": "forensicface",
+    "section": "Suporte a MagFace",
+    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.875765, 21.319853)\n\n\nBaseado nos repositórios insightface e adaface"
   }
 ]

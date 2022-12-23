@@ -75,7 +75,7 @@ class ForensicFace:
 
     def _to_input_mag(self, aligned_bgr_img):
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
-        # _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
+        _aligned_bgr_img = _aligned_bgr_img / 255.0
         return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
 
     def get_most_central_face(self, img, faces):
