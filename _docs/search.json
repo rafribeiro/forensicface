@@ -11,14 +11,21 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8556977"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8556057"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
     "href": "forensicface.html#agregação-de-embeddings",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Agregação de embeddings",
-    "text": "Agregação de embeddings\n\nsource\n\nForensicFace.aggregate_embeddings\n\n ForensicFace.aggregate_embeddings (embeddings, weights=None)\n\n\nsource\n\n\nForensicFace.aggregate_from_images\n\n ForensicFace.aggregate_from_images (list_of_image_paths)\n\n\naggregated = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\naggregated.shape\n\n(512,)"
+    "text": "Agregação de embeddings\n\nsource\n\nForensicFace.aggregate_embeddings\n\n ForensicFace.aggregate_embeddings (embeddings, weights=None)\n\n\nsource\n\n\nForensicFace.aggregate_from_images\n\n ForensicFace.aggregate_from_images (list_of_image_paths)\n\n\naggregated = ff.aggregate_from_images([\"obama.png\", \"obama2.png\"])\naggregated.shape\n\n(512,)"
+  },
+  {
+    "objectID": "forensicface.html#suporte-a-magface",
+    "href": "forensicface.html#suporte-a-magface",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "Suporte a MagFace",
+    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.87323, 21.321486)"
   },
   {
     "objectID": "index.html",
