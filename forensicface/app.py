@@ -13,15 +13,29 @@ import os.path as osp
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 
+
 # %% ../nbs/00_forensicface.ipynb 3
 class ForensicFace:
     "A (forensic) face comparison tool"
-    
+
     def __init__(
         self, model: str = "sepaelv2", det_size: int = 320, use_gpu: bool = True
     ):
 
         self.det_size = (det_size, det_size)
+
+        # Download models if needed
+        model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
+        adaface_model_folder = osp.join(model_base_path, "adaface")
+        det_path = osp.join(model_base_path, "det_10g.onnx")
+        rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
+
+        if not osp.exists(det_path):
+            pass
+
+        if not osp.exists(det_path):
+            pass
+
         self.detectmodel = FaceAnalysis(
             name=model,
             allowed_modules=["detection"],
@@ -30,7 +44,7 @@ class ForensicFace:
             else ["CPUExecutionProvider"],
         )
         self.detectmodel.prepare(ctx_id=0 if use_gpu else -1, det_size=self.det_size)
-        self.ort_session = onnxruntime.InferenceSession(
+        self.ort_ada = onnxruntime.InferenceSession(
             osp.join(
                 osp.expanduser("~/.insightface/models"),
                 model,
@@ -42,9 +56,26 @@ class ForensicFace:
             else ["CPUExecutionProvider"],
         )
 
-    def _to_input(self, aligned_bgr_img):
+        self.ort_mag = onnxruntime.InferenceSession(
+            osp.join(
+                osp.expanduser("~/.insightface/models"),
+                model,
+                "magface",
+                "magface_iresnet100.onnx",
+            ),
+            providers=["CUDAExecutionProvider"]
+            if use_gpu
+            else ["CPUExecutionProvider"],
+        )
+
+    def _to_input_ada(self, aligned_bgr_img):
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
         _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
+        return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
+
+    def _to_input_mag(self, aligned_bgr_img):
+        _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
+        # _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
         return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
 
     def get_most_central_face(self, img, faces):
@@ -87,32 +118,42 @@ class ForensicFace:
         kps = self.get_most_central_face(bgr_img, faces)
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
         ipd = np.linalg.norm(kps[0] - kps[1])
-        ort_inputs = {
-            self.ort_session.get_inputs()[0].name: self._to_input(bgr_aligned_face)
+        ada_inputs = {
+            self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
         }
-        normalized_embedding, norm = self.ort_session.run(None, ort_inputs)
+        mag_inputs = {
+            self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)
+        }
+        normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
+        mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
+        mag_norm = np.linalg.norm(mag_embedding)
+
         return {
             "keypoints": kps,
             "ipd": ipd,
             "embedding": normalized_embedding.flatten() * norm.flatten()[0],
             "norm": norm.flatten()[0],
+            "magface_embedding": mag_embedding,
+            "magface_norm": mag_norm,
             "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
         }
 
+
 # %% ../nbs/00_forensicface.ipynb 7
 @patch
-def compare(self:ForensicFace, img1path: str, img2path: str):
+def compare(self: ForensicFace, img1path: str, img2path: str):
     img1data = self.process_image(img1path)
-    assert len(img1data) == 5
+    assert len(img1data) > 0
     img2data = self.process_image(img2path)
-    assert len(img2data) == 5
+    assert len(img2data) > 0
     return np.dot(img1data["embedding"], img2data["embedding"]) / (
         img1data["norm"] * img2data["norm"]
     )
 
+
 # %% ../nbs/00_forensicface.ipynb 10
 @patch
-def aggregate_embeddings(self:ForensicFace, embeddings, weights=None):
+def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     if weights is None:
         weights = np.ones(embeddings.shape[0], dtype="int")
     assert embeddings.shape[0] == weights.shape[0]
@@ -121,10 +162,11 @@ def aggregate_embeddings(self:ForensicFace, embeddings, weights=None):
 
 # %% ../nbs/00_forensicface.ipynb 11
 @patch
-def aggregate_from_images(self:ForensicFace, list_of_image_paths):
+def aggregate_from_images(self: ForensicFace, list_of_image_paths):
     embeddings = []
     weights = []
     for imgpath in list_of_image_paths:
         d = self.process_image(imgpath)
         embeddings.append(d["embedding"])
     return self.aggregate_embeddings(np.array(embeddings))
+
