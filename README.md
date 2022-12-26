@@ -25,10 +25,6 @@ Importação da classe ForensicFace:
 ff = ForensicFace(det_size=320, use_gpu=True)
 ```
 
-    Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}
-    find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
-    set det-size: (320, 320)
-
 ## Processamento básico de imagens
 
 Obter pontos de referência, distância interpupilar, representação
@@ -39,15 +35,7 @@ results = ff.process_image("obama.png")
 results.keys()
 ```
 
-    dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])
-
-``` python
-plt.imshow(results['aligned_face'])
-```
-
-    <matplotlib.image.AxesImage>
-
-![](index_files/figure-commonmark/cell-4-output-2.svg)
+    dict_keys(['keypoints', 'ipd', 'gender', 'age', 'pitch', 'yaw', 'roll', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])
 
 Comparar duas imagens faciais e obter o escore de similaridade.
 
@@ -68,7 +56,8 @@ agg.shape
 
 ## Suporte a MagFace
 
-Modelo de [MagFace](https://github.com/IrvingMeng/MagFace)
+Estimativa de qualidade pela norma da representação
+[MagFace](https://github.com/IrvingMeng/MagFace)
 
 ``` python
 good = ff.process_image("obama.png")
@@ -78,6 +67,13 @@ good["magface_norm"], bad["magface_norm"]
 
     (24.875765, 21.319853)
 
-Baseado nos repositórios
-[insightface](https://github.com/deepinsight/insightface) e
-[adaface](https://github.com/mk-minchul/AdaFace)
+## Crédito dos modelos utilizados
+
+- Detecção, gênero (M/F), idade e pose (pitch, yaw, roll):
+  [insightface](https://github.com/deepinsight/insightface)
+
+- Reconhecimento: [adaface](https://github.com/mk-minchul/AdaFace) e
+  [MagFace](https://github.com/IrvingMeng/MagFace)
+
+- Estimativa de qualidade:
+  [MagFace](https://github.com/IrvingMeng/MagFace)

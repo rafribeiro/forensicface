@@ -24,21 +24,20 @@ class ForensicFace:
 
         self.det_size = (det_size, det_size)
 
-        # Download models if needed
-        model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
-        adaface_model_folder = osp.join(model_base_path, "adaface")
-        det_path = osp.join(model_base_path, "det_10g.onnx")
-        rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
+        #model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
+        #adaface_model_folder = osp.join(model_base_path, "adaface")
+        #det_path = osp.join(model_base_path, "det_10g.onnx")
+        #rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
 
-        if not osp.exists(det_path):
-            pass
+        #if not osp.exists(det_path):
+        #    pass
 
-        if not osp.exists(det_path):
-            pass
+        #if not osp.exists(det_path):
+        #    pass
 
         self.detectmodel = FaceAnalysis(
             name=model,
-            allowed_modules=["detection"],
+            #allowed_modules=["detection","landmark_3d_68","genderage"],
             providers=["CUDAExecutionProvider"]
             if use_gpu
             else ["CPUExecutionProvider"],
@@ -95,7 +94,8 @@ class ForensicFace:
             dist.append(np.linalg.norm(img_center - face_center))
 
         # Get index of the face closest to the center of image
-        return faces[dist.index(min(dist))].kps
+        idx = dist.index(min(dist))
+        return idx, faces[idx].kps
 
     def process_image(self, imgpath: str):  # Path to image to be processed
         """
@@ -115,7 +115,10 @@ class ForensicFace:
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
             return {}
-        kps = self.get_most_central_face(bgr_img, faces)
+        idx, kps = self.get_most_central_face(bgr_img, faces)
+        gender = 'M' if faces[idx].gender == 1 else 'F'
+        age = faces[idx].age
+        pitch, yaw, roll = faces[idx].pose
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
         ipd = np.linalg.norm(kps[0] - kps[1])
         ada_inputs = {
@@ -131,6 +134,11 @@ class ForensicFace:
         return {
             "keypoints": kps,
             "ipd": ipd,
+            "gender": gender,
+            "age": age,
+            "pitch": pitch,
+            "yaw": yaw,
+            "roll": roll,
             "embedding": normalized_embedding.flatten() * norm.flatten()[0],
             "norm": norm.flatten()[0],
             "magface_embedding": mag_embedding,
