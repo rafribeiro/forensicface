@@ -11,7 +11,7 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8555722"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.85562384"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
@@ -25,7 +25,7 @@
     "href": "forensicface.html#suporte-a-magface",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(23.225662, 22.580925)"
+    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(23.233831, 22.589926)"
   },
   {
     "objectID": "index.html",
@@ -39,20 +39,27 @@
     "href": "index.html#como-utilizar",
     "title": "forensicface",
     "section": "Como utilizar",
-    "text": "Como utilizar\nImportação da classe ForensicFace:\nfrom forensicface.app import ForensicFace\n\nff = ForensicFace(det_size=320, use_gpu=True)\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nset det-size: (320, 320)"
+    "text": "Como utilizar\nImportação da classe ForensicFace:\nfrom forensicface.app import ForensicFace\n\nff = ForensicFace(det_size=320, use_gpu=True)"
   },
   {
     "objectID": "index.html#processamento-básico-de-imagens",
     "href": "index.html#processamento-básico-de-imagens",
     "title": "forensicface",
     "section": "Processamento básico de imagens",
-    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])\n\n\n\nplt.imshow(results['aligned_face'])\n\n<matplotlib.image.AxesImage at 0x7fbcb31a07c0>\n\n\n\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8555868\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)"
+    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)\n\nresults = ff.process_image(\"obama.png\")\nresults.keys()\n\ndict_keys(['keypoints', 'ipd', 'gender', 'age', 'pitch', 'yaw', 'roll', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\",\"obama2.png\")\n\n0.8555868\n\n\nAgregar embeddings de duas imagens faciais em uma única representação\n\nagg = ff.aggregate_from_images([\"obama.png\",\"obama2.png\"])\nagg.shape\n\n(512,)"
   },
   {
     "objectID": "index.html#suporte-a-magface",
     "href": "index.html#suporte-a-magface",
     "title": "forensicface",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.875765, 21.319853)\n\n\nBaseado nos repositórios insightface e adaface"
+    "text": "Suporte a MagFace\nEstimativa de qualidade pela norma da representação MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.875765, 21.319853)"
+  },
+  {
+    "objectID": "index.html#crédito-dos-modelos-utilizados",
+    "href": "index.html#crédito-dos-modelos-utilizados",
+    "title": "forensicface",
+    "section": "Crédito dos modelos utilizados",
+    "text": "Crédito dos modelos utilizados\n\nDetecção, gênero (M/F), idade e pose (pitch, yaw, roll): insightface\nReconhecimento: adaface e MagFace\nEstimativa de qualidade: MagFace"
   }
 ]
