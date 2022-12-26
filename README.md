@@ -9,11 +9,15 @@ forensicface
 pip install forensicface
 ```
 
-O arquivo onnx do modelo de detecção (det_10g.onnx) deve estar na pasta
+Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
+(1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta
 `~/.insightface/model/sepaelv2/`
 
-e o arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx)
+O arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx)
 deve estar na pasta `~/.insightface/model/sepaelv2/adaface/`
+
+O arquivo onnx do modelo magface (magface_iresnet100.onnx) deve estar na
+pasta `~/.insightface/model/sepaelv2/magface/`
 
 ## Como utilizar
 

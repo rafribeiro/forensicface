@@ -32,7 +32,7 @@
     "href": "index.html",
     "title": "forensicface",
     "section": "",
-    "text": "pip install forensicface\nO arquivo onnx do modelo de detecção (det_10g.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/\ne o arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/adaface/"
+    "text": "pip install forensicface\nOs arquivos onnx dos modelos de detecção (det_10g.onnx), pose (1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta ~/.insightface/model/sepaelv2/\nO arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/adaface/\nO arquivo onnx do modelo magface (magface_iresnet100.onnx) deve estar na pasta ~/.insightface/model/sepaelv2/magface/"
   },
   {
     "objectID": "index.html#como-utilizar",
