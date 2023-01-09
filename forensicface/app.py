@@ -111,7 +111,10 @@ class ForensicFace:
 
         - aligned_face: face after alignment using the keypoints as references for affine transform
         """
-        bgr_img = cv2.imread(imgpath)
+        if type(imgpath) == str: # image path passed as argument
+            bgr_img = cv2.imread(imgpath)
+        else: #image array passed as argument
+            bgr_img = imgpath.copy()
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
             return {}
@@ -166,7 +169,10 @@ class ForensicFace:
 
         - aligned_face: face after alignment using the keypoints as references for affine transform
         """
-        bgr_img = cv2.imread(imgpath)
+        if type(imgpath) == str: # image path passed as argument
+            bgr_img = cv2.imread(imgpath)
+        else: #image array passed as argument
+            bgr_img = imgpath.copy()
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
             return []

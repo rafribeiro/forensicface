@@ -11,7 +11,7 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.85562384"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.855624"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
