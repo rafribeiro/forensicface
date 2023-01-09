@@ -24,20 +24,20 @@ class ForensicFace:
 
         self.det_size = (det_size, det_size)
 
-        #model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
-        #adaface_model_folder = osp.join(model_base_path, "adaface")
-        #det_path = osp.join(model_base_path, "det_10g.onnx")
-        #rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
+        # model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
+        # adaface_model_folder = osp.join(model_base_path, "adaface")
+        # det_path = osp.join(model_base_path, "det_10g.onnx")
+        # rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
 
-        #if not osp.exists(det_path):
+        # if not osp.exists(det_path):
         #    pass
 
-        #if not osp.exists(det_path):
+        # if not osp.exists(det_path):
         #    pass
 
         self.detectmodel = FaceAnalysis(
             name=model,
-            #allowed_modules=["detection","landmark_3d_68","genderage"],
+            # allowed_modules=["detection","landmark_3d_68","genderage"],
             providers=["CUDAExecutionProvider"]
             if use_gpu
             else ["CPUExecutionProvider"],
@@ -97,9 +97,9 @@ class ForensicFace:
         idx = dist.index(min(dist))
         return idx, faces[idx].kps
 
-    def process_image(self, imgpath: str):  # Path to image to be processed
+    def process_image_single_face(self, imgpath: str):  # Path to image to be processed
         """
-        Process image and returns list of dicts with:
+        Process image and returns dict with:
 
         - keypoints: 5 facial points (left eye, right eye, nose tip, left mouth corner and right mouth corner)
 
@@ -116,7 +116,7 @@ class ForensicFace:
         if len(faces) == 0:
             return {}
         idx, kps = self.get_most_central_face(bgr_img, faces)
-        gender = 'M' if faces[idx].gender == 1 else 'F'
+        gender = "M" if faces[idx].gender == 1 else "F"
         age = faces[idx].age
         pitch, yaw, roll = faces[idx].pose
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
@@ -146,8 +146,69 @@ class ForensicFace:
             "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
         }
 
+    def process_image(self, imgpath):
+        return self.process_image_single_face(imgpath)
+        
+    def process_image_multiple_faces(
+        self, imgpath: str, # Path to image to be processed
 
-# %% ../nbs/00_forensicface.ipynb 7
+    ):  
+        """
+        Process image and returns list of dicts with:
+
+        - keypoints: 5 facial points (left eye, right eye, nose tip, left mouth corner and right mouth corner)
+
+        - ipd: interpupillary distance
+
+        - normalized_embedding
+
+        - embedding_norm
+
+        - aligned_face: face after alignment using the keypoints as references for affine transform
+        """
+        bgr_img = cv2.imread(imgpath)
+        faces = self.detectmodel.get(bgr_img)
+        if len(faces) == 0:
+            return []
+        ret = []
+        for face in faces:
+
+            kps = face.kps
+            gender = "M" if face.gender == 1 else "F"
+            age = face.age
+            pitch, yaw, roll = face.pose
+            bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
+            ipd = np.linalg.norm(kps[0] - kps[1])
+            ada_inputs = {
+                self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
+            }
+            #mag_inputs = {
+            #    self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)
+            #}
+            normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
+            #mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
+            #mag_norm = np.linalg.norm(mag_embedding)
+
+            ret.append(
+                {
+                    "keypoints": kps,
+                    "ipd": ipd,
+                    "gender": gender,
+                    "age": age,
+                    "pitch": pitch,
+                    "yaw": yaw,
+                    "roll": roll,
+                    "embedding": normalized_embedding.flatten() * norm.flatten()[0],
+                    "norm": norm.flatten()[0],
+                   #"magface_embedding": mag_embedding,
+                    #"magface_norm": mag_norm,
+                    #"aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+                }
+            )
+        return ret
+
+
+# %% ../nbs/00_forensicface.ipynb 8
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     img1data = self.process_image(img1path)
@@ -159,7 +220,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
     )
 
 
-# %% ../nbs/00_forensicface.ipynb 10
+# %% ../nbs/00_forensicface.ipynb 11
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     if weights is None:
@@ -168,7 +229,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     return np.average(embeddings, axis=0, weights=weights)
 
 
-# %% ../nbs/00_forensicface.ipynb 11
+# %% ../nbs/00_forensicface.ipynb 12
 @patch
 def aggregate_from_images(self: ForensicFace, list_of_image_paths):
     embeddings = []

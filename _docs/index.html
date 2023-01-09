@@ -234,7 +234,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 class="anchored" data-anchor-id="processamento-básico-de-imagens">Processamento básico de imagens</h2>
 <p>Obter pontos de referência, distância interpupilar, representação vetorial e a face alinhada com dimensão fixa (112x112)</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>results.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>dict_keys(['keypoints', 'ipd', 'gender', 'age', 'pitch', 'yaw', 'roll', 'embedding', 'norm', 'magface_embedding', 'magface_norm', 'aligned_face'])</code></pre>

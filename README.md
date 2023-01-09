@@ -35,7 +35,7 @@ Obter pontos de referência, distância interpupilar, representação
 vetorial e a face alinhada com dimensão fixa (112x112)
 
 ``` python
-results = ff.process_image("obama.png")
+results = ff.process_image_single_face("obama.png")
 results.keys()
 ```
 
