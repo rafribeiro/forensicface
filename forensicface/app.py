@@ -180,6 +180,7 @@ class ForensicFace:
         for face in faces:
 
             kps = face.kps
+            bbox = face.bbox.astype('int')
             gender = "M" if face.gender == 1 else "F"
             age = face.age
             pitch, yaw, roll = face.pose
@@ -206,6 +207,7 @@ class ForensicFace:
                     "roll": roll,
                     "embedding": normalized_embedding.flatten() * norm.flatten()[0],
                     "norm": norm.flatten()[0],
+                    "bbox": bbox,
                    #"magface_embedding": mag_embedding,
                     #"magface_norm": mag_norm,
                     #"aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),

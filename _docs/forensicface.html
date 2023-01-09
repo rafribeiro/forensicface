@@ -243,19 +243,25 @@ set det-size: (320, 320)</code></pre>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_multiple_faces(<span class="st">"tela.png"</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">'bbox'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/home/rafael/mambaforge/envs/onnxgpu/lib/python3.9/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4</code></pre>
+</div>
 <div class="cell-output cell-output-display">
-<pre><code>(dict_keys(['keypoints', 'ipd', 'gender', 'age', 'pitch', 'yaw', 'roll', 'embedding', 'norm']),
+<pre><code>(dict_keys(['keypoints', 'ipd', 'gender', 'age', 'pitch', 'yaw', 'roll', 'embedding', 'norm', 'bbox']),
  array([[471.42743, 418.60498],
         [522.68933, 418.05362],
         [498.82196, 449.08923],
         [479.3499 , 476.44193],
-        [514.33453, 476.06885]], dtype=float32))</code></pre>
+        [514.33453, 476.06885]], dtype=float32),
+ array([441, 355, 548, 506]))</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>results.keys(), results[<span class="st">"keypoints"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>results.keys(), results[<span class="st">"keypoints"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>/home/rafael/mambaforge/envs/onnxgpu/lib/python3.9/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
 To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
@@ -274,14 +280,14 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <section id="comparação-entre-duas-imagens" class="level2">
 <h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L219" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L221" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.compare" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.compare">ForensicFace.compare</h3>
 <blockquote class="blockquote">
 <pre><code> ForensicFace.compare (img1path:str, img2path:str)</code></pre>
 </blockquote>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>0.855624</code></pre>
 </div>
@@ -291,14 +297,14 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <section id="agregação-de-embeddings" class="level2">
 <h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L231" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L233" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.aggregate_embeddings" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</h3>
 <blockquote class="blockquote">
 <pre><code> ForensicFace.aggregate_embeddings (embeddings, weights=None)</code></pre>
 </blockquote>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L240" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L242" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="forensicface.aggregate_from_images" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</h3>
@@ -306,8 +312,8 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <pre><code> ForensicFace.aggregate_from_images (list_of_image_paths)</code></pre>
 </blockquote>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>])</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>])</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(512,)</code></pre>
 </div>
@@ -318,9 +324,9 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <h2 class="anchored" data-anchor-id="suporte-a-magface">Suporte a MagFace</h2>
 <p>Modelo de <a href="https://github.com/IrvingMeng/MagFace">MagFace</a></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"001_frontal.JPG"</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"001_cam1_1.jpg"</span>)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"magface_norm"</span>], bad[<span class="st">"magface_norm"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"001_frontal.JPG"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"001_cam1_1.jpg"</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"magface_norm"</span>], bad[<span class="st">"magface_norm"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(23.233831, 22.589926)</code></pre>
 </div>
