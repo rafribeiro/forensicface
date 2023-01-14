@@ -101,6 +101,24 @@ class ForensicFace:
         # Get index of the face closest to the center of image
         idx = dist.index(min(dist))
         return idx, faces[idx].kps
+    
+    def get_larger_face(self, img, faces):
+        """
+        faces is a insightface object with keypoints and bounding_box
+
+        return: keypoints of the larger face
+        """
+        assert faces is not None
+        areas = []
+
+        # Compute centers of faces and distances from certer of image
+        for idx, face in enumerate(faces):
+            box = face.bbox.astype("int").flatten()
+            areas.append(abs((box[2] - box[0])*(box[3] - box[1])))
+
+        # Get index of the face closest to the center of image
+        idx = areas.index(max(areas))
+        return idx, faces[idx].kps
 
     def process_image_single_face(self, imgpath: str):  # Path to image to be processed
         """
@@ -127,7 +145,7 @@ class ForensicFace:
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
             return {}
-        idx, kps = self.get_most_central_face(bgr_img, faces)
+        idx, kps = self.get_larger_face(bgr_img, faces)
         gender = "M" if faces[idx].gender == 1 else "F"
         age = faces[idx].age
         bbox = faces[idx].bbox.astype("int")
