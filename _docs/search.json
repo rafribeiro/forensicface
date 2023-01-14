@@ -11,7 +11,7 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.855624"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
@@ -25,7 +25,7 @@
     "href": "forensicface.html#suporte-a-magface",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nModelo de MagFace\n\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(23.233831, 22.589926)"
+    "text": "Suporte a MagFace\nPara utilizar, instancie o forensicface com a opção magface = True:\nff = forensicface(magface=True)\nModelo de MagFace\n\nff = ForensicFace(det_size=320, use_gpu=True, magface=True)\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]"
   },
   {
     "objectID": "index.html",
@@ -53,7 +53,7 @@
     "href": "index.html#suporte-a-magface",
     "title": "forensicface",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nEstimativa de qualidade pela norma da representação MagFace\n\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.875765, 21.319853)"
+    "text": "Suporte a MagFace\nEstimativa de qualidade pela norma da representação MagFace\nPara utilizar, instancie o forensicface com a opção magface = True:\nff = ForensicFace(magface=True)\n\nff = ForensicFace(det_size=320, use_gpu=True, magface=True)\ngood = ff.process_image(\"obama.png\")\nbad = ff.process_image(\"obama2.png\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\n(24.875765, 21.319853)"
   },
   {
     "objectID": "index.html#crédito-dos-modelos-utilizados",

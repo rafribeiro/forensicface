@@ -63,7 +63,12 @@ agg.shape
 Estimativa de qualidade pela norma da representação
 [MagFace](https://github.com/IrvingMeng/MagFace)
 
+Para utilizar, instancie o forensicface com a opção magface = True:
+
+`ff = ForensicFace(magface=True)`
+
 ``` python
+ff = ForensicFace(det_size=320, use_gpu=True, magface=True)
 good = ff.process_image("obama.png")
 bad = ff.process_image("obama2.png")
 good["magface_norm"], bad["magface_norm"]

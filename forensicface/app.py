@@ -19,11 +19,15 @@ class ForensicFace:
     "A (forensic) face comparison tool"
 
     def __init__(
-        self, model: str = "sepaelv2", det_size: int = 320, use_gpu: bool = True
+        self,
+        model: str = "sepaelv2",
+        det_size: int = 320,
+        use_gpu: bool = True,
+        magface=False,
     ):
 
         self.det_size = (det_size, det_size)
-
+        self.magface = magface
         # model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
         # adaface_model_folder = osp.join(model_base_path, "adaface")
         # det_path = osp.join(model_base_path, "det_10g.onnx")
@@ -55,17 +59,18 @@ class ForensicFace:
             else ["CPUExecutionProvider"],
         )
 
-        self.ort_mag = onnxruntime.InferenceSession(
-            osp.join(
-                osp.expanduser("~/.insightface/models"),
-                model,
-                "magface",
-                "magface_iresnet100.onnx",
-            ),
-            providers=["CUDAExecutionProvider"]
-            if use_gpu
-            else ["CPUExecutionProvider"],
-        )
+        if self.magface:
+            self.ort_mag = onnxruntime.InferenceSession(
+                osp.join(
+                    osp.expanduser("~/.insightface/models"),
+                    model,
+                    "magface",
+                    "magface_iresnet100.onnx",
+                ),
+                providers=["CUDAExecutionProvider"]
+                if use_gpu
+                else ["CPUExecutionProvider"],
+            )
 
     def _to_input_ada(self, aligned_bgr_img):
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
@@ -105,15 +110,19 @@ class ForensicFace:
 
         - ipd: interpupillary distance
 
+        - pitch, yaw, roll angles
+
         - normalized_embedding
 
         - embedding_norm
 
         - aligned_face: face after alignment using the keypoints as references for affine transform
+
+        - (optional) magface norm and magface features
         """
-        if type(imgpath) == str: # image path passed as argument
+        if type(imgpath) == str:  # image path passed as argument
             bgr_img = cv2.imread(imgpath)
-        else: #image array passed as argument
+        else:  # image array passed as argument
             bgr_img = imgpath.copy()
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
@@ -121,20 +130,16 @@ class ForensicFace:
         idx, kps = self.get_most_central_face(bgr_img, faces)
         gender = "M" if faces[idx].gender == 1 else "F"
         age = faces[idx].age
+        bbox = faces[idx].bbox.astype("int")
         pitch, yaw, roll = faces[idx].pose
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
         ipd = np.linalg.norm(kps[0] - kps[1])
         ada_inputs = {
             self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
         }
-        mag_inputs = {
-            self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)
-        }
         normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
-        mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
-        mag_norm = np.linalg.norm(mag_embedding)
 
-        return {
+        ret = {
             "keypoints": kps,
             "ipd": ipd,
             "gender": gender,
@@ -144,18 +149,31 @@ class ForensicFace:
             "roll": roll,
             "embedding": normalized_embedding.flatten() * norm.flatten()[0],
             "norm": norm.flatten()[0],
-            "magface_embedding": mag_embedding,
-            "magface_norm": mag_norm,
+            "bbox": bbox,
             "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
         }
 
+        if self.magface:
+            # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
+            mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
+            mag_norm = np.linalg.norm(mag_embedding)
+            ret = {
+                **ret,
+                **{
+                    "magface_embedding": mag_embedding,
+                    "magface_norm": mag_norm,
+                },
+            }
+
+        return ret
+
     def process_image(self, imgpath):
         return self.process_image_single_face(imgpath)
-        
-    def process_image_multiple_faces(
-        self, imgpath: str, # Path to image to be processed
 
-    ):  
+    def process_image_multiple_faces(
+        self,
+        imgpath: str,  # Path to image to be processed
+    ):
         """
         Process image and returns list of dicts with:
 
@@ -163,15 +181,19 @@ class ForensicFace:
 
         - ipd: interpupillary distance
 
+        - pitch, yaw, roll angles
+
         - normalized_embedding
 
         - embedding_norm
 
         - aligned_face: face after alignment using the keypoints as references for affine transform
+
+        - (optional) magface norm and magface features
         """
-        if type(imgpath) == str: # image path passed as argument
+        if type(imgpath) == str:  # image path passed as argument
             bgr_img = cv2.imread(imgpath)
-        else: #image array passed as argument
+        else:  # image array passed as argument
             bgr_img = imgpath.copy()
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
@@ -180,7 +202,7 @@ class ForensicFace:
         for face in faces:
 
             kps = face.kps
-            bbox = face.bbox.astype('int')
+            bbox = face.bbox.astype("int")
             gender = "M" if face.gender == 1 else "F"
             age = face.age
             pitch, yaw, roll = face.pose
@@ -189,30 +211,31 @@ class ForensicFace:
             ada_inputs = {
                 self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
             }
-            #mag_inputs = {
-            #    self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)
-            #}
             normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
-            #mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
-            #mag_norm = np.linalg.norm(mag_embedding)
+            face_ret = {
+                "keypoints": kps,
+                "ipd": ipd,
+                "gender": gender,
+                "age": age,
+                "pitch": pitch,
+                "yaw": yaw,
+                "roll": roll,
+                "embedding": normalized_embedding.flatten() * norm.flatten()[0],
+                "norm": norm.flatten()[0],
+                "bbox": bbox,
+                "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+            }
 
-            ret.append(
-                {
-                    "keypoints": kps,
-                    "ipd": ipd,
-                    "gender": gender,
-                    "age": age,
-                    "pitch": pitch,
-                    "yaw": yaw,
-                    "roll": roll,
-                    "embedding": normalized_embedding.flatten() * norm.flatten()[0],
-                    "norm": norm.flatten()[0],
-                    "bbox": bbox,
-                   #"magface_embedding": mag_embedding,
-                    #"magface_norm": mag_norm,
-                    #"aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+            if self.magface:
+                # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
+                mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
+                mag_norm = np.linalg.norm(mag_embedding)
+                face_ret = {
+                    **face_ret,
+                    **{"magface_embedding": mag_embedding, "magface_norm": mag_norm},
                 }
-            )
+
+            ret.append(face_ret)
         return ret
 
 

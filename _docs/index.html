@@ -259,10 +259,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="suporte-a-magface" class="level2">
 <h2 class="anchored" data-anchor-id="suporte-a-magface">Suporte a MagFace</h2>
 <p>Estimativa de qualidade pela norma da representação <a href="https://github.com/IrvingMeng/MagFace">MagFace</a></p>
+<p>Para utilizar, instancie o forensicface com a opção magface = True:</p>
+<p><code>ff = ForensicFace(magface=True)</code></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"obama2.png"</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"magface_norm"</span>], bad[<span class="st">"magface_norm"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(det_size<span class="op">=</span><span class="dv">320</span>, use_gpu<span class="op">=</span><span class="va">True</span>, magface<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"obama2.png"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"magface_norm"</span>], bad[<span class="st">"magface_norm"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(24.875765, 21.319853)</code></pre>
 </div>
