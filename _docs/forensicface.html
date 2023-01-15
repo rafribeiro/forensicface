@@ -227,9 +227,51 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 class="anchored" data-anchor-id="forensicface">ForensicFace</h3>
 <blockquote class="blockquote">
 <pre><code> ForensicFace (model:str='sepaelv2', det_size:int=320, use_gpu:bool=True,
-               magface=False)</code></pre>
+               gpu:int=0, magface=False)</code></pre>
 </blockquote>
 <p>A (forensic) face comparison tool</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>model</td>
+<td>str</td>
+<td>sepaelv2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>det_size</td>
+<td>int</td>
+<td>320</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>use_gpu</td>
+<td>bool</td>
+<td>True</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>gpu</td>
+<td>int</td>
+<td>0</td>
+<td>which GPU to use</td>
+</tr>
+<tr class="odd">
+<td>magface</td>
+<td>bool</td>
+<td>False</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(use_gpu<span class="op">=</span><span class="va">True</span>, magface<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -245,7 +287,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="comparação-entre-duas-imagens" class="level2">
 <h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L262" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L263" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.compare" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.compare">ForensicFace.compare</h3>
 <blockquote class="blockquote">
@@ -259,14 +301,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="agregação-de-embeddings" class="level2">
 <h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L274" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L275" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.aggregate_embeddings" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</h3>
 <blockquote class="blockquote">
 <pre><code> ForensicFace.aggregate_embeddings (embeddings, weights=None)</code></pre>
 </blockquote>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L283" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L284" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="forensicface.aggregate_from_images" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</h3>

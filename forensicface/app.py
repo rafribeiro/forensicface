@@ -23,6 +23,7 @@ class ForensicFace:
         model: str = "sepaelv2",
         det_size: int = 320,
         use_gpu: bool = True,
+        gpu: int = 0, #which GPU to use
         magface=False,
     ):
 
@@ -46,7 +47,7 @@ class ForensicFace:
             if use_gpu
             else ["CPUExecutionProvider"],
         )
-        self.detectmodel.prepare(ctx_id=0 if use_gpu else -1, det_size=self.det_size)
+        self.detectmodel.prepare(ctx_id=gpu if use_gpu else -1, det_size=self.det_size)
         self.ort_ada = onnxruntime.InferenceSession(
             osp.join(
                 osp.expanduser("~/.insightface/models"),
@@ -54,7 +55,7 @@ class ForensicFace:
                 "adaface",
                 "adaface_ir101web12m.onnx",
             ),
-            providers=["CUDAExecutionProvider"]
+            providers=[('CUDAExecutionProvider', {'device_id': gpu})]
             if use_gpu
             else ["CPUExecutionProvider"],
         )
@@ -67,7 +68,7 @@ class ForensicFace:
                     "magface",
                     "magface_iresnet100.onnx",
                 ),
-                providers=["CUDAExecutionProvider"]
+                providers=[('CUDAExecutionProvider', {'device_id': gpu})]
                 if use_gpu
                 else ["CPUExecutionProvider"],
             )
