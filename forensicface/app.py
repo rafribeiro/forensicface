@@ -43,7 +43,7 @@ class ForensicFace:
         self.detectmodel = FaceAnalysis(
             name=model,
             # allowed_modules=["detection","landmark_3d_68","genderage"],
-            providers=["CUDAExecutionProvider"]
+            providers=[('CUDAExecutionProvider', {'device_id': gpu})]
             if use_gpu
             else ["CPUExecutionProvider"],
         )
