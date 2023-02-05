@@ -23,27 +23,24 @@ class ForensicFace:
         model: str = "sepaelv2",
         det_size: int = 320,
         use_gpu: bool = True,
-        gpu: int = 0, #which GPU to use
+        gpu: int = 0,  # which GPU to use
         magface=False,
+        extended=True,
     ):
+        self.extended = extended
+        if self.extended == True:
+            allowed_modules = ["detection", "landmark_3d_68", "genderage"]
+        else:
+            allowed_modules = ["detection"]
 
         self.det_size = (det_size, det_size)
+
         self.magface = magface
-        # model_base_path = osp.join(osp.expanduser("~/.insightface/models"), model)
-        # adaface_model_folder = osp.join(model_base_path, "adaface")
-        # det_path = osp.join(model_base_path, "det_10g.onnx")
-        # rec_path = osp.join(adaface_model_folder, "adaface_ir101web12m.onnx")
-
-        # if not osp.exists(det_path):
-        #    pass
-
-        # if not osp.exists(det_path):
-        #    pass
 
         self.detectmodel = FaceAnalysis(
             name=model,
-            # allowed_modules=["detection","landmark_3d_68","genderage"],
-            providers=[('CUDAExecutionProvider', {'device_id': gpu})]
+            allowed_modules=allowed_modules,
+            providers=[("CUDAExecutionProvider", {"device_id": gpu})]
             if use_gpu
             else ["CPUExecutionProvider"],
         )
@@ -55,7 +52,7 @@ class ForensicFace:
                 "adaface",
                 "adaface_ir101web12m.onnx",
             ),
-            providers=[('CUDAExecutionProvider', {'device_id': gpu})]
+            providers=[("CUDAExecutionProvider", {"device_id": gpu})]
             if use_gpu
             else ["CPUExecutionProvider"],
         )
@@ -68,7 +65,7 @@ class ForensicFace:
                     "magface",
                     "magface_iresnet100.onnx",
                 ),
-                providers=[('CUDAExecutionProvider', {'device_id': gpu})]
+                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
                 if use_gpu
                 else ["CPUExecutionProvider"],
             )
@@ -102,7 +99,7 @@ class ForensicFace:
         # Get index of the face closest to the center of image
         idx = dist.index(min(dist))
         return idx, faces[idx].kps
-    
+
     def get_larger_face(self, img, faces):
         """
         faces is a insightface object with keypoints and bounding_box
@@ -115,7 +112,7 @@ class ForensicFace:
         # Compute centers of faces and distances from certer of image
         for idx, face in enumerate(faces):
             box = face.bbox.astype("int").flatten()
-            areas.append(abs((box[2] - box[0])*(box[3] - box[1])))
+            areas.append(abs((box[2] - box[0]) * (box[3] - box[1])))
 
         # Get index of the face closest to the center of image
         idx = areas.index(max(areas))
@@ -146,13 +143,13 @@ class ForensicFace:
         faces = self.detectmodel.get(bgr_img)
         if len(faces) == 0:
             return {}
+
         idx, kps = self.get_larger_face(bgr_img, faces)
-        gender = "M" if faces[idx].gender == 1 else "F"
-        age = faces[idx].age
+
         bbox = faces[idx].bbox.astype("int")
-        pitch, yaw, roll = faces[idx].pose
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
         ipd = np.linalg.norm(kps[0] - kps[1])
+
         ada_inputs = {
             self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
         }
@@ -161,16 +158,26 @@ class ForensicFace:
         ret = {
             "keypoints": kps,
             "ipd": ipd,
-            "gender": gender,
-            "age": age,
-            "pitch": pitch,
-            "yaw": yaw,
-            "roll": roll,
             "embedding": normalized_embedding.flatten() * norm.flatten()[0],
             "norm": norm.flatten()[0],
             "bbox": bbox,
             "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
         }
+
+        if self.extended:
+            gender = "M" if faces[idx].gender == 1 else "F"
+            age = faces[idx].age
+            pitch, yaw, roll = faces[idx].pose
+            ret = {
+                **ret,
+                **{
+                    "gender": gender,
+                    "age": age,
+                    "pitch": pitch,
+                    "yaw": yaw,
+                    "roll": roll,
+                },
+            }
 
         if self.magface:
             # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
@@ -219,12 +226,8 @@ class ForensicFace:
             return []
         ret = []
         for face in faces:
-
             kps = face.kps
             bbox = face.bbox.astype("int")
-            gender = "M" if face.gender == 1 else "F"
-            age = face.age
-            pitch, yaw, roll = face.pose
             bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
             ipd = np.linalg.norm(kps[0] - kps[1])
             ada_inputs = {
@@ -234,16 +237,26 @@ class ForensicFace:
             face_ret = {
                 "keypoints": kps,
                 "ipd": ipd,
-                "gender": gender,
-                "age": age,
-                "pitch": pitch,
-                "yaw": yaw,
-                "roll": roll,
                 "embedding": normalized_embedding.flatten() * norm.flatten()[0],
                 "norm": norm.flatten()[0],
                 "bbox": bbox,
                 "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
             }
+
+            if self.extended:
+                gender = "M" if face.gender == 1 else "F"
+                age = face.age
+                pitch, yaw, roll = face.pose
+                face_ret = {
+                    **face_ret,
+                    **{
+                        "gender": gender,
+                        "age": age,
+                        "pitch": pitch,
+                        "yaw": yaw,
+                        "roll": roll,
+                    },
+                }
 
             if self.magface:
                 # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
@@ -286,6 +299,10 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths):
     weights = []
     for imgpath in list_of_image_paths:
         d = self.process_image(imgpath)
-        embeddings.append(d["embedding"])
-    return self.aggregate_embeddings(np.array(embeddings))
+        if len(d) > 0:
+            embeddings.append(d["embedding"])
+    if len(embeddings) > 0:
+        return self.aggregate_embeddings(np.array(embeddings))
+    else:
+        return []
 

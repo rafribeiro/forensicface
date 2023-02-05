@@ -11,7 +11,7 @@
     "href": "forensicface.html#comparação-entre-duas-imagens",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Comparação entre duas imagens",
-    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")"
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8555971"
   },
   {
     "objectID": "forensicface.html#agregação-de-embeddings",
@@ -25,7 +25,7 @@
     "href": "forensicface.html#suporte-a-magface",
     "title": "forensicface–A tool for forensic face examination",
     "section": "Suporte a MagFace",
-    "text": "Suporte a MagFace\nPara utilizar, instancie o forensicface com a opção magface = True:\nff = forensicface(magface=True)\nModelo de MagFace\n\nff = ForensicFace(det_size=320, use_gpu=True, magface=True)\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]"
+    "text": "Suporte a MagFace\nPara utilizar, instancie o forensicface com a opção magface = True:\nff = forensicface(magface=True)\nModelo de MagFace\n\nff = ForensicFace(det_size=320, use_gpu=True, magface=True)\ngood = ff.process_image(\"001_frontal.JPG\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"magface_norm\"], bad[\"magface_norm\"]\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'do_copy_in_default_stream': '1', 'arena_extend_strategy': 'kNextPowerOfTwo', 'gpu_external_empty_cache': '0', 'gpu_external_free': '0', 'cudnn_conv_use_max_workspace': '0', 'gpu_mem_limit': '18446744073709551615', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'gpu_external_alloc': '0', 'device_id': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0\nset det-size: (320, 320)\n\n\n(23.233418, 22.57745)"
   },
   {
     "objectID": "index.html",
