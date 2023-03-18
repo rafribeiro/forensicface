@@ -192,6 +192,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#forensicface.aggregate_from_images" id="toc-forensicface.aggregate_from_images" class="nav-link" data-scroll-target="#forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</a></li>
   </ul></li>
   <li><a href="#suporte-a-magface" id="toc-suporte-a-magface" class="nav-link" data-scroll-target="#suporte-a-magface">Suporte a MagFace</a></li>
+  <li><a href="#extração-de-faces-de-vídeos-com-margem" id="toc-extração-de-faces-de-vídeos-com-margem" class="nav-link" data-scroll-target="#extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.extract_faces" id="toc-forensicface.extract_faces" class="nav-link" data-scroll-target="#forensicface.extract_faces">ForensicFace.extract_faces</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -387,8 +391,80 @@ set det-size: (320, 320)</code></pre>
 <pre><code>(23.233418, 22.57745)</code></pre>
 </div>
 </div>
+</section>
+<section id="extração-de-faces-de-vídeos-com-margem" class="level2">
+<h2 class="anchored" data-anchor-id="extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</h2>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L343" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="forensicface.extract_faces" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.extract_faces">ForensicFace.extract_faces</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.extract_faces (video_path:str, dest_folder:str=None,
+                             every_n_frames:int=1, margin:float=2.0,
+                             start_from:float=0.0)</code></pre>
+</blockquote>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>video_path</td>
+<td>str</td>
+<td></td>
+<td>path to video file</td>
+</tr>
+<tr class="even">
+<td>dest_folder</td>
+<td>str</td>
+<td>None</td>
+<td>folder used to save extracted faces. If not provided, a new folder with the video name is created</td>
+</tr>
+<tr class="odd">
+<td>every_n_frames</td>
+<td>int</td>
+<td>1</td>
+<td>skip some frames</td>
+</tr>
+<tr class="even">
+<td>margin</td>
+<td>float</td>
+<td>2.0</td>
+<td>margin to add to each face, w.r.t. detected bounding box</td>
+</tr>
+<tr class="odd">
+<td>start_from</td>
+<td>float</td>
+<td>0.0</td>
+<td>seconds after video start to begin processing</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>ff.extract_faces(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    video_path<span class="op">=</span><span class="st">"/home/rafael/productionID_3762907.mp4"</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="st">"/home/rafael/video_faces"</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

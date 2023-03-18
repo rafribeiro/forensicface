@@ -312,3 +312,85 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths):
     else:
         return []
 
+
+# %% ../nbs/00_forensicface.ipynb 17
+@patch
+def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
+    # add a margin on the bounding box
+    (startX, startY, endX, endY) = bbox.astype("int")
+    (h, w) = frame_shape[:2]
+    out_width = (endX - startX) * margin_factor
+    out_height = (endY - startY) * margin_factor
+
+    startX_out = int((startX + endX) / 2 - out_width / 2)
+    endX_out = int((startX + endX) / 2 + out_width / 2)
+    startY_out = int((startY + endY) / 2 - out_height / 2)
+    endY_out = int((startY + endY) / 2 + out_height / 2)
+
+    # tests if the output bbox coordinates are out of frame limits
+    if startX_out < 0:
+        startX_out = 0
+    if endX_out > int(w):
+        endX_out = int(w)
+    if startY_out < 0:
+        startY_out = 0
+    if endY_out > int(h):
+        endY_out = int(h)
+    return [startX_out, startY_out, endX_out, endY_out]
+
+
+@patch
+def extract_faces(
+    self: ForensicFace,
+    video_path: str,  # path to video file
+    dest_folder: str = None,  # folder used to save extracted faces. If not provided, a new folder with the video name is created
+    every_n_frames: int = 1,  # skip some frames
+    margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
+    start_from: float = 0.0,  # seconds after video start to begin processing
+):
+    if dest_folder is None:
+        dest_folder = os.path.splitext(video_path)[0]
+
+    os.makedirs(dest_folder, exist_ok=True)
+
+    # initialize video stream from file
+    vs = cv2.VideoCapture(video_path)
+    fps = vs.get(cv2.CAP_PROP_FPS)
+    start_frame = int(fps * start_from)
+
+    # seek to starting frame
+    vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    current_frame = start_frame
+    nfaces = 0
+    while True:
+
+        if (current_frame % every_n_frames) != 0:
+            current_frame = current_frame + 1
+            vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+            continue
+
+        ret, frame = vs.read()
+
+        if not ret:
+            break
+        current_frame = current_frame + 1
+        (h, w) = frame.shape[:2]
+
+        faces = self.detectmodel.get(frame)
+        for i, face in enumerate(faces):
+            startX, startY, endX, endY = face.bbox.astype("int")
+            faceW = endX - startX
+            faceH = endY - startY
+            outBbox = self._get_extended_bbox(
+                face.bbox, frame.shape, margin_factor=margin
+            )
+            # export the face (with added margin)
+            face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
+            face_img_path = os.path.join(
+                dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
+            )
+            cv2.imwrite(face_img_path, face_crop)
+            nfaces += 1
+    vs.release()
+    return nfaces
+
