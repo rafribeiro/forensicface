@@ -19,6 +19,9 @@ deve estar na pasta `~/.insightface/model/sepaelv2/adaface/`
 O arquivo onnx do modelo magface (magface_iresnet100.onnx) deve estar na
 pasta `~/.insightface/model/sepaelv2/magface/`
 
+A partir da versão 0.1.5 é possível utilizar outros modelos além do
+`sepaelv2`
+
 ## Como utilizar
 
 Importação da classe ForensicFace:

@@ -10,6 +10,7 @@ import onnxruntime
 import cv2
 import numpy as np
 import os.path as osp
+from glob import glob
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 
@@ -45,13 +46,18 @@ class ForensicFace:
             else ["CPUExecutionProvider"],
         )
         self.detectmodel.prepare(ctx_id=gpu if use_gpu else -1, det_size=self.det_size)
-        self.ort_ada = onnxruntime.InferenceSession(
+
+        onnx_rec_model = glob(
             osp.join(
                 osp.expanduser("~/.insightface/models"),
                 model,
                 "adaface",
-                "adaface_ir101web12m.onnx",
-            ),
+                "adaface_*.onnx",
+            )
+        )
+        assert len(onnx_rec_model) == 1
+        self.ort_ada = onnxruntime.InferenceSession(
+            onnx_rec_model[0],
             providers=[("CUDAExecutionProvider", {"device_id": gpu})]
             if use_gpu
             else ["CPUExecutionProvider"],
