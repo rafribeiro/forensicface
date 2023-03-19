@@ -17,7 +17,9 @@ from insightface.utils import face_align
 
 # %% ../nbs/00_forensicface.ipynb 3
 class ForensicFace:
-    "A (forensic) face comparison tool"
+    """
+    Class for processing facial images to extract useful features for forensic analysis.
+    """
 
     def __init__(
         self,
@@ -28,6 +30,17 @@ class ForensicFace:
         magface=False,
         extended=True,
     ):
+        """
+        A face comparison tool for forensic analysis and comparison of facial images.
+
+        Args:
+        - model (str): The name of the face recognition model to use (default: "sepaelv2").
+        - det_size (int): The size of the input images for face detection (default: 320).
+        - use_gpu (bool): Whether to use a GPU for inference (default: True).
+        - gpu (int): The ID of the GPU to use (default: 0).
+        - magface (bool): Whether to use MagFace for face recognition (default: False).
+        - extended (bool): Whether to use extended modules (detection, landmark_3d_68, genderage) (default: True).
+        """
         self.extended = extended
         if self.extended == True:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
@@ -77,20 +90,43 @@ class ForensicFace:
             )
 
     def _to_input_ada(self, aligned_bgr_img):
+        """
+        Preprocesses the input face for the face recognition model.
+
+        Args:
+            face: Face image as a numpy array in BGR order.
+
+        Returns:
+            Preprocessed face image as a numpy array.
+        """
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
         _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
         return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
 
     def _to_input_mag(self, aligned_bgr_img):
+        """
+        Preprocesses the input face for the MagFace model.
+
+        Args:
+            face: Face image as a numpy array in BGR order.
+
+        Returns:
+            Preprocessed face image as a numpy array.
+        """
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
         _aligned_bgr_img = _aligned_bgr_img / 255.0
         return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
 
     def get_most_central_face(self, img, faces):
         """
-        faces is a insightface object with keypoints and bounding_box
+        Get the keypoints of the most central face in an image.
 
-        return: keypoints of the most central face
+        Args:
+            img: Input image as a numpy array.
+            faces: An insightface object with keypoints and bounding_box.
+
+        Returns:
+            Tuple containing the index of the most central face and its keypoints.
         """
         assert faces is not None
         img_center = np.array([img.shape[0] // 2, img.shape[1] // 2])
@@ -108,9 +144,14 @@ class ForensicFace:
 
     def get_larger_face(self, img, faces):
         """
-        faces is a insightface object with keypoints and bounding_box
+        Get the keypoints of the larger face in an image.
 
-        return: keypoints of the larger face
+        Args:
+            img: Input image as a numpy array.
+            faces: An insightface object with keypoints and bounding_box.
+
+        Returns:
+            Tuple containing the index of the larger face and its keypoints.
         """
         assert faces is not None
         areas = []
@@ -126,21 +167,49 @@ class ForensicFace:
 
     def process_image_single_face(self, imgpath: str):  # Path to image to be processed
         """
-        Process image and returns dict with:
+        Process a an image considering it has a single face and extract useful features for forensic analysis.
 
-        - keypoints: 5 facial points (left eye, right eye, nose tip, left mouth corner and right mouth corner)
+        Args:
+            imgpath: Path to the input image.
 
-        - ipd: interpupillary distance
+        Returns:
+            A dictionary containing the following keys:
+                - 'keypoints': A 2D numpy array of shape (5, 2) containing the facial keypoints
+                        for each face in the image. The keypoints are ordered as follows:
+                       left eye, right eye, nose tip, left mouth corner, and right mouth corner.
 
-        - pitch, yaw, roll angles
+                - 'ipd': A float representing the inter-pupillary distance for each face in the image.
 
-        - normalized_embedding
+                - 'embedding': A 1D numpy array of shape (512,) containing the facial embedding
+                       for each face in the image.
 
-        - embedding_norm
+                - 'norm': A float representing the L2 norm of the embedding for each face in the image.
 
-        - aligned_face: face after alignment using the keypoints as references for affine transform
+                - 'bbox': A 1D numpy array of shape (4,) containing the bounding box coordinates for each face
+                  in the image. The coordinates are ordered as follows: (xmin, ymin, xmax, ymax).
 
-        - (optional) magface norm and magface features
+                - 'aligned_face': A 3D numpy array of shape (H, W, C) in RGB order containing the aligned face image for
+                          each face in the image. The image has been cropped and aligned based on the
+                          facial keypoints.
+
+                If the 'extended' attribute is set to True, the dictionary will also contain the following keys:
+                - 'gender': A string representing the gender for each face in the image.
+                               Possible values are 'M' for male and 'F' for female.
+
+                - 'age': An integer representing the estimated age for each face in the image.
+
+                - 'pitch': A float representing the pitch angle for each face in the image.
+
+                - 'yaw': A float representing the yaw angle for each face in the image.
+
+                - 'roll': A float representing the roll angle for each face in the image.
+
+                If the 'magface' attribute is set to True, the dictionary will also contain the following keys:
+                - 'magface_embedding': A 1D numpy array of shape (512,) containing the magface
+                                          embedding for each face in the image.
+
+                - 'magface_norm': A float representing the L2 norm of the magface embedding for
+                                     each face in the image.
         """
         if type(imgpath) == str:  # image path passed as argument
             bgr_img = cv2.imread(imgpath)
@@ -207,21 +276,51 @@ class ForensicFace:
         imgpath: str,  # Path to image to be processed
     ):
         """
-        Process image and returns list of dicts with:
+        Process an image with one or multiple faces and returns a list of dictionaries
+        with the following keys:
 
-        - keypoints: 5 facial points (left eye, right eye, nose tip, left mouth corner and right mouth corner)
+            - 'keypoints': A 2D numpy array of shape (5, 2) containing the facial keypoints
+                            for each face in the image. The keypoints are ordered as follows:
+                            left eye, right eye, nose tip, left mouth corner, and right mouth corner.
 
-        - ipd: interpupillary distance
+            - 'ipd': A float representing the inter-pupillary distance for each face in the image.
 
-        - pitch, yaw, roll angles
+            - 'embedding': A 1D numpy array of shape (512,) containing the facial embedding
+                            for each face in the image.
 
-        - normalized_embedding
+            - 'norm': A float representing the L2 norm of the embedding for each face in the image.
 
-        - embedding_norm
+            - 'bbox': A 1D numpy array of shape (4,) containing the bounding box coordinates for each face
+                        in the image. The coordinates are ordered as follows: (xmin, ymin, xmax, ymax).
 
-        - aligned_face: face after alignment using the keypoints as references for affine transform
+            - 'aligned_face': A numpy array of shape (112, 112, 3) in RGB order containing the aligned face image for
+                                each face in the image. The image has been cropped and aligned based on the
+                                facial keypoints.
 
-        - (optional) magface norm and magface features
+         If the 'extended' attribute is set to True, the dictionaries will also contain the following keys:
+            - 'gender': A string representing the sex for each face in the image.
+                        Possible values are 'M' for male and 'F' for female.
+
+            - 'age': An integer representing the estimated age for each face in the image.
+
+            - 'pitch': A float representing the pitch angle for each face in the image.
+
+            - 'yaw': A float representing the yaw angle for each face in the image.
+
+            - 'roll: A float representing the roll angle for each face in the image.
+
+         If the 'magface' attribute is set to True, the dictionary will also contain the following keys:
+            - 'magface_embedding': A 1D numpy array of shape (512,) containing the magface
+                                    embedding for each face in the image.
+
+            - 'magface_norm': A float representing the L2 norm of the magface embedding for
+                                each face in the image.
+
+        Args:
+            - imgpath (str): The file path to the image to be processed.
+
+        Returns:
+            - A list of dictionaries, with each dictionary representing a face in the image.
         """
         if type(imgpath) == str:  # image path passed as argument
             bgr_img = cv2.imread(imgpath)
@@ -280,10 +379,21 @@ class ForensicFace:
 # %% ../nbs/00_forensicface.ipynb 8
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
+    """
+    Compares the similarity between two face images based on their embeddings.
+
+    Parameters:
+        - img1path (str): Path to the first image file
+        - img2path (str): Path to the second image file
+
+    Returns:
+        A float representing the similarity score between the two faces based on their embeddings.
+        The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+    """
     img1data = self.process_image(img1path)
-    assert len(img1data) > 0
+    assert len(img1data) > 0, f"No face detected in {img1path}"
     img2data = self.process_image(img2path)
-    assert len(img2data) > 0
+    assert len(img2data) > 0, f"No face detected in {img2path}"
     return np.dot(img1data["embedding"], img2data["embedding"]) / (
         img1data["norm"] * img2data["norm"]
     )
@@ -292,6 +402,18 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
 # %% ../nbs/00_forensicface.ipynb 11
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
+    """
+    Aggregates multiple embeddings into a single embedding.
+
+    Args:
+        embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be
+            aggregated.
+        weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
+            to each embedding. If not provided, all embeddings are equally weighted.
+
+    Returns:
+        numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
+    """
     if weights is None:
         weights = np.ones(embeddings.shape[0], dtype="int")
     assert embeddings.shape[0] == weights.shape[0]
@@ -301,6 +423,16 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
 # %% ../nbs/00_forensicface.ipynb 12
 @patch
 def aggregate_from_images(self: ForensicFace, list_of_image_paths):
+    """
+    Given a list of image paths, this method returns the average embedding of all faces found in the images.
+
+    Args:
+        list_of_image_paths (List[str]): List of paths to images.
+
+    Returns:
+        Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
+        average embedding. Otherwise, returns an empty list.
+    """
     embeddings = []
     weights = []
     for imgpath in list_of_image_paths:
@@ -316,6 +448,17 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths):
 # %% ../nbs/00_forensicface.ipynb 17
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
+    """
+    Computes and returns the bounding box with extended margins.
+
+    Parameters:
+        bbox (ndarray): The bounding box coordinates (startX, startY, endX, endY).
+        frame_shape (tuple): The shape of the video frame (height, width, channels).
+        margin_factor (float): The factor to be applied for computing the margin.
+
+    Returns:
+        A list with the coordinates of the extended bounding box (startX_out, startY_out, endX_out, endY_out).
+    """
     # add a margin on the bounding box
     (startX, startY, endX, endY) = bbox.astype("int")
     (h, w) = frame_shape[:2]
@@ -348,6 +491,19 @@ def extract_faces(
     margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
     start_from: float = 0.0,  # seconds after video start to begin processing
 ):
+    """
+    Extracts faces from a video and saves them as individual images.
+
+    Parameters:
+        video_path (str): The path to the input video file.
+        dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created.
+        every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
+        margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0.
+        start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.
+        
+    Returns:
+        The number of extracted faces.
+    """
     if dest_folder is None:
         dest_folder = os.path.splitext(video_path)[0]
 
