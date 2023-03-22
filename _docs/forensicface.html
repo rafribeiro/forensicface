@@ -295,20 +295,18 @@ set det-size: (320, 320)</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_multiple_faces(<span class="st">"tela.png"</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">"bbox"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>/home/rafael/mambaforge/envs/onnxgpu/lib/python3.9/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
-To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
-  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4</code></pre>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ff.process_image_single_face(<span class="st">"001_frontal.jpg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_multiple_faces(<span class="st">"tela.png"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">"bbox"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>(dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll']),
- array([[471.42743, 418.60498],
-        [522.68933, 418.05362],
-        [498.82196, 449.08923],
-        [479.3499 , 476.44193],
-        [514.33453, 476.06885]], dtype=float32),
+<pre><code>(dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll', 'fiqa_score']),
+ array([[471.42807, 418.60446],
+        [522.6901 , 418.05377],
+        [498.82306, 449.08896],
+        [479.34985, 476.44186],
+        [514.3342 , 476.06934]], dtype=float32),
  array([441, 355, 548, 506]))</code></pre>
 </div>
 </div>
@@ -328,7 +326,7 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <section id="comparação-entre-duas-imagens" class="level2">
 <h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L381" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L405" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.compare" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.compare">ForensicFace.compare</h3>
 <blockquote class="blockquote">
@@ -348,7 +346,7 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <section id="agregação-de-embeddings" class="level2">
 <h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L404" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L428" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.aggregate_embeddings" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</h3>
 <blockquote class="blockquote">
@@ -358,7 +356,7 @@ To use the future default and silence this warning we advise to pass `rcond=None
 <p>Args: embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated. weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned to each embedding. If not provided, all embeddings are equally weighted.</p>
 <p>Returns: numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.</p>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L425" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L449" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="forensicface.aggregate_from_images" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</h3>
@@ -404,7 +402,7 @@ set det-size: (320, 320)</code></pre>
 <section id="extração-de-faces-de-vídeos-com-margem" class="level2">
 <h2 class="anchored" data-anchor-id="extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L486" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L510" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.extract_faces" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.extract_faces">ForensicFace.extract_faces</h3>
 <blockquote class="blockquote">

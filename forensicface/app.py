@@ -51,6 +51,8 @@ class ForensicFace:
 
         self.magface = magface
 
+        self.model = model
+
         self.detectmodel = FaceAnalysis(
             name=model,
             allowed_modules=allowed_modules,
@@ -83,6 +85,19 @@ class ForensicFace:
                     model,
                     "magface",
                     "magface_iresnet100.onnx",
+                ),
+                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
+                if use_gpu
+                else ["CPUExecutionProvider"],
+            )
+
+        if model == "sepaelv2":
+            self.ort_fiqa = onnxruntime.InferenceSession(
+                osp.join(
+                    osp.expanduser("~/.insightface/models"),
+                    model,
+                    "cr_fiqa",
+                    "cr_fiqa_l.onnx",
                 ),
                 providers=[("CUDAExecutionProvider", {"device_id": gpu})]
                 if use_gpu
@@ -266,6 +281,10 @@ class ForensicFace:
                 },
             }
 
+        if self.model == "sepaelv2":
+            _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+            ret = {**ret, "fiqa_score": fiqa_score[0][0]}
+
         return ret
 
     def process_image(self, imgpath):
@@ -372,11 +391,16 @@ class ForensicFace:
                     **{"magface_embedding": mag_embedding, "magface_norm": mag_norm},
                 }
 
+            if self.model == "sepaelv2":
+                _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+                face_ret = {**face_ret, "fiqa_score": fiqa_score[0][0]}
+                
+
             ret.append(face_ret)
         return ret
 
 
-# %% ../nbs/00_forensicface.ipynb 8
+# %% ../nbs/00_forensicface.ipynb 9
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -399,7 +423,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
     )
 
 
-# %% ../nbs/00_forensicface.ipynb 11
+# %% ../nbs/00_forensicface.ipynb 12
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     """
@@ -420,7 +444,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     return np.average(embeddings, axis=0, weights=weights)
 
 
-# %% ../nbs/00_forensicface.ipynb 12
+# %% ../nbs/00_forensicface.ipynb 13
 @patch
 def aggregate_from_images(self: ForensicFace, list_of_image_paths):
     """
@@ -445,7 +469,7 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths):
         return []
 
 
-# %% ../nbs/00_forensicface.ipynb 17
+# %% ../nbs/00_forensicface.ipynb 18
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -500,7 +524,7 @@ def extract_faces(
         every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
         margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0.
         start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.
-        
+
     Returns:
         The number of extracted faces.
     """
