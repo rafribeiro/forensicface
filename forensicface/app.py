@@ -546,9 +546,9 @@ def extract_faces(
 
         if (current_frame % every_n_frames) != 0:
             current_frame = current_frame + 1
-            vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
             continue
-
+        
+        vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame) 
         ret, frame = vs.read()
 
         if not ret:
