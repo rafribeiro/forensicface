@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import os.path as osp
 from glob import glob
+from imutils import build_montages
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 
@@ -398,6 +399,37 @@ class ForensicFace:
 
             ret.append(face_ret)
         return ret
+    
+    def build_mosaic(self, img_path_list, mosaic_shape, border=0.03, save_to = None):
+        """
+        Build a rectangular mosaic of images. Useful for displaying the aligned faces.
+        Based on the imutils build_montages function.
+        
+        Parameters:
+            img_path_list: list of paths to image files
+            mosaic_shape: tuple of integers, (n_cols, n_rows)
+            border: float, percent of image to use as white border
+        
+        Returns:
+            cv2 BGR image with mosaic
+        """
+        assert mosaic_shape is not None
+        top = int(border * 112)  # shape[0] = rows
+        bottom = top
+        left = int(border * 112)  # shape[1] = cols
+        right = left
+
+        imgs = []
+        for img_path in img_path_list:
+            ret = self.process_image_single_face(img_path)
+            if len(ret) > 0:
+                img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
+                img = cv2.copyMakeBorder(img,top=top, bottom=bottom,left=left, right=right, borderType=cv2.BORDER_CONSTANT, value=(255,255,255))
+                imgs.append(img)
+        mosaic = build_montages(imgs, image_shape=(int(112*(1+2*border)),int(112*(1+2*border))), montage_shape=mosaic_shape)[0]
+        if save_to is not None:
+            cv2.imwrite(save_to,mosaic)
+        return mosaic
 
 
 # %% ../nbs/00_forensicface.ipynb 9
@@ -547,8 +579,8 @@ def extract_faces(
         if (current_frame % every_n_frames) != 0:
             current_frame = current_frame + 1
             continue
-        
-        vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame) 
+
+        vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
         ret, frame = vs.read()
 
         if not ret:
