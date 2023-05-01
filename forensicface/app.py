@@ -402,7 +402,7 @@ class ForensicFace:
     
     def build_mosaic(self, img_path_list, mosaic_shape, border=0.03, save_to = None):
         """
-        Build a rectangular mosaic of images. Useful for displaying the aligned faces.
+        Build a rectangular mosaic of the aligned faces.
         Based on the imutils build_montages function.
         
         Parameters:
@@ -457,7 +457,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
 
 # %% ../nbs/00_forensicface.ipynb 12
 @patch
-def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
+def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method='mean'):
     """
     Aggregates multiple embeddings into a single embedding.
 
@@ -466,6 +466,9 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
             aggregated.
         weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
             to each embedding. If not provided, all embeddings are equally weighted.
+        
+        method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+            'mean' and 'median'.
 
     Returns:
         numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
@@ -473,17 +476,25 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None):
     if weights is None:
         weights = np.ones(embeddings.shape[0], dtype="int")
     assert embeddings.shape[0] == weights.shape[0]
-    return np.average(embeddings, axis=0, weights=weights)
+    assert method in ['mean', 'median']
+    if method == 'mean':
+        return np.average(embeddings, axis=0, weights=weights)
+    else:
+        weighted_embeddings = np.array([w*e for w,e in zip(weights,embeddings)])
+        return np.median(weighted_embeddings, axis=0)
 
 
 # %% ../nbs/00_forensicface.ipynb 13
 @patch
-def aggregate_from_images(self: ForensicFace, list_of_image_paths):
+def aggregate_from_images(self: ForensicFace, list_of_image_paths, method='mean', quality_weight=False):
     """
     Given a list of image paths, this method returns the average embedding of all faces found in the images.
 
     Args:
         list_of_image_paths (List[str]): List of paths to images.
+        method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+            'mean' and 'median'.
+        quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.
 
     Returns:
         Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
@@ -495,13 +506,14 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths):
         d = self.process_image(imgpath)
         if len(d) > 0:
             embeddings.append(d["embedding"])
+            weights.append(d["fiqa_score"] if quality_weight == True else 1.)
     if len(embeddings) > 0:
-        return self.aggregate_embeddings(np.array(embeddings))
+        return self.aggregate_embeddings(np.array(embeddings), method=method, weights=np.array(weights))
     else:
         return []
 
 
-# %% ../nbs/00_forensicface.ipynb 18
+# %% ../nbs/00_forensicface.ipynb 19
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
