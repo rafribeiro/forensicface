@@ -15,7 +15,6 @@ from imutils import build_montages
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 
-
 # %% ../nbs/00_forensicface.ipynb 3
 class ForensicFace:
     """
@@ -28,7 +27,6 @@ class ForensicFace:
         det_size: int = 320,
         use_gpu: bool = True,
         gpu: int = 0,  # which GPU to use
-        magface=False,
         extended=True,
     ):
         """
@@ -45,12 +43,21 @@ class ForensicFace:
         self.extended = extended
         if self.extended == True:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
+            self.ort_fiqa = onnxruntime.InferenceSession(
+                osp.join(
+                    osp.expanduser("~/.insightface/models"),
+                    model,
+                    "cr_fiqa",
+                    "cr_fiqa_l.onnx",
+                ),
+                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
+                if use_gpu
+                else ["CPUExecutionProvider"],
+            )
         else:
             allowed_modules = ["detection"]
 
         self.det_size = (det_size, det_size)
-
-        self.magface = magface
 
         self.model = model
 
@@ -79,32 +86,6 @@ class ForensicFace:
             else ["CPUExecutionProvider"],
         )
 
-        if self.magface:
-            self.ort_mag = onnxruntime.InferenceSession(
-                osp.join(
-                    osp.expanduser("~/.insightface/models"),
-                    model,
-                    "magface",
-                    "magface_iresnet100.onnx",
-                ),
-                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
-                if use_gpu
-                else ["CPUExecutionProvider"],
-            )
-
-        if model == "sepaelv2":
-            self.ort_fiqa = onnxruntime.InferenceSession(
-                osp.join(
-                    osp.expanduser("~/.insightface/models"),
-                    model,
-                    "cr_fiqa",
-                    "cr_fiqa_l.onnx",
-                ),
-                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
-                if use_gpu
-                else ["CPUExecutionProvider"],
-            )
-
     def _to_input_ada(self, aligned_bgr_img):
         """
         Preprocesses the input face for the face recognition model.
@@ -117,20 +98,6 @@ class ForensicFace:
         """
         _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
         _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
-        return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
-
-    def _to_input_mag(self, aligned_bgr_img):
-        """
-        Preprocesses the input face for the MagFace model.
-
-        Args:
-            face: Face image as a numpy array in BGR order.
-
-        Returns:
-            Preprocessed face image as a numpy array.
-        """
-        _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
-        _aligned_bgr_img = _aligned_bgr_img / 255.0
         return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, 112, 112)
 
     def get_most_central_face(self, img, faces):
@@ -259,6 +226,7 @@ class ForensicFace:
             gender = "M" if faces[idx].gender == 1 else "F"
             age = faces[idx].age
             pitch, yaw, roll = faces[idx].pose
+            _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
             ret = {
                 **ret,
                 **{
@@ -267,24 +235,9 @@ class ForensicFace:
                     "pitch": pitch,
                     "yaw": yaw,
                     "roll": roll,
+                    "fiqa_score": fiqa_score[0][0],
                 },
             }
-
-        if self.magface:
-            # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
-            mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
-            mag_norm = np.linalg.norm(mag_embedding)
-            ret = {
-                **ret,
-                **{
-                    "magface_embedding": mag_embedding,
-                    "magface_norm": mag_norm,
-                },
-            }
-
-        if self.model == "sepaelv2":
-            _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
-            ret = {**ret, "fiqa_score": fiqa_score[0][0]}
 
         return ret
 
@@ -372,6 +325,7 @@ class ForensicFace:
                 gender = "M" if face.gender == 1 else "F"
                 age = face.age
                 pitch, yaw, roll = face.pose
+                _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
                 face_ret = {
                     **face_ret,
                     **{
@@ -380,36 +334,24 @@ class ForensicFace:
                         "pitch": pitch,
                         "yaw": yaw,
                         "roll": roll,
+                        "fiqa_score": fiqa_score[0][0],
                     },
                 }
 
-            if self.magface:
-                # mag_inputs = {self.ort_mag.get_inputs()[0].name: self._to_input_mag(bgr_aligned_face)}
-                mag_embedding = self.ort_mag.run(None, ada_inputs)[0][0]
-                mag_norm = np.linalg.norm(mag_embedding)
-                face_ret = {
-                    **face_ret,
-                    **{"magface_embedding": mag_embedding, "magface_norm": mag_norm},
-                }
-
-            if self.model == "sepaelv2":
-                _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
-                face_ret = {**face_ret, "fiqa_score": fiqa_score[0][0]}
-                
-
             ret.append(face_ret)
+
         return ret
-    
-    def build_mosaic(self, img_path_list, mosaic_shape, border=0.03, save_to = None):
+
+    def build_mosaic(self, img_path_list, mosaic_shape, border=0.03, save_to=None):
         """
         Build a rectangular mosaic of the aligned faces.
         Based on the imutils build_montages function.
-        
+
         Parameters:
             img_path_list: list of paths to image files
             mosaic_shape: tuple of integers, (n_cols, n_rows)
             border: float, percent of image to use as white border
-        
+
         Returns:
             cv2 BGR image with mosaic
         """
@@ -424,15 +366,26 @@ class ForensicFace:
             ret = self.process_image_single_face(img_path)
             if len(ret) > 0:
                 img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
-                img = cv2.copyMakeBorder(img,top=top, bottom=bottom,left=left, right=right, borderType=cv2.BORDER_CONSTANT, value=(255,255,255))
+                img = cv2.copyMakeBorder(
+                    img,
+                    top=top,
+                    bottom=bottom,
+                    left=left,
+                    right=right,
+                    borderType=cv2.BORDER_CONSTANT,
+                    value=(255, 255, 255),
+                )
                 imgs.append(img)
-        mosaic = build_montages(imgs, image_shape=(int(112*(1+2*border)),int(112*(1+2*border))), montage_shape=mosaic_shape)[0]
+        mosaic = build_montages(
+            imgs,
+            image_shape=(int(112 * (1 + 2 * border)), int(112 * (1 + 2 * border))),
+            montage_shape=mosaic_shape,
+        )[0]
         if save_to is not None:
-            cv2.imwrite(save_to,mosaic)
+            cv2.imwrite(save_to, mosaic)
         return mosaic
 
-
-# %% ../nbs/00_forensicface.ipynb 9
+# %% ../nbs/00_forensicface.ipynb 8
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -454,10 +407,9 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
         img1data["norm"] * img2data["norm"]
     )
 
-
-# %% ../nbs/00_forensicface.ipynb 12
+# %% ../nbs/00_forensicface.ipynb 11
 @patch
-def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method='mean'):
+def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
     """
     Aggregates multiple embeddings into a single embedding.
 
@@ -466,7 +418,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method='m
             aggregated.
         weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
             to each embedding. If not provided, all embeddings are equally weighted.
-        
+
         method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
             'mean' and 'median'.
 
@@ -476,17 +428,18 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method='m
     if weights is None:
         weights = np.ones(embeddings.shape[0], dtype="int")
     assert embeddings.shape[0] == weights.shape[0]
-    assert method in ['mean', 'median']
-    if method == 'mean':
+    assert method in ["mean", "median"]
+    if method == "mean":
         return np.average(embeddings, axis=0, weights=weights)
     else:
-        weighted_embeddings = np.array([w*e for w,e in zip(weights,embeddings)])
+        weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
         return np.median(weighted_embeddings, axis=0)
 
-
-# %% ../nbs/00_forensicface.ipynb 13
+# %% ../nbs/00_forensicface.ipynb 12
 @patch
-def aggregate_from_images(self: ForensicFace, list_of_image_paths, method='mean', quality_weight=False):
+def aggregate_from_images(
+    self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
+):
     """
     Given a list of image paths, this method returns the average embedding of all faces found in the images.
 
@@ -500,20 +453,25 @@ def aggregate_from_images(self: ForensicFace, list_of_image_paths, method='mean'
         Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
         average embedding. Otherwise, returns an empty list.
     """
+    if quality_weight:
+        assert (
+            self.extended == True
+        ), "You must initialize ForensicFace with extended = True"
     embeddings = []
     weights = []
     for imgpath in list_of_image_paths:
         d = self.process_image(imgpath)
         if len(d) > 0:
             embeddings.append(d["embedding"])
-            weights.append(d["fiqa_score"] if quality_weight == True else 1.)
+            weights.append(d["fiqa_score"] if quality_weight == True else 1.0)
     if len(embeddings) > 0:
-        return self.aggregate_embeddings(np.array(embeddings), method=method, weights=np.array(weights))
+        return self.aggregate_embeddings(
+            np.array(embeddings), method=method, weights=np.array(weights)
+        )
     else:
         return []
 
-
-# %% ../nbs/00_forensicface.ipynb 19
+# %% ../nbs/00_forensicface.ipynb 16
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -587,7 +545,6 @@ def extract_faces(
     current_frame = start_frame
     nfaces = 0
     while True:
-
         if (current_frame % every_n_frames) != 0:
             current_frame = current_frame + 1
             continue
@@ -617,4 +574,3 @@ def extract_faces(
             nfaces += 1
     vs.release()
     return nfaces
-
