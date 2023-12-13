@@ -574,3 +574,18 @@ def extract_faces(
             nfaces += 1
     vs.release()
     return nfaces
+
+# %% ../nbs/00_forensicface.ipynb 20
+@patch
+def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
+    assert rgb_aligned_face.shape == (112, 112, 3)
+    bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
+    ada_inputs = {
+        self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
+    }
+    normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
+    ret = {"embedding": normalized_embedding.flatten() * norm.flatten()[0]}
+    if self.extended:
+        _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+        ret = {**ret, **{"fiqa_score": fiqa_score[0][0]}}
+    return ret

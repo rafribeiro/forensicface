@@ -15,9 +15,6 @@ Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
 O arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx)
 deve estar na pasta `~/.insightface/model/<model_name>/adaface/`
 
-O arquivo onnx do modelo magface (magface_iresnet100.onnx) deve estar na
-pasta `~/.insightface/model/<model_name>/magface/`
-
 O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
 estar na pasta `~/.insightface/model/<model_name>/cr_fiqa/`
 
@@ -35,7 +32,7 @@ from forensicface.app import ForensicFace
 Instanciamento do ForensicFace:
 
 ``` python
-ff = ForensicFace(det_size=320, use_gpu=True)
+ff = ForensicFace(det_size=320, use_gpu=True, extended=True)
 ```
 
     Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
@@ -57,6 +54,10 @@ results = ff.process_image_single_face("obama.png")
 results.keys()
 ```
 
+    /home/rafael/miniconda3/envs/ffdev/lib/python3.10/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+    To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+      P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4
+
     dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll', 'fiqa_score'])
 
 Comparar duas imagens faciais e obter o escore de similaridade.
@@ -65,7 +66,7 @@ Comparar duas imagens faciais e obter o escore de similaridade.
 ff.compare("obama.png", "obama2.png")
 ```
 
-    0.85562766
+    0.8556093
 
 Agregar embeddings de duas imagens faciais em uma única representação,
 com ponderação por qualidade
