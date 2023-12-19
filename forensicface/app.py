@@ -14,6 +14,7 @@ from glob import glob
 from imutils import build_montages
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
+from tqdm import tqdm
 
 # %% ../nbs/00_forensicface.ipynb 3
 class ForensicFace:
@@ -348,7 +349,7 @@ class ForensicFace:
         Based on the imutils build_montages function.
 
         Parameters:
-            img_path_list: list of paths to image files
+            img_path_list: list of paths to image files or list of bgr_images
             mosaic_shape: tuple of integers, (n_cols, n_rows)
             border: float, percent of image to use as white border
 
@@ -362,8 +363,14 @@ class ForensicFace:
         right = left
 
         imgs = []
+        list_of_arrays = False
         for img_path in img_path_list:
-            ret = self.process_image_single_face(img_path)
+            if type(img_path) == str:  # image path passed as argument
+                bgr_img = cv2.imread(imgpath)
+            else:  # image array passed as argument
+                list_of_arrays = True
+                bgr_img = img_path.copy()
+            ret = self.process_image_single_face(bgr_img)
             if len(ret) > 0:
                 img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
                 img = cv2.copyMakeBorder(
@@ -381,11 +388,15 @@ class ForensicFace:
             image_shape=(int(112 * (1 + 2 * border)), int(112 * (1 + 2 * border))),
             montage_shape=mosaic_shape,
         )[0]
+        if list_of_arrays:
+            print(
+                "WARNING: list of arrays passed as argument. Make sure image arrays are in BGR format."
+            )
         if save_to is not None:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-# %% ../nbs/00_forensicface.ipynb 8
+# %% ../nbs/00_forensicface.ipynb 9
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -407,7 +418,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
         img1data["norm"] * img2data["norm"]
     )
 
-# %% ../nbs/00_forensicface.ipynb 11
+# %% ../nbs/00_forensicface.ipynb 12
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
     """
@@ -435,7 +446,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="m
         weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
         return np.median(weighted_embeddings, axis=0)
 
-# %% ../nbs/00_forensicface.ipynb 12
+# %% ../nbs/00_forensicface.ipynb 13
 @patch
 def aggregate_from_images(
     self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
@@ -471,7 +482,7 @@ def aggregate_from_images(
     else:
         return []
 
-# %% ../nbs/00_forensicface.ipynb 16
+# %% ../nbs/00_forensicface.ipynb 17
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -539,43 +550,49 @@ def extract_faces(
     vs = cv2.VideoCapture(video_path)
     fps = vs.get(cv2.CAP_PROP_FPS)
     start_frame = int(fps * start_from)
+    total_frames = int(vs.get(cv2.CAP_PROP_FRAME_COUNT)) // every_n_frames
 
     # seek to starting frame
     vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     current_frame = start_frame
     nfaces = 0
-    while True:
-        if (current_frame % every_n_frames) != 0:
+    with tqdm(
+        total=total_frames,
+        bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
+    ) as pbar:
+        while True:
+            if (current_frame % every_n_frames) != 0:
+                current_frame = current_frame + 1
+                continue
+
+            vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+            ret, frame = vs.read()
+
+            if not ret:
+                break
             current_frame = current_frame + 1
-            continue
+            (h, w) = frame.shape[:2]
 
-        vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-        ret, frame = vs.read()
-
-        if not ret:
-            break
-        current_frame = current_frame + 1
-        (h, w) = frame.shape[:2]
-
-        faces = self.detectmodel.get(frame)
-        for i, face in enumerate(faces):
-            startX, startY, endX, endY = face.bbox.astype("int")
-            faceW = endX - startX
-            faceH = endY - startY
-            outBbox = self._get_extended_bbox(
-                face.bbox, frame.shape, margin_factor=margin
-            )
-            # export the face (with added margin)
-            face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
-            face_img_path = os.path.join(
-                dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
-            )
-            cv2.imwrite(face_img_path, face_crop)
-            nfaces += 1
+            faces = self.detectmodel.get(frame)
+            for i, face in enumerate(faces):
+                startX, startY, endX, endY = face.bbox.astype("int")
+                faceW = endX - startX
+                faceH = endY - startY
+                outBbox = self._get_extended_bbox(
+                    face.bbox, frame.shape, margin_factor=margin
+                )
+                # export the face (with added margin)
+                face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
+                face_img_path = os.path.join(
+                    dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
+                )
+                cv2.imwrite(face_img_path, face_crop)
+                nfaces += 1
+            pbar.update(1)
     vs.release()
     return nfaces
 
-# %% ../nbs/00_forensicface.ipynb 20
+# %% ../nbs/00_forensicface.ipynb 21
 @patch
 def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
     assert rgb_aligned_face.shape == (112, 112, 3)
