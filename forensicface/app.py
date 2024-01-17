@@ -364,13 +364,10 @@ class ForensicFace:
 
         imgs = []
         list_of_arrays = False
-        for img_path in img_path_list:
-            if type(img_path) == str:  # image path passed as argument
-                bgr_img = cv2.imread(imgpath)
-            else:  # image array passed as argument
+        for img in img_path_list:
+            if type(img) != str:  # image array passed as argument
                 list_of_arrays = True
-                bgr_img = img_path.copy()
-            ret = self.process_image_single_face(bgr_img)
+            ret = self.process_image_single_face(img)
             if len(ret) > 0:
                 img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
                 img = cv2.copyMakeBorder(
