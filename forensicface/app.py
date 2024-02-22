@@ -51,9 +51,11 @@ class ForensicFace:
                     "cr_fiqa",
                     "cr_fiqa_l.onnx",
                 ),
-                providers=[("CUDAExecutionProvider", {"device_id": gpu})]
-                if use_gpu
-                else ["CPUExecutionProvider"],
+                providers=(
+                    [("CUDAExecutionProvider", {"device_id": gpu})]
+                    if use_gpu
+                    else ["CPUExecutionProvider"]
+                ),
             )
         else:
             allowed_modules = ["detection"]
@@ -65,9 +67,11 @@ class ForensicFace:
         self.detectmodel = FaceAnalysis(
             name=model,
             allowed_modules=allowed_modules,
-            providers=[("CUDAExecutionProvider", {"device_id": gpu})]
-            if use_gpu
-            else ["CPUExecutionProvider"],
+            providers=(
+                [("CUDAExecutionProvider", {"device_id": gpu})]
+                if use_gpu
+                else ["CPUExecutionProvider"]
+            ),
         )
         self.detectmodel.prepare(ctx_id=gpu if use_gpu else -1, det_size=self.det_size)
 
@@ -82,9 +86,11 @@ class ForensicFace:
         assert len(onnx_rec_model) == 1
         self.ort_ada = onnxruntime.InferenceSession(
             onnx_rec_model[0],
-            providers=[("CUDAExecutionProvider", {"device_id": gpu})]
-            if use_gpu
-            else ["CPUExecutionProvider"],
+            providers=(
+                [("CUDAExecutionProvider", {"device_id": gpu})]
+                if use_gpu
+                else ["CPUExecutionProvider"]
+            ),
         )
 
     def _to_input_ada(self, aligned_bgr_img):
@@ -558,16 +564,16 @@ def extract_faces(
         bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
     ) as pbar:
         while True:
-            if (current_frame % every_n_frames) != 0:
-                current_frame = current_frame + 1
-                continue
 
-            vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
             ret, frame = vs.read()
 
             if not ret:
                 break
+
             current_frame = current_frame + 1
+            if (current_frame % every_n_frames) != 0:
+                continue
+
             (h, w) = frame.shape[:2]
 
             faces = self.detectmodel.get(frame)
