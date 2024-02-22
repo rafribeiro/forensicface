@@ -1,0 +1,112 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "forensicface",
+    "section": "",
+    "text": "pip install forensicface\nOs arquivos onnx dos modelos de detecção (det_10g.onnx), pose (1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta ~/.insightface/model/&lt;model_name&gt;/\nO arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/&lt;model_name&gt;/adaface/\nO arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve estar na pasta ~/.insightface/model/&lt;model_name&gt;/cr_fiqa/\nO modelo padrão é denominado sepaelv2. A partir da versão 0.1.5 é possível utilizar outros modelos.",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "forensicface",
+    "section": "",
+    "text": "pip install forensicface\nOs arquivos onnx dos modelos de detecção (det_10g.onnx), pose (1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta ~/.insightface/model/&lt;model_name&gt;/\nO arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta ~/.insightface/model/&lt;model_name&gt;/adaface/\nO arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve estar na pasta ~/.insightface/model/&lt;model_name&gt;/cr_fiqa/\nO modelo padrão é denominado sepaelv2. A partir da versão 0.1.5 é possível utilizar outros modelos.",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "index.html#como-utilizar",
+    "href": "index.html#como-utilizar",
+    "title": "forensicface",
+    "section": "Como utilizar",
+    "text": "Como utilizar\nImportação da classe ForensicFace:\n\nfrom forensicface.app import ForensicFace\n\nInstanciamento do ForensicFace:\n\nff = ForensicFace(det_size=320, use_gpu=True, extended=True)\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0\nset det-size: (320, 320)",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "index.html#processamento-básico-de-imagens",
+    "href": "index.html#processamento-básico-de-imagens",
+    "title": "forensicface",
+    "section": "Processamento básico de imagens",
+    "text": "Processamento básico de imagens\nObter pontos de referência, distância interpupilar, representação vetorial, a face alinhada com dimensão fixa (112x112), estimativas de sexo, idade, pose (pitch, yaw, roll) e qualidade.\n\nresults = ff.process_image_single_face(\"obama.png\")\nresults.keys()\n\n/home/rafael/miniconda3/envs/ffdev/lib/python3.10/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.\nTo use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.\n  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4\n\n\ndict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll', 'fiqa_score'])\n\n\nComparar duas imagens faciais e obter o escore de similaridade.\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.8556093\n\n\nAgregar embeddings de duas imagens faciais em uma única representação, com ponderação por qualidade\n\nagg = ff.aggregate_from_images([\"obama.png\", \"obama2.png\"], quality_weight=True)\nagg.shape\n\n(512,)",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "index.html#estimativa-de-qualidade-cr-fiqa",
+    "href": "index.html#estimativa-de-qualidade-cr-fiqa",
+    "title": "forensicface",
+    "section": "Estimativa de qualidade CR-FIQA",
+    "text": "Estimativa de qualidade CR-FIQA\nEstimativa de qualidade pelo método CR-FIQA\nPara desabilitar, instancie o forensicface com a opção extended = False:\nff = ForensicFace(extended=False)\nObs.: a opção extended = False também desabilita as estimativas de sexo, idade e pose.\n\ngood = ff.process_image(\"001_frontal.jpg\")\nbad = ff.process_image(\"001_cam1_1.jpg\")\ngood[\"fiqa_score\"], bad[\"fiqa_score\"]\n\n(2.3786173, 1.4386057)",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "index.html#crédito-dos-modelos-utilizados",
+    "href": "index.html#crédito-dos-modelos-utilizados",
+    "title": "forensicface",
+    "section": "Crédito dos modelos utilizados",
+    "text": "Crédito dos modelos utilizados\n\nDetecção, gênero (M/F), idade e pose (pitch, yaw, roll): insightface\nReconhecimento: adaface\nEstimativa de qualidade: CR-FIQA",
+    "crumbs": [
+      "forensicface"
+    ]
+  },
+  {
+    "objectID": "forensicface.html",
+    "href": "forensicface.html",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "",
+    "text": "source",
+    "crumbs": [
+      "forensicface--A tool for forensic face examination"
+    ]
+  },
+  {
+    "objectID": "forensicface.html#comparação-entre-duas-imagens",
+    "href": "forensicface.html#comparação-entre-duas-imagens",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "Comparação entre duas imagens",
+    "text": "Comparação entre duas imagens\n\nsource\n\nForensicFace.compare\n\n ForensicFace.compare (img1path:str, img2path:str)\n\nCompares the similarity between two face images based on their embeddings.\nParameters: - img1path (str): Path to the first image file - img2path (str): Path to the second image file\nReturns: A float representing the similarity score between the two faces based on their embeddings. The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.\n\nff.compare(\"obama.png\", \"obama2.png\")\n\n0.85562766",
+    "crumbs": [
+      "forensicface--A tool for forensic face examination"
+    ]
+  },
+  {
+    "objectID": "forensicface.html#agregação-de-embeddings",
+    "href": "forensicface.html#agregação-de-embeddings",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "Agregação de embeddings",
+    "text": "Agregação de embeddings\n\nsource\n\nForensicFace.aggregate_embeddings\n\n ForensicFace.aggregate_embeddings (embeddings, weights=None,\n                                    method='mean')\n\nAggregates multiple embeddings into a single embedding.\nArgs: embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated. weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned to each embedding. If not provided, all embeddings are equally weighted.\nmethod (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are\n    'mean' and 'median'.\nReturns: numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.\n\nsource\n\n\nForensicFace.aggregate_from_images\n\n ForensicFace.aggregate_from_images (list_of_image_paths, method='mean',\n                                     quality_weight=False)\n\nGiven a list of image paths, this method returns the average embedding of all faces found in the images.\nArgs: list_of_image_paths (List[str]): List of paths to images. method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are ‘mean’ and ‘median’. quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.\nReturns: Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the average embedding. Otherwise, returns an empty list.\n\nff = ForensicFace(extended=True)\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0\nset det-size: (320, 320)\n\n\n\naggregated = ff.aggregate_from_images([\"obama.png\", \"obama2.png\"], quality_weight=True)\naggregated.shape\n\n(512,)",
+    "crumbs": [
+      "forensicface--A tool for forensic face examination"
+    ]
+  },
+  {
+    "objectID": "forensicface.html#extração-de-faces-de-vídeos-com-margem",
+    "href": "forensicface.html#extração-de-faces-de-vídeos-com-margem",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "Extração de faces de vídeos com margem",
+    "text": "Extração de faces de vídeos com margem\n\nsource\n\nForensicFace.extract_faces\n\n ForensicFace.extract_faces (video_path:str, dest_folder:str=None,\n                             every_n_frames:int=1, margin:float=2.0,\n                             start_from:float=0.0)\n\nExtracts faces from a video and saves them as individual images.\nParameters: video_path (str): The path to the input video file. dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created. every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames). margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0. start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.\nReturns: The number of extracted faces.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nvideo_path\nstr\n\npath to video file\n\n\ndest_folder\nstr\nNone\nfolder used to save extracted faces. If not provided, a new folder with the video name is created\n\n\nevery_n_frames\nint\n1\nskip some frames\n\n\nmargin\nfloat\n2.0\nmargin to add to each face, w.r.t. detected bounding box\n\n\nstart_from\nfloat\n0.0\nseconds after video start to begin processing\n\n\n\n\nff = ForensicFace()\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0\nset det-size: (320, 320)\n\n\n\nff.extract_faces(\n    video_path=\"/home/rafael/video/video.mp4\",\n    start_from=0,\n    every_n_frames=1,\n    dest_folder=\"/home/rafael/video_faces\",\n)\n\nFrames processed: 0/4973 | Time elapsed: 00:00/home/rafael/miniconda3/envs/ffdev/lib/python3.10/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.\nTo use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.\n  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4\nFrames processed: 4973/4973 | Time elapsed: 01:22\n\n\n2011",
+    "crumbs": [
+      "forensicface--A tool for forensic face examination"
+    ]
+  },
+  {
+    "objectID": "forensicface.html#processing-aligned-images",
+    "href": "forensicface.html#processing-aligned-images",
+    "title": "forensicface–A tool for forensic face examination",
+    "section": "Processing aligned images",
+    "text": "Processing aligned images\n\nsource\n\nForensicFace.process_aligned_face_image\n\n ForensicFace.process_aligned_face_image (rgb_aligned_face:numpy.ndarray)\n\n\nff = ForensicFace(extended=True)\n\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0\nApplied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}\nfind model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0\nset det-size: (320, 320)\n\n\n\nret = ff.process_image_single_face(\"obama.png\")\nret2 = ff.process_aligned_face_image(ret[\"aligned_face\"])\n\n\nnp.allclose(ret[\"embedding\"], ret2[\"embedding\"])\n\nTrue\n\n\n\nret[\"fiqa_score\"], ret2[\"fiqa_score\"]\n\n(2.1983922, 2.1983922)",
+    "crumbs": [
+      "forensicface--A tool for forensic face examination"
+    ]
+  }
+]
