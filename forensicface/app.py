@@ -29,6 +29,7 @@ class ForensicFace:
         use_gpu: bool = True,
         gpu: int = 0,  # which GPU to use
         extended=True,
+        det_thresh: float = 0.5,
     ):
         """
         A face comparison tool for forensic analysis and comparison of facial images.
@@ -38,8 +39,8 @@ class ForensicFace:
         - det_size (int): The size of the input images for face detection (default: 320).
         - use_gpu (bool): Whether to use a GPU for inference (default: True).
         - gpu (int): The ID of the GPU to use (default: 0).
-        - magface (bool): Whether to use MagFace for face recognition (default: False).
         - extended (bool): Whether to use extended modules (detection, landmark_3d_68, genderage) (default: True).
+        - det_thresh (float): threshold for the face detector (default = 0.5).
         """
         self.extended = extended
         if self.extended == True:
@@ -61,6 +62,7 @@ class ForensicFace:
             allowed_modules = ["detection"]
 
         self.det_size = (det_size, det_size)
+        self.det_thresh = det_thresh
 
         self.model = model
 
@@ -73,7 +75,11 @@ class ForensicFace:
                 else ["CPUExecutionProvider"]
             ),
         )
-        self.detectmodel.prepare(ctx_id=gpu if use_gpu else -1, det_size=self.det_size)
+        self.detectmodel.prepare(
+            ctx_id=gpu if use_gpu else -1,
+            det_size=self.det_size,
+            det_thresh=self.det_thresh,
+        )
 
         onnx_rec_model = glob(
             osp.join(
@@ -194,12 +200,7 @@ class ForensicFace:
 
                 - 'roll': A float representing the roll angle for each face in the image.
 
-                If the 'magface' attribute is set to True, the dictionary will also contain the following keys:
-                - 'magface_embedding': A 1D numpy array of shape (512,) containing the magface
-                                          embedding for each face in the image.
-
-                - 'magface_norm': A float representing the L2 norm of the magface embedding for
-                                     each face in the image.
+                - 'det_score': A float representing the face detection score.
         """
         if type(imgpath) == str:  # image path passed as argument
             bgr_img = cv2.imread(imgpath)
@@ -214,6 +215,7 @@ class ForensicFace:
         bbox = faces[idx].bbox.astype("int")
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
         ipd = np.linalg.norm(kps[0] - kps[1])
+        det_score = faces[idx].det_score
 
         ada_inputs = {
             self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
@@ -226,6 +228,7 @@ class ForensicFace:
             "embedding": normalized_embedding.flatten() * norm.flatten()[0],
             "norm": norm.flatten()[0],
             "bbox": bbox,
+            "det_score": det_score,
             "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
         }
 
@@ -289,12 +292,9 @@ class ForensicFace:
 
             - 'roll: A float representing the roll angle for each face in the image.
 
-         If the 'magface' attribute is set to True, the dictionary will also contain the following keys:
-            - 'magface_embedding': A 1D numpy array of shape (512,) containing the magface
-                                    embedding for each face in the image.
+            - 'fiqa_score': A float representing image quality estimated by the CR-FIQA(L) model (https://doi.org/10.1109/CVPR52729.2023.00565).
 
-            - 'magface_norm': A float representing the L2 norm of the magface embedding for
-                                each face in the image.
+            - 'det_score': A float representing the face detection score
 
         Args:
             - imgpath (str): The file path to the image to be processed.
@@ -315,6 +315,7 @@ class ForensicFace:
             bbox = face.bbox.astype("int")
             bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
             ipd = np.linalg.norm(kps[0] - kps[1])
+            det_score = face.det_score
             ada_inputs = {
                 self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
             }
@@ -325,6 +326,7 @@ class ForensicFace:
                 "embedding": normalized_embedding.flatten() * norm.flatten()[0],
                 "norm": norm.flatten()[0],
                 "bbox": bbox,
+                "det_score": det_score,
                 "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
             }
 
