@@ -44,4 +44,6 @@ d = { 'settings': { 'branch': 'main',
                                            'forensicface.forensicface.ForensicFace.get_most_central_face': ( 'forensicface.html#forensicface.get_most_central_face',
                                                                                                              'forensicface/forensicface.py'),
                                            'forensicface.forensicface.ForensicFace.process_image': ( 'forensicface.html#forensicface.process_image',
-                                                                                                     'forensicface/forensicface.py')}}}
+                                                                                                     'forensicface/forensicface.py')},
+            'forensicface.utils': { 'forensicface.utils.compute_ss_ds': ('cosine.html#compute_ss_ds', 'forensicface/utils.py'),
+                                    'forensicface.utils.cosine_similarity': ('cosine.html#cosine_similarity', 'forensicface/utils.py')}}}
