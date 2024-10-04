@@ -10,16 +10,15 @@ pip install forensicface
 
 Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
 (1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta
-`~/.insightface/model/<model_name>/`
+`~/.insightface/models/<model_name>/`
 
 O arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx)
-deve estar na pasta `~/.insightface/model/<model_name>/adaface/`
+deve estar na pasta `~/.insightface/models/<model_name>/adaface/`
 
 O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
-estar na pasta `~/.insightface/model/<model_name>/cr_fiqa/`
+estar na pasta `~/.insightface/models/<model_name>/cr_fiqa/`
 
-O modelo padrão é denominado `sepaelv2`. A partir da versão 0.1.5 é
-possível utilizar outros modelos.
+O modelo padrão é denominado `sepaelv2`. Se você utilizar `sepaelv2` como <model_name> não será preciso passar o nome do modelo durante a inicialização.
 
 ## Como utilizar
 
