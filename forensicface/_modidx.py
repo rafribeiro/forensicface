@@ -45,6 +45,9 @@ d = { 'settings': { 'branch': 'main',
                                                                                                              'forensicface/forensicface.py'),
                                            'forensicface.forensicface.ForensicFace.process_image': ( 'forensicface.html#forensicface.process_image',
                                                                                                      'forensicface/forensicface.py')},
-            'forensicface.utils': { 'forensicface.utils.compute_ss_ds': ('utils.html#compute_ss_ds', 'forensicface/utils.py'),
+            'forensicface.utils': { 'forensicface.utils.annotate_img_with_kps': ( 'utils.html#annotate_img_with_kps',
+                                                                                  'forensicface/utils.py'),
+                                    'forensicface.utils.compute_ss_ds': ('utils.html#compute_ss_ds', 'forensicface/utils.py'),
                                     'forensicface.utils.cosine_similarity': ('utils.html#cosine_similarity', 'forensicface/utils.py'),
-                                    'forensicface.utils.freeze_env': ('utils.html#freeze_env', 'forensicface/utils.py')}}}
+                                    'forensicface.utils.freeze_env': ('utils.html#freeze_env', 'forensicface/utils.py'),
+                                    'forensicface.utils.transform_keypoints': ('utils.html#transform_keypoints', 'forensicface/utils.py')}}}

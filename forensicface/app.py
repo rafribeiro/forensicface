@@ -15,7 +15,7 @@ from imutils import build_montages
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 from tqdm import tqdm
-from .utils import freeze_env
+from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
 
 # %% ../nbs/00_forensicface.ipynb 3
 class ForensicFace:
@@ -164,12 +164,15 @@ class ForensicFace:
         idx = areas.index(max(areas))
         return idx, faces[idx].kps
 
-    def process_image_single_face(self, imgpath: str):  # Path to image to be processed
+    def process_image_single_face(
+        self, imgpath: str, draw_keypoints=False
+    ):  # Path to image to be processed
         """
         Process a an image considering it has a single face and extract useful features for forensic analysis.
 
         Args:
-            imgpath: Path to the input image.
+            - imgpath (str): Path to the input image.
+            - draw_keypoints (bool): If set to True, draw keypoints used to face alignment into the aligned face.
 
         Returns:
             A dictionary containing the following keys:
@@ -217,6 +220,13 @@ class ForensicFace:
 
         bbox = faces[idx].bbox.astype("int")
         bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
+        if draw_keypoints == True:
+            M = face_align.estimate_norm(kps)
+            aligned_kps = transform_keypoints(keypoints=kps, M=M)
+            bgr_aligned_face = annotate_img_with_kps(
+                bgr_aligned_face, kps=aligned_kps, color="green"
+            )
+
         ipd = np.linalg.norm(kps[0] - kps[1])
         det_score = faces[idx].det_score
 
@@ -254,12 +264,11 @@ class ForensicFace:
 
         return ret
 
-    def process_image(self, imgpath):
-        return self.process_image_single_face(imgpath)
+    def process_image(self, imgpath, draw_keypoints=False):
+        return self.process_image_single_face(imgpath, draw_keypoints)
 
     def process_image_multiple_faces(
-        self,
-        imgpath: str,  # Path to image to be processed
+        self, imgpath: str, draw_keypoints=False  # Path to image to be processed
     ):
         """
         Process an image with one or multiple faces and returns a list of dictionaries
@@ -301,6 +310,7 @@ class ForensicFace:
 
         Args:
             - imgpath (str): The file path to the image to be processed.
+            - draw_keypoints (bool): If set to True, draw keypoints used to face alignment into the aligned face.
 
         Returns:
             - A list of dictionaries, with each dictionary representing a face in the image.
@@ -317,6 +327,13 @@ class ForensicFace:
             kps = face.kps
             bbox = face.bbox.astype("int")
             bgr_aligned_face = face_align.norm_crop(bgr_img, kps)
+            if draw_keypoints == True:
+                M = face_align.estimate_norm(kps)
+                aligned_kps = transform_keypoints(keypoints=kps, M=M)
+                bgr_aligned_face = annotate_img_with_kps(
+                    bgr_aligned_face, kps=aligned_kps, color="green"
+                )
+
             ipd = np.linalg.norm(kps[0] - kps[1])
             det_score = face.det_score
             ada_inputs = {
@@ -404,7 +421,7 @@ class ForensicFace:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-# %% ../nbs/00_forensicface.ipynb 10
+# %% ../nbs/00_forensicface.ipynb 11
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -426,7 +443,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
         img1data["norm"] * img2data["norm"]
     )
 
-# %% ../nbs/00_forensicface.ipynb 13
+# %% ../nbs/00_forensicface.ipynb 14
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
     """
@@ -454,7 +471,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="m
         weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
         return np.median(weighted_embeddings, axis=0)
 
-# %% ../nbs/00_forensicface.ipynb 14
+# %% ../nbs/00_forensicface.ipynb 15
 @patch
 def aggregate_from_images(
     self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
@@ -490,7 +507,7 @@ def aggregate_from_images(
     else:
         return []
 
-# %% ../nbs/00_forensicface.ipynb 18
+# %% ../nbs/00_forensicface.ipynb 19
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -600,7 +617,7 @@ def extract_faces(
     vs.release()
     return nfaces
 
-# %% ../nbs/00_forensicface.ipynb 22
+# %% ../nbs/00_forensicface.ipynb 23
 @patch
 def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
     assert rgb_aligned_face.shape == (112, 112, 3)
