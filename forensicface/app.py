@@ -421,7 +421,7 @@ class ForensicFace:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-# %% ../nbs/00_forensicface.ipynb 11
+# %% ../nbs/00_forensicface.ipynb 10
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -443,7 +443,7 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
         img1data["norm"] * img2data["norm"]
     )
 
-# %% ../nbs/00_forensicface.ipynb 14
+# %% ../nbs/00_forensicface.ipynb 13
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
     """
@@ -471,7 +471,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="m
         weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
         return np.median(weighted_embeddings, axis=0)
 
-# %% ../nbs/00_forensicface.ipynb 15
+# %% ../nbs/00_forensicface.ipynb 14
 @patch
 def aggregate_from_images(
     self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
@@ -507,7 +507,7 @@ def aggregate_from_images(
     else:
         return []
 
-# %% ../nbs/00_forensicface.ipynb 19
+# %% ../nbs/00_forensicface.ipynb 18
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -617,7 +617,7 @@ def extract_faces(
     vs.release()
     return nfaces
 
-# %% ../nbs/00_forensicface.ipynb 23
+# %% ../nbs/00_forensicface.ipynb 22
 @patch
 def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
     assert rgb_aligned_face.shape == (112, 112, 3)

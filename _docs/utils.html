@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="A package for forensic face examination">
+<meta name="description" content="Numpy-based cosine similarity optimized to generate same- and different-source scores">
 
-<title>forensicface</title>
+<title>Utilities – forensicface</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -104,11 +104,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="forensicface">
-<meta property="og:description" content="A package for forensic face examination">
+<meta property="og:title" content="Utilities – forensicface">
+<meta property="og:description" content="Numpy-based cosine similarity optimized to generate same- and different-source scores">
 <meta property="og:site_name" content="forensicface">
-<meta name="twitter:title" content="forensicface">
-<meta name="twitter:description" content="A package for forensic face examination">
+<meta name="twitter:title" content="Utilities – forensicface">
+<meta name="twitter:description" content="Numpy-based cosine similarity optimized to generate same- and different-source scores">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -133,7 +133,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">forensicface</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./utils.html">Utilities</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -147,7 +147,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">forensicface</span></a>
   </div>
 </li>
@@ -159,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+  <a href="./utils.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Utilities</span></a>
   </div>
 </li>
@@ -173,11 +173,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
-  <li><a href="#como-utilizar" id="toc-como-utilizar" class="nav-link" data-scroll-target="#como-utilizar">Como utilizar</a></li>
-  <li><a href="#processamento-básico-de-imagens" id="toc-processamento-básico-de-imagens" class="nav-link" data-scroll-target="#processamento-básico-de-imagens">Processamento básico de imagens</a></li>
-  <li><a href="#estimativa-de-qualidade-cr-fiqa" id="toc-estimativa-de-qualidade-cr-fiqa" class="nav-link" data-scroll-target="#estimativa-de-qualidade-cr-fiqa">Estimativa de qualidade CR-FIQA</a></li>
-  <li><a href="#crédito-dos-modelos-utilizados" id="toc-crédito-dos-modelos-utilizados" class="nav-link" data-scroll-target="#crédito-dos-modelos-utilizados">Crédito dos modelos utilizados</a></li>
+  <li><a href="#cosine_similarity" id="toc-cosine_similarity" class="nav-link active" data-scroll-target="#cosine_similarity">cosine_similarity</a></li>
+  <li><a href="#compute_ss_ds" id="toc-compute_ss_ds" class="nav-link" data-scroll-target="#compute_ss_ds">compute_ss_ds</a></li>
+  <li><a href="#freeze_env" id="toc-freeze_env" class="nav-link" data-scroll-target="#freeze_env">freeze_env</a></li>
+  <li><a href="#transform_keypoints" id="toc-transform_keypoints" class="nav-link" data-scroll-target="#transform_keypoints">transform_keypoints</a></li>
+  <li><a href="#annotate_img_with_kps" id="toc-annotate_img_with_kps" class="nav-link" data-scroll-target="#annotate_img_with_kps">annotate_img_with_kps</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -186,12 +186,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">forensicface</h1>
+<h1 class="title">Utilities</h1>
 </div>
 
 <div>
   <div class="description">
-    A package for forensic face examination
+    Numpy-based cosine similarity optimized to generate same- and different-source scores
   </div>
 </div>
 
@@ -209,87 +209,250 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<section id="install" class="level2">
-<h2 class="anchored" data-anchor-id="install">Install</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install forensicface</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose (1k3d68.onnx) e gênero/idade (genderage.onnx) devem estar na pasta <code>~/.insightface/model/&lt;model_name&gt;/</code></p>
-<p>O arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx) deve estar na pasta <code>~/.insightface/model/&lt;model_name&gt;/adaface/</code></p>
-<p>O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve estar na pasta <code>~/.insightface/model/&lt;model_name&gt;/cr_fiqa/</code></p>
-<p>O modelo padrão é denominado <code>sepaelv2</code>. A partir da versão 0.1.5 é possível utilizar outros modelos.</p>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/utils.py#L10" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="cosine_similarity" class="level3">
+<h3 class="anchored" data-anchor-id="cosine_similarity">cosine_similarity</h3>
+<blockquote class="blockquote">
+<pre><code> cosine_similarity (X, Z)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/utils.py#L22" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="como-utilizar" class="level2">
-<h2 class="anchored" data-anchor-id="como-utilizar">Como utilizar</h2>
-<p>Importação da classe ForensicFace:</p>
+<section id="compute_ss_ds" class="level3">
+<h3 class="anchored" data-anchor-id="compute_ss_ds">compute_ss_ds</h3>
+<blockquote class="blockquote">
+<pre><code> compute_ss_ds (X, x_id, x_names=None, Z=None, z_id=None, z_names=None)</code></pre>
+</blockquote>
+<p>*Compute cosine similarities between the cartesian product of two arrays X and Z and return same-source (ss) and different-source (ds) scores. If only the array X and x_id are provided, compute the cosine similarities between all pairwise combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.</p>
+<p>Inputs: X, Z: 2d numpy arrays with embeddings (1 per line) x_id, z_id: 1d numpy arrays with identity labels x_names, z_names: 1d numpy arrays with names of files associated with the embeddings</p>
+<p>Returns: scores: 1d numpy array with scores y: 1d numpy arrays with ss (1) and ds (0) labels to the scores array names: list of tuples with names of files associated with each score*</p>
+<div id="cell-4" class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example usage</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.rand(<span class="dv">4</span>, <span class="dv">128</span>)  <span class="co"># 4 embeddings of dimension 128</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>x_id <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>])  <span class="co"># Identity labels</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>x_names <span class="op">=</span> np.array([<span class="st">"0_a.jpg"</span>, <span class="st">"0_b.jpg"</span>, <span class="st">"1_a.jpg"</span>, <span class="st">"1_b.jpg"</span>])</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>Z <span class="op">=</span> np.random.rand(<span class="dv">4</span>, <span class="dv">128</span>)  <span class="co"># 4 embeddings of dimension 128</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>z_id <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>])  <span class="co"># Identity labels</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>z_names <span class="op">=</span> np.array([<span class="st">"0_c.jpg"</span>, <span class="st">"1_c.jpg"</span>, <span class="st">"1_d.jpg"</span>, <span class="st">"2_a.jpg"</span>])</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    X<span class="op">=</span>X, x_id<span class="op">=</span>x_id, x_names<span class="op">=</span>x_names, Z<span class="op">=</span>Z, z_id<span class="op">=</span>z_id, z_names<span class="op">=</span>z_names</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(array([0.7261676 , 0.76134557, 0.78772832, 0.76922003, 0.74130075,
+        0.75798372, 0.77273163, 0.75997033, 0.76467846, 0.71801777,
+        0.75326126, 0.73211696, 0.72354578, 0.78339759, 0.74410164,
+        0.74325012]),
+ array([1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]),
+ [('0_a.jpg', '0_c.jpg'),
+  ('0_b.jpg', '0_c.jpg'),
+  ('1_a.jpg', '1_c.jpg'),
+  ('1_a.jpg', '1_d.jpg'),
+  ('1_b.jpg', '1_c.jpg'),
+  ('1_b.jpg', '1_d.jpg'),
+  ('0_a.jpg', '1_c.jpg'),
+  ('0_a.jpg', '1_d.jpg'),
+  ('0_a.jpg', '2_a.jpg'),
+  ('0_b.jpg', '1_c.jpg'),
+  ('0_b.jpg', '1_d.jpg'),
+  ('0_b.jpg', '2_a.jpg'),
+  ('1_a.jpg', '0_c.jpg'),
+  ('1_a.jpg', '2_a.jpg'),
+  ('1_b.jpg', '0_c.jpg'),
+  ('1_b.jpg', '2_a.jpg')])</code></pre>
+</div>
+</div>
+<div id="cell-5" class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id, Z<span class="op">=</span>Z, z_id<span class="op">=</span>z_id)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(array([0.7261676 , 0.76134557, 0.78772832, 0.76922003, 0.74130075,
+        0.75798372, 0.77273163, 0.75997033, 0.76467846, 0.71801777,
+        0.75326126, 0.73211696, 0.72354578, 0.78339759, 0.74410164,
+        0.74325012]),
+ array([1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]),
+ None)</code></pre>
+</div>
+</div>
+<div id="cell-6" class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id, x_names<span class="op">=</span>x_names)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(array([0.75920622, 0.77365152, 0.76394119, 0.78708138, 0.75681996,
+        0.79128601]),
+ array([1., 1., 0., 0., 0., 0.]),
+ [('0_a.jpg', '0_b.jpg'),
+  ('1_a.jpg', '1_b.jpg'),
+  ('0_a.jpg', '1_a.jpg'),
+  ('0_a.jpg', '1_b.jpg'),
+  ('0_b.jpg', '1_a.jpg'),
+  ('0_b.jpg', '1_b.jpg')])</code></pre>
+</div>
+</div>
 <div id="cell-7" class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> forensicface.app <span class="im">import</span> ForensicFace</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Instanciamento do ForensicFace:</p>
-<div id="cell-9" class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(det_size<span class="op">=</span><span class="dv">320</span>, use_gpu<span class="op">=</span><span class="va">True</span>, extended<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
-find model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
-Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
-find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
-Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
-find model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
-set det-size: (320, 320)</code></pre>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(array([0.75920622, 0.77365152, 0.76394119, 0.78708138, 0.75681996,
+        0.79128601]),
+ array([1., 1., 0., 0., 0., 0.]),
+ None)</code></pre>
 </div>
 </div>
+<blockquote class="blockquote">
+<p>Export the Python version and the packages names and versions in the active virtual environment</p>
+</blockquote>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/utils.py#L81" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="processamento-básico-de-imagens" class="level2">
-<h2 class="anchored" data-anchor-id="processamento-básico-de-imagens">Processamento básico de imagens</h2>
-<p>Obter pontos de referência, distância interpupilar, representação vetorial, a face alinhada com dimensão fixa (112x112), estimativas de sexo, idade, pose (<em>pitch</em>, <em>yaw</em>, <em>roll</em>) e qualidade.</p>
-<div id="cell-11" class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>results.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>/home/rafael/miniconda3/envs/ffdev/lib/python3.10/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
-To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
-  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4</code></pre>
-</div>
+<section id="freeze_env" class="level3">
+<h3 class="anchored" data-anchor-id="freeze_env">freeze_env</h3>
+<blockquote class="blockquote">
+<pre><code> freeze_env ()</code></pre>
+</blockquote>
+<div id="cell-10" class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># example usage</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>freeze_env()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll', 'fiqa_score'])</code></pre>
+<pre><code>{'Python version': '3.10.11 (main, May 16 2023, 00:28:57) [GCC 11.2.0]',
+ 'albumentations': '1.3.1',
+ 'asttokens': '2.2.1',
+ 'astunparse': '1.6.3',
+ 'backcall': '0.2.0',
+ 'backports.functools-lru-cache': '1.6.4',
+ 'bleach': '6.0.0',
+ 'certifi': '2023.5.7',
+ 'cffi': '1.15.1',
+ 'charset-normalizer': '3.1.0',
+ 'coloredlogs': '15.0.1',
+ 'contourpy': '1.1.0',
+ 'cryptography': '41.0.1',
+ 'cycler': '0.11.0',
+ 'Cython': '0.29.35',
+ 'debugpy': '1.5.1',
+ 'decorator': '5.1.1',
+ 'docutils': '0.20.1',
+ 'easydict': '1.10',
+ 'entrypoints': '0.4',
+ 'execnb': '0.1.5',
+ 'executing': '1.2.0',
+ 'fastcore': '1.5.29',
+ 'flatbuffers': '23.5.26',
+ 'fonttools': '4.40.0',
+ 'forensicface': '0.3.5',
+ 'ghapi': '1.0.4',
+ 'humanfriendly': '10.0',
+ 'idna': '3.4',
+ 'imageio': '2.31.1',
+ 'importlib-metadata': '6.7.0',
+ 'imutils': '0.5.4',
+ 'insightface': '0.7.3',
+ 'ipykernel': '6.15.0',
+ 'ipython': '8.14.0',
+ 'jaraco.classes': '3.2.3',
+ 'jedi': '0.18.2',
+ 'jeepney': '0.8.0',
+ 'joblib': '1.2.0',
+ 'jupyter-client': '7.3.4',
+ 'jupyter-core': '5.3.1',
+ 'jupyterlab-quarto': '0.2.8',
+ 'keyring': '24.0.0',
+ 'kiwisolver': '1.4.4',
+ 'lazy-loader': '0.2',
+ 'markdown-it-py': '3.0.0',
+ 'matplotlib': '3.7.1',
+ 'matplotlib-inline': '0.1.6',
+ 'mdurl': '0.1.2',
+ 'more-itertools': '9.1.0',
+ 'mpmath': '1.3.0',
+ 'nbdev': '2.3.27',
+ 'nest-asyncio': '1.5.6',
+ 'networkx': '3.1',
+ 'numpy': '1.25.0',
+ 'onnx': '1.14.0',
+ 'onnxruntime-gpu': '1.15.0',
+ 'opencv-python-headless': '4.7.0.72',
+ 'packaging': '23.1',
+ 'pandas': '2.0.2',
+ 'parso': '0.8.3',
+ 'pexpect': '4.8.0',
+ 'pickleshare': '0.7.5',
+ 'Pillow': '9.5.0',
+ 'pip': '23.1.2',
+ 'pkginfo': '1.9.6',
+ 'platformdirs': '3.6.0',
+ 'prettytable': '3.8.0',
+ 'prompt-toolkit': '3.0.38',
+ 'protobuf': '4.23.3',
+ 'psutil': '5.9.0',
+ 'ptyprocess': '0.7.0',
+ 'pure-eval': '0.2.2',
+ 'pycparser': '2.21',
+ 'Pygments': '2.15.1',
+ 'pyparsing': '3.1.0',
+ 'python-dateutil': '2.8.2',
+ 'pytz': '2023.3',
+ 'PyWavelets': '1.4.1',
+ 'PyYAML': '6.0',
+ 'pyzmq': '25.1.0',
+ 'qudida': '0.0.4',
+ 'readme-renderer': '40.0',
+ 'requests': '2.31.0',
+ 'requests-toolbelt': '1.0.0',
+ 'rfc3986': '2.0.0',
+ 'rich': '13.4.2',
+ 'scikit-image': '0.21.0',
+ 'scikit-learn': '1.2.2',
+ 'scipy': '1.10.1',
+ 'seaborn': '0.13.2',
+ 'SecretStorage': '3.3.3',
+ 'setuptools': '67.8.0',
+ 'six': '1.16.0',
+ 'stack-data': '0.6.2',
+ 'sympy': '1.12',
+ 'threadpoolctl': '3.1.0',
+ 'tifffile': '2023.4.12',
+ 'tornado': '6.1',
+ 'tqdm': '4.65.0',
+ 'traitlets': '5.9.0',
+ 'twine': '4.0.2',
+ 'typing-extensions': '4.6.3',
+ 'tzdata': '2023.3',
+ 'urllib3': '2.0.3',
+ 'watchdog': '3.0.0',
+ 'wcwidth': '0.2.6',
+ 'webencodings': '0.5.1',
+ 'wheel': '0.38.4',
+ 'zipp': '3.15.0'}</code></pre>
 </div>
 </div>
-<p>Comparar duas imagens faciais e obter o escore de similaridade.</p>
-<div id="cell-13" class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>0.8556093</code></pre>
-</div>
-</div>
-<p>Agregar embeddings de duas imagens faciais em uma única representação, com ponderação por qualidade</p>
-<div id="cell-15" class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>agg <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>], quality_weight<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>agg.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(512,)</code></pre>
-</div>
-</div>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/utils.py#L100" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="estimativa-de-qualidade-cr-fiqa" class="level2">
-<h2 class="anchored" data-anchor-id="estimativa-de-qualidade-cr-fiqa">Estimativa de qualidade CR-FIQA</h2>
-<p>Estimativa de qualidade pelo método <a href="https://github.com/fdbtrs/CR-FIQA">CR-FIQA</a></p>
-<p>Para desabilitar, instancie o forensicface com a opção extended = False:</p>
-<p><code>ff = ForensicFace(extended=False)</code></p>
-<p>Obs.: a opção <code>extended = False</code> também desabilita as estimativas de sexo, idade e pose.</p>
-<div id="cell-17" class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>good <span class="op">=</span> ff.process_image(<span class="st">"001_frontal.jpg"</span>)</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> ff.process_image(<span class="st">"001_cam1_1.jpg"</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>good[<span class="st">"fiqa_score"</span>], bad[<span class="st">"fiqa_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(2.3786173, 1.4386057)</code></pre>
-</div>
-</div>
+<section id="transform_keypoints" class="level3">
+<h3 class="anchored" data-anchor-id="transform_keypoints">transform_keypoints</h3>
+<blockquote class="blockquote">
+<pre><code> transform_keypoints (keypoints, M)</code></pre>
+</blockquote>
+<p>*Transforms keypoints from the original image space to the aligned image space.</p>
+<p>Args: keypoints (numpy array): A 2D array of shape (5, 2) representing the original keypoints. M (numpy array): The 2x3 affine transformation matrix.</p>
+<p>Returns: numpy array: A 2D array of shape (5, 2) representing the transformed keypoints.*</p>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/utils.py#L117" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="crédito-dos-modelos-utilizados" class="level2">
-<h2 class="anchored" data-anchor-id="crédito-dos-modelos-utilizados">Crédito dos modelos utilizados</h2>
-<ul>
-<li><p>Detecção, gênero (M/F), idade e pose (pitch, yaw, roll): <a href="https://github.com/deepinsight/insightface">insightface</a></p></li>
-<li><p>Reconhecimento: <a href="https://github.com/mk-minchul/AdaFace">adaface</a></p></li>
-<li><p>Estimativa de qualidade: <a href="https://github.com/fdbtrs/CR-FIQA">CR-FIQA</a></p></li>
-</ul>
+<section id="annotate_img_with_kps" class="level3">
+<h3 class="anchored" data-anchor-id="annotate_img_with_kps">annotate_img_with_kps</h3>
+<blockquote class="blockquote">
+<pre><code> annotate_img_with_kps (bgr_img:numpy.ndarray, kps:numpy.ndarray,
+                        color:str='red', radius:int=2)</code></pre>
+</blockquote>
+<p>*Annotate an image with keypoints.</p>
+<p>Parameters: bgr_img (numpy.ndarray): The input image in BGR format. kps (numpy.ndarray): A numpy array of shape (5, 2) containing the keypoints. color (str, optional): The color of the keypoints. Default is ‘red’. Options are ‘red’, ‘blue’, ‘green’, ‘white’, ‘black’. radius (int, optional): The radius of the keypoints. Default is 2.</p>
+<p>Returns: numpy.ndarray: The image with keypoints annotated.*</p>
 
 
 </section>
