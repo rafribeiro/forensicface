@@ -371,7 +371,14 @@ class ForensicFace:
 
         return ret
 
-    def build_mosaic(self, img_path_list, mosaic_shape, border=0.03, save_to=None):
+    def build_mosaic(
+        self,
+        img_path_list,
+        mosaic_shape,
+        border=0.03,
+        save_to=None,
+        draw_keypoints=False,
+    ):
         """
         Build a rectangular mosaic of the aligned faces.
         Based on the imutils build_montages function.
@@ -395,7 +402,7 @@ class ForensicFace:
         for img in img_path_list:
             if type(img) != str:  # image array passed as argument
                 list_of_arrays = True
-            ret = self.process_image_single_face(img)
+            ret = self.process_image_single_face(img, draw_keypoints)
             if len(ret) > 0:
                 img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
                 img = cv2.copyMakeBorder(
