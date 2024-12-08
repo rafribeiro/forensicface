@@ -532,7 +532,8 @@ set det-size: (320, 320)</code></pre>
 <blockquote class="blockquote">
 <pre><code> ForensicFace.extract_faces (video_path:str, dest_folder:str=None,
                              every_n_frames:int=1, margin:float=2.0,
-                             start_from:float=0.0)</code></pre>
+                             start_from:float=0.0,
+                             export_metadata:bool=False)</code></pre>
 </blockquote>
 <p>*Extracts faces from a video and saves them as individual images.</p>
 <p>Parameters: video_path (str): The path to the input video file. dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created. every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames). margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0. start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.</p>
@@ -583,6 +584,12 @@ set det-size: (320, 320)</code></pre>
 <td>0.0</td>
 <td>seconds after video start to begin processing</td>
 </tr>
+<tr class="even">
+<td>export_metadata</td>
+<td>bool</td>
+<td>False</td>
+<td>if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding</td>
+</tr>
 </tbody>
 </table>
 <div id="cell-18" class="cell">
@@ -601,17 +608,15 @@ set det-size: (320, 320)</code></pre>
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ff.extract_faces(</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    video_path<span class="op">=</span><span class="st">"/home/rafael/video/video.mp4"</span>,</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">600</span>,</span>
 <span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="st">"/home/rafael/video_faces"</span>,</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Frames processed: 0/4973 | Time elapsed: 00:00/home/rafael/miniconda3/envs/ffdev/lib/python3.10/site-packages/insightface/utils/transform.py:68: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
-To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
-  P = np.linalg.lstsq(X_homo, Y)[0].T # Affine matrix. 3 x 4
-Frames processed: 4973/4973 | Time elapsed: 01:22</code></pre>
+<pre><code>Frames processed: 0/14 | Time elapsed: 00:00Frames processed: 14/14 | Time elapsed: 00:53</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<pre><code>2011</code></pre>
+<pre><code>12</code></pre>
 </div>
 </div>
 </section>
@@ -619,7 +624,7 @@ Frames processed: 4973/4973 | Time elapsed: 01:22</code></pre>
 <section id="processing-aligned-images" class="level2">
 <h2 class="anchored" data-anchor-id="processing-aligned-images">Processing aligned images</h2>
 <hr>
-<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L629" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L655" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="forensicface.process_aligned_face_image" class="level3">
 <h3 class="anchored" data-anchor-id="forensicface.process_aligned_face_image">ForensicFace.process_aligned_face_image</h3>
 <blockquote class="blockquote">

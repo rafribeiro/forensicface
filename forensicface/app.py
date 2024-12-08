@@ -559,6 +559,7 @@ def extract_faces(
     every_n_frames: int = 1,  # skip some frames
     margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
     start_from: float = 0.0,  # seconds after video start to begin processing
+    export_metadata: bool = False,  # if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding
 ):
     """
     Extracts faces from a video and saves them as individual images.
@@ -573,6 +574,8 @@ def extract_faces(
     Returns:
         The number of extracted faces.
     """
+    import pandas as pd
+
     if dest_folder is None:
         dest_folder = os.path.splitext(video_path)[0]
 
@@ -588,6 +591,8 @@ def extract_faces(
     vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     current_frame = start_frame
     nfaces = 0
+    if export_metadata:
+        metadata = []
     with tqdm(
         total=total_frames,
         bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
@@ -605,13 +610,14 @@ def extract_faces(
 
             (h, w) = frame.shape[:2]
 
-            faces = self.detectmodel.get(frame)
-            for i, face in enumerate(faces):
-                startX, startY, endX, endY = face.bbox.astype("int")
+            # faces = self.detectmodel.get(frame)
+            rets = self.process_image_multiple_faces(frame)
+            for i, ret in enumerate(rets):
+                startX, startY, endX, endY = ret["bbox"]
                 faceW = endX - startX
                 faceH = endY - startY
                 outBbox = self._get_extended_bbox(
-                    face.bbox, frame.shape, margin_factor=margin
+                    ret["bbox"], frame.shape, margin_factor=margin
                 )
                 # export the face (with added margin)
                 face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
@@ -619,9 +625,29 @@ def extract_faces(
                     dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
                 )
                 cv2.imwrite(face_img_path, face_crop)
+                if export_metadata:
+                    metadata.append(
+                        {
+                            **{"frame": current_frame, "face": i},
+                            **{
+                                k: v
+                                for k, v in ret.items()
+                                if k not in ["norm", "det_score", "aligned_face"]
+                            },
+                        }
+                    )
                 nfaces += 1
             pbar.update(1)
     vs.release()
+    if export_metadata:
+        pd.DataFrame(metadata).to_json(
+            os.path.join(
+                dest_folder,
+                os.path.splitext(os.path.basename(video_path))[0] + ".jsonl",
+            ),
+            lines=True,
+            orient="records",
+        )
     return nfaces
 
 # %% ../nbs/00_forensicface.ipynb 22
