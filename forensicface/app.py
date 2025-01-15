@@ -15,6 +15,7 @@ from imutils import build_montages
 from insightface.app import FaceAnalysis
 from insightface.utils import face_align
 from tqdm import tqdm
+import warnings
 from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
 
 # %% ../nbs/00_forensicface.ipynb 3
@@ -25,10 +26,12 @@ class ForensicFace:
 
     def __init__(
         self,
-        model: str = "sepaelv2",
+        models: list[str] = ["sepaelv2"],
+        model: str = None,
         det_size: int = 320,
         use_gpu: bool = True,
         gpu: int = 0,  # which GPU to use
+        concat_embeddings: bool = True,
         extended=True,
         det_thresh: float = 0.5,
     ):
@@ -36,20 +39,38 @@ class ForensicFace:
         A face comparison tool for forensic analysis and comparison of facial images.
 
         Args:
-        - model (str): The name of the face recognition model to use (default: "sepaelv2").
+        - models (list[str]): The names of the face recognition models to use (default: ["sepaelv2"]).
+        - model (str): [deprecated] The name of the face recognition model to use
         - det_size (int): The size of the input images for face detection (default: 320).
         - use_gpu (bool): Whether to use a GPU for inference (default: True).
         - gpu (int): The ID of the GPU to use (default: 0).
+        - concat_embeddings (bool): If True, concatenates the embeddings of each model.
         - extended (bool): Whether to use extended modules (detection, landmark_3d_68, genderage) (default: True).
         - det_thresh (float): threshold for the face detector (default = 0.5).
         """
+
+        if model is not None:
+            warnings.warn(
+                "The 'model' parameter is deprecated and will be removed in a future release. "
+                "Please use the 'models' parameter instead: models = ['model_name']",
+                DeprecationWarning,
+            )
+            self.models = [model]
+        else:
+            self.models = models
+
         self.extended = extended
-        if self.extended == True:
+
+        if self.extended:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
+        else:
+            allowed_modules = ["detection"]
+
+        if self.extended:
             self.ort_fiqa = onnxruntime.InferenceSession(
                 osp.join(
                     osp.expanduser("~/.insightface/models"),
-                    model,
+                    self.models[0],
                     "cr_fiqa",
                     "cr_fiqa_l.onnx",
                 ),
@@ -59,16 +80,12 @@ class ForensicFace:
                     else ["CPUExecutionProvider"]
                 ),
             )
-        else:
-            allowed_modules = ["detection"]
 
         self.det_size = (det_size, det_size)
         self.det_thresh = det_thresh
 
-        self.model = model
-
         self.detectmodel = FaceAnalysis(
-            name=model,
+            name=self.models[0],
             allowed_modules=allowed_modules,
             providers=(
                 [("CUDAExecutionProvider", {"device_id": gpu})]
@@ -76,31 +93,39 @@ class ForensicFace:
                 else ["CPUExecutionProvider"]
             ),
         )
+
         self.detectmodel.prepare(
             ctx_id=gpu if use_gpu else -1,
             det_size=self.det_size,
             det_thresh=self.det_thresh,
         )
 
-        onnx_rec_model = glob(
-            osp.join(
-                osp.expanduser("~/.insightface/models"),
-                model,
-                "adaface",
-                "adaface_*.onnx",
+        self.rec_inference_sessions = []
+        for model_name in self.models:
+            onnx_rec_model = glob(
+                osp.join(
+                    osp.expanduser("~/.insightface/models"),
+                    model_name,
+                    "*",
+                    "*face*.onnx",
+                )
             )
-        )
-        assert len(onnx_rec_model) == 1
-        self.ort_ada = onnxruntime.InferenceSession(
-            onnx_rec_model[0],
-            providers=(
-                [("CUDAExecutionProvider", {"device_id": gpu})]
-                if use_gpu
-                else ["CPUExecutionProvider"]
-            ),
-        )
+            assert (
+                len(onnx_rec_model) == 1
+            ), "More than one ONNX model was found in the model folder."
+            self.rec_inference_sessions.append(
+                onnxruntime.InferenceSession(
+                    onnx_rec_model[0],
+                    providers=(
+                        [("CUDAExecutionProvider", {"device_id": gpu})]
+                        if use_gpu
+                        else ["CPUExecutionProvider"]
+                    ),
+                )
+            )
 
         self.environment = freeze_env()
+        self.concat_embeddings = concat_embeddings
 
     def _to_input_ada(self, aligned_bgr_img):
         """
@@ -230,26 +255,46 @@ class ForensicFace:
         ipd = np.linalg.norm(kps[0] - kps[1])
         det_score = faces[idx].det_score
 
-        ada_inputs = {
-            self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
-        }
-        normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
+        img_to_input = self._to_input_ada(bgr_aligned_face)
 
-        ret = {
-            "keypoints": kps,
-            "ipd": ipd,
-            "embedding": normalized_embedding.flatten() * norm.flatten()[0],
-            "norm": norm.flatten()[0],
-            "bbox": bbox,
-            "det_score": det_score,
-            "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
-        }
+        embeddings = []
+        for rec_ort in self.rec_inference_sessions:
+            model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
+            model_output = rec_ort.run(None, model_inputs)
+            if len(model_output) == 2:  # output in the form of normed_embedding, norm
+                embedding = model_output[0].flatten() * model_output[1].flatten()[0]
+            else:
+                embedding = model_output[0].flatten()
+            embeddings.append(embedding)
+
+        if self.concat_embeddings:
+            embedding = np.concatenate(embeddings)
+            ret = {
+                "keypoints": kps,
+                "ipd": ipd,
+                "embedding": embedding,
+                "bbox": bbox,
+                "det_score": det_score,
+                "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+            }
+        else:
+            ret = {
+                "keypoints": kps,
+                "ipd": ipd,
+                "bbox": bbox,
+                "det_score": det_score,
+                "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+            }
+            for model_name, embedding in zip(self.models, embeddings):
+                ret["embedding_" + model_name] = embedding
 
         if self.extended:
             gender = "M" if faces[idx].gender == 1 else "F"
             age = faces[idx].age
             pitch, yaw, roll = faces[idx].pose
-            _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+            _, fiqa_score = self.ort_fiqa.run(
+                None, {self.ort_fiqa.get_inputs()[0].name: img_to_input}
+            )
             ret = {
                 **ret,
                 **{
@@ -336,25 +381,49 @@ class ForensicFace:
 
             ipd = np.linalg.norm(kps[0] - kps[1])
             det_score = face.det_score
-            ada_inputs = {
-                self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
-            }
-            normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
-            face_ret = {
-                "keypoints": kps,
-                "ipd": ipd,
-                "embedding": normalized_embedding.flatten() * norm.flatten()[0],
-                "norm": norm.flatten()[0],
-                "bbox": bbox,
-                "det_score": det_score,
-                "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
-            }
+
+            img_to_input = self._to_input_ada(bgr_aligned_face)
+
+            embeddings = []
+            for rec_ort in self.rec_inference_sessions:
+                model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
+                model_output = rec_ort.run(None, model_inputs)
+                if (
+                    len(model_output) == 2
+                ):  # output in the form of normed_embedding, norm
+                    embedding = model_output[0].flatten() * model_output[1].flatten()[0]
+                else:
+                    embedding = model_output[0].flatten()
+                embeddings.append(embedding)
+
+            if self.concat_embeddings:
+                embedding = np.concatenate(embeddings)
+                face_ret = {
+                    "keypoints": kps,
+                    "ipd": ipd,
+                    "embedding": embedding,
+                    "bbox": bbox,
+                    "det_score": det_score,
+                    "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+                }
+            else:
+                face_ret = {
+                    "keypoints": kps,
+                    "ipd": ipd,
+                    "bbox": bbox,
+                    "det_score": det_score,
+                    "aligned_face": cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+                }
+                for model_name, embedding in zip(self.models, embeddings):
+                    face_ret["embedding_" + model_name] = embedding
 
             if self.extended:
                 gender = "M" if face.gender == 1 else "F"
                 age = face.age
                 pitch, yaw, roll = face.pose
-                _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+                _, fiqa_score = self.ort_fiqa.run(
+                    None, {self.ort_fiqa.get_inputs()[0].name: img_to_input}
+                )
                 face_ret = {
                     **face_ret,
                     **{
@@ -428,7 +497,7 @@ class ForensicFace:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-# %% ../nbs/00_forensicface.ipynb 10
+# %% ../nbs/00_forensicface.ipynb 17
 @patch
 def compare(self: ForensicFace, img1path: str, img2path: str):
     """
@@ -446,11 +515,12 @@ def compare(self: ForensicFace, img1path: str, img2path: str):
     assert len(img1data) > 0, f"No face detected in {img1path}"
     img2data = self.process_image(img2path)
     assert len(img2data) > 0, f"No face detected in {img2path}"
+
     return np.dot(img1data["embedding"], img2data["embedding"]) / (
-        img1data["norm"] * img2data["norm"]
+        np.linalg.norm(img1data["embedding"]) * np.linalg.norm(img2data["embedding"])
     )
 
-# %% ../nbs/00_forensicface.ipynb 13
+# %% ../nbs/00_forensicface.ipynb 20
 @patch
 def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
     """
@@ -478,7 +548,7 @@ def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="m
         weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
         return np.median(weighted_embeddings, axis=0)
 
-# %% ../nbs/00_forensicface.ipynb 14
+# %% ../nbs/00_forensicface.ipynb 21
 @patch
 def aggregate_from_images(
     self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
@@ -514,7 +584,7 @@ def aggregate_from_images(
     else:
         return []
 
-# %% ../nbs/00_forensicface.ipynb 18
+# %% ../nbs/00_forensicface.ipynb 25
 @patch
 def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
     """
@@ -650,17 +720,33 @@ def extract_faces(
         )
     return nfaces
 
-# %% ../nbs/00_forensicface.ipynb 22
+# %% ../nbs/00_forensicface.ipynb 29
 @patch
 def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
     assert rgb_aligned_face.shape == (112, 112, 3)
     bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
-    ada_inputs = {
-        self.ort_ada.get_inputs()[0].name: self._to_input_ada(bgr_aligned_face)
-    }
-    normalized_embedding, norm = self.ort_ada.run(None, ada_inputs)
-    ret = {"embedding": normalized_embedding.flatten() * norm.flatten()[0]}
+    img_to_input = self._to_input_ada(bgr_aligned_face)
+
+    embeddings = []
+    for rec_ort in self.rec_inference_sessions:
+        model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
+        model_output = rec_ort.run(None, model_inputs)
+        if len(model_output) == 2:  # output in the form of normed_embedding, norm
+            embedding = model_output[0].flatten() * model_output[1].flatten()[0]
+        else:
+            embedding = model_output[0].flatten()
+        embeddings.append(embedding)
+
+    if self.concat_embeddings:
+        embedding = np.concatenate(embeddings)
+        ret = {"embedding": embedding}
+    else:
+        ret = {}
+        for model_name, embedding in zip(self.models, embeddings):
+            ret["embedding_" + model_name] = embedding
     if self.extended:
-        _, fiqa_score = self.ort_fiqa.run(None, ada_inputs)
+        _, fiqa_score = self.ort_fiqa.run(
+            None, {self.ort_fiqa.get_inputs()[0].name: img_to_input}
+        )
         ret = {**ret, **{"fiqa_score": fiqa_score[0][0]}}
     return ret
