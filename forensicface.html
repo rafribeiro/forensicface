@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+
+<title>forensicface–A tool for forensic face examination – forensicface</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-7c6d40aa23c779922b80e0578a9e8972.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="forensicface–A tool for forensic face examination – forensicface">
+<meta property="og:description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+<meta property="og:site_name" content="forensicface">
+<meta name="twitter:title" content="forensicface–A tool for forensic face examination – forensicface">
+<meta name="twitter:description" content="An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">forensicface</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./forensicface.html">forensicface–A tool for forensic face examination</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">forensicface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./forensicface.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">forensicface–A tool for forensic face examination</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#custom_formatwarning" id="toc-custom_formatwarning" class="nav-link active" data-scroll-target="#custom_formatwarning">custom_formatwarning</a></li>
+  <li><a href="#forensicface" id="toc-forensicface" class="nav-link" data-scroll-target="#forensicface">ForensicFace</a></li>
+  <li><a href="#comparação-entre-duas-imagens" id="toc-comparação-entre-duas-imagens" class="nav-link" data-scroll-target="#comparação-entre-duas-imagens">Comparação entre duas imagens</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.compare" id="toc-forensicface.compare" class="nav-link" data-scroll-target="#forensicface.compare">ForensicFace.compare</a></li>
+  </ul></li>
+  <li><a href="#agregação-de-embeddings" id="toc-agregação-de-embeddings" class="nav-link" data-scroll-target="#agregação-de-embeddings">Agregação de embeddings</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.aggregate_embeddings" id="toc-forensicface.aggregate_embeddings" class="nav-link" data-scroll-target="#forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</a></li>
+  <li><a href="#forensicface.aggregate_from_images" id="toc-forensicface.aggregate_from_images" class="nav-link" data-scroll-target="#forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</a></li>
+  </ul></li>
+  <li><a href="#extração-de-faces-de-vídeos-com-margem" id="toc-extração-de-faces-de-vídeos-com-margem" class="nav-link" data-scroll-target="#extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.extract_faces" id="toc-forensicface.extract_faces" class="nav-link" data-scroll-target="#forensicface.extract_faces">ForensicFace.extract_faces</a></li>
+  </ul></li>
+  <li><a href="#processing-aligned-images" id="toc-processing-aligned-images" class="nav-link" data-scroll-target="#processing-aligned-images">Processing aligned images</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.process_aligned_face_image" id="toc-forensicface.process_aligned_face_image" class="nav-link" data-scroll-target="#forensicface.process_aligned_face_image">ForensicFace.process_aligned_face_image</a></li>
+  </ul></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">forensicface–A tool for forensic face examination</h1>
+</div>
+
+<div>
+  <div class="description">
+    An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L23" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="custom_formatwarning" class="level3">
+<h3 class="anchored" data-anchor-id="custom_formatwarning">custom_formatwarning</h3>
+<blockquote class="blockquote">
+<pre><code> custom_formatwarning (message, category, filename, lineno, line=None)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/forensicface.py#L7" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="forensicface" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface">ForensicFace</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace (models:list[str]=['sepaelv2'], model:str=None,
+               det_size:int=320, use_gpu:bool=True, gpu:int=0,
+               concat_embeddings:bool=True, extended=True,
+               det_thresh:float=0.5)</code></pre>
+</blockquote>
+<p><em>Class for processing facial images to extract useful features for forensic analysis.</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>models</td>
+<td>list</td>
+<td>[‘sepaelv2’]</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td>str</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>det_size</td>
+<td>int</td>
+<td>320</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>use_gpu</td>
+<td>bool</td>
+<td>True</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>gpu</td>
+<td>int</td>
+<td>0</td>
+<td>which GPU to use</td>
+</tr>
+<tr class="even">
+<td>concat_embeddings</td>
+<td>bool</td>
+<td>True</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>extended</td>
+<td>bool</td>
+<td>True</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>det_thresh</td>
+<td>float</td>
+<td>0.5</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<div id="cell-4" class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    use_gpu<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    extended<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    det_thresh<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv4"</span>],</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    concat_embeddings<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
+set det-size: (320, 320)</code></pre>
+</div>
+</div>
+<div id="cell-5" class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ff.rec_inference_sessions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>[&lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession&gt;,
+ &lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession&gt;]</code></pre>
+</div>
+</div>
+<div id="cell-6" class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ret.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: process_image_single_face: This method is deprecated and will be removed in a future release.
+Use the 'process_image' method instead. 
+FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face'])</code></pre>
+</div>
+</div>
+<div id="cell-7" class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_multiple_faces(<span class="st">"tela.png"</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(ret), ret[<span class="dv">0</span>].keys(), ret[<span class="dv">1</span>].keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: process_image_multiple_faces: This method is deprecated and will be removed in a future release.
+Use the 'process_image' method instead.</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>(8,
+ dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face']),
+ dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face']))</code></pre>
+</div>
+</div>
+<div id="cell-8" class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>, single_face<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ret[<span class="dv">0</span>].keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face'])</code></pre>
+</div>
+</div>
+<div id="cell-9" class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    use_gpu<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    extended<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    det_thresh<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[<span class="st">"sepaelv2"</span>],</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    concat_embeddings<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+model ignore: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+model ignore: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage
+set det-size: (320, 320)</code></pre>
+</div>
+</div>
+<div id="cell-10" class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>ret.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: process_image_single_face: This method is deprecated and will be removed in a future release.
+Use the 'process_image' method instead. 
+FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>dict_keys(['ipd', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face'])</code></pre>
+</div>
+</div>
+<div id="cell-11" class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"embedding"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(512,)</code></pre>
+</div>
+</div>
+<div id="cell-12" class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ff.environment</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>{'Python version': '3.10.11 (main, May 16 2023, 00:28:57) [GCC 11.2.0]',
+ 'albumentations': '1.3.1',
+ 'asttokens': '2.2.1',
+ 'astunparse': '1.6.3',
+ 'backcall': '0.2.0',
+ 'backports.functools-lru-cache': '1.6.4',
+ 'bleach': '6.0.0',
+ 'certifi': '2023.5.7',
+ 'cffi': '1.15.1',
+ 'charset-normalizer': '3.1.0',
+ 'coloredlogs': '15.0.1',
+ 'contourpy': '1.1.0',
+ 'cryptography': '41.0.1',
+ 'cycler': '0.11.0',
+ 'Cython': '0.29.35',
+ 'debugpy': '1.5.1',
+ 'decorator': '5.1.1',
+ 'docutils': '0.20.1',
+ 'easydict': '1.10',
+ 'entrypoints': '0.4',
+ 'execnb': '0.1.5',
+ 'executing': '1.2.0',
+ 'fastcore': '1.5.29',
+ 'flatbuffers': '23.5.26',
+ 'fonttools': '4.40.0',
+ 'forensicface': '0.3.6',
+ 'ghapi': '1.0.4',
+ 'humanfriendly': '10.0',
+ 'idna': '3.4',
+ 'imageio': '2.31.1',
+ 'importlib-metadata': '6.7.0',
+ 'imutils': '0.5.4',
+ 'insightface': '0.7.3',
+ 'ipykernel': '6.15.0',
+ 'ipython': '8.14.0',
+ 'jaraco.classes': '3.2.3',
+ 'jedi': '0.18.2',
+ 'jeepney': '0.8.0',
+ 'joblib': '1.2.0',
+ 'jupyter-client': '7.3.4',
+ 'jupyter-core': '5.3.1',
+ 'jupyterlab-quarto': '0.2.8',
+ 'keyring': '24.0.0',
+ 'kiwisolver': '1.4.4',
+ 'lazy-loader': '0.2',
+ 'markdown-it-py': '3.0.0',
+ 'matplotlib': '3.7.1',
+ 'matplotlib-inline': '0.1.6',
+ 'mdurl': '0.1.2',
+ 'more-itertools': '9.1.0',
+ 'mpmath': '1.3.0',
+ 'nbdev': '2.3.27',
+ 'nest-asyncio': '1.5.6',
+ 'networkx': '3.1',
+ 'numpy': '1.25.0',
+ 'onnx': '1.14.0',
+ 'onnxruntime-gpu': '1.15.0',
+ 'opencv-python-headless': '4.7.0.72',
+ 'packaging': '23.1',
+ 'pandas': '2.0.2',
+ 'parso': '0.8.3',
+ 'pexpect': '4.8.0',
+ 'pickleshare': '0.7.5',
+ 'Pillow': '9.5.0',
+ 'pip': '23.1.2',
+ 'pkginfo': '1.9.6',
+ 'platformdirs': '3.6.0',
+ 'prettytable': '3.8.0',
+ 'prompt-toolkit': '3.0.38',
+ 'protobuf': '4.23.3',
+ 'psutil': '5.9.0',
+ 'ptyprocess': '0.7.0',
+ 'pure-eval': '0.2.2',
+ 'pycparser': '2.21',
+ 'Pygments': '2.15.1',
+ 'pyparsing': '3.1.0',
+ 'python-dateutil': '2.8.2',
+ 'pytz': '2023.3',
+ 'PyWavelets': '1.4.1',
+ 'PyYAML': '6.0',
+ 'pyzmq': '25.1.0',
+ 'qudida': '0.0.4',
+ 'readme-renderer': '40.0',
+ 'requests': '2.31.0',
+ 'requests-toolbelt': '1.0.0',
+ 'rfc3986': '2.0.0',
+ 'rich': '13.4.2',
+ 'scikit-image': '0.21.0',
+ 'scikit-learn': '1.2.2',
+ 'scipy': '1.10.1',
+ 'seaborn': '0.13.2',
+ 'SecretStorage': '3.3.3',
+ 'setuptools': '67.8.0',
+ 'six': '1.16.0',
+ 'stack-data': '0.6.2',
+ 'sympy': '1.12',
+ 'threadpoolctl': '3.1.0',
+ 'tifffile': '2023.4.12',
+ 'tornado': '6.1',
+ 'tqdm': '4.65.0',
+ 'traitlets': '5.9.0',
+ 'twine': '4.0.2',
+ 'typing-extensions': '4.6.3',
+ 'tzdata': '2023.3',
+ 'urllib3': '2.0.3',
+ 'watchdog': '3.0.0',
+ 'wcwidth': '0.2.6',
+ 'webencodings': '0.5.1',
+ 'wheel': '0.38.4',
+ 'zipp': '3.15.0'}</code></pre>
+</div>
+</div>
+<div id="cell-13" class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> ff.process_image(<span class="st">"obama2.png"</span>, single_face<span class="op">=</span><span class="va">True</span>, draw_keypoints<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>result.keys(), result[<span class="st">"keypoints"</span>], result[<span class="st">"ipd"</span>], result[<span class="st">"embedding"</span>].shape, result[</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"det_score"</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>(dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face']),
+ array([[ 61.428093,  87.567154],
+        [103.14688 ,  97.62415 ],
+        [ 61.404076, 114.31358 ],
+        [ 50.038876, 143.41814 ],
+        [ 82.59338 , 152.32835 ]], dtype=float32),
+ 42.91387,
+ (512,),
+ 0.83124155)</code></pre>
+</div>
+</div>
+<div id="cell-14" class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>imgs <span class="op">=</span> [cv2.imread(x) <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"001_cam1_1.jpg"</span>, <span class="st">"001_frontal.jpg"</span>]]</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>mosaic <span class="op">=</span> ff.build_mosaic(imgs, mosaic_shape<span class="op">=</span>(<span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>mosaic.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). 
+Warning: A list of arrays was passed as argument. Make sure image arrays are in BGR format.</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>(118, 236, 3)</code></pre>
+</div>
+</div>
+<div id="cell-15" class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image_multiple_faces(<span class="st">"tela.png"</span>, draw_keypoints<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">"bbox"</span>], results[<span class="dv">0</span>][<span class="st">"det_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: process_image_multiple_faces: This method is deprecated and will be removed in a future release.
+Use the 'process_image' method instead.</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>(dict_keys(['ipd', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face']),
+ array([[471.42743, 418.60498],
+        [522.68933, 418.05362],
+        [498.82196, 449.08923],
+        [479.3499 , 476.4419 ],
+        [514.33453, 476.06885]], dtype=float32),
+ array([441, 355, 548, 506]),
+ 0.8962144)</code></pre>
+</div>
+</div>
+</section>
+<section id="comparação-entre-duas-imagens" class="level2">
+<h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L429" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="forensicface.compare" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.compare">ForensicFace.compare</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.compare (img1path:str, img2path:str)</code></pre>
+</blockquote>
+<p>*Compares the similarity between two face images based on their embeddings.</p>
+<p>Parameters: - img1path (str): Path to the first image file - img2path (str): Path to the second image file</p>
+<p>Returns: A float representing the similarity score between the two faces based on their embeddings. The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.*</p>
+<div id="cell-18" class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>0.8556093</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="agregação-de-embeddings" class="level2">
+<h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L453" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="forensicface.aggregate_embeddings" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.aggregate_embeddings">ForensicFace.aggregate_embeddings</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.aggregate_embeddings (embeddings, weights=None,
+                                    method='mean')</code></pre>
+</blockquote>
+<p>*Aggregates multiple embeddings into a single embedding.</p>
+<p>Args: embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated. weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned to each embedding. If not provided, all embeddings are equally weighted.</p>
+<pre><code>method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+    'mean' and 'median'.</code></pre>
+<p>Returns: numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.*</p>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L481" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="forensicface.aggregate_from_images" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.aggregate_from_images">ForensicFace.aggregate_from_images</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.aggregate_from_images (list_of_image_paths, method='mean',
+                                     quality_weight=False)</code></pre>
+</blockquote>
+<p>*Given a list of image paths, this method returns the average embedding of all faces found in the images.</p>
+<p>Args: list_of_image_paths (List[str]): List of paths to images. method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are ‘mean’ and ‘median’. quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.</p>
+<p>Returns: Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the average embedding. Otherwise, returns an empty list.*</p>
+<div id="cell-22" class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(extended<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
+set det-size: (320, 320)</code></pre>
+</div>
+</div>
+<div id="cell-23" class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>], quality_weight<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>(512,)</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="extração-de-faces-de-vídeos-com-margem" class="level2">
+<h2 class="anchored" data-anchor-id="extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</h2>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L554" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="forensicface.extract_faces" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.extract_faces">ForensicFace.extract_faces</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.extract_faces (video_path:str, dest_folder:str=None,
+                             every_n_frames:int=1, margin:float=2.0,
+                             start_from:float=0.0,
+                             export_metadata:bool=False)</code></pre>
+</blockquote>
+<p>*Extracts faces from a video and saves them as individual images.</p>
+<p>Parameters: video_path (str): The path to the input video file. dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created. every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames). margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0. start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.</p>
+<p>Returns: The number of extracted faces.*</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>video_path</td>
+<td>str</td>
+<td></td>
+<td>path to video file</td>
+</tr>
+<tr class="even">
+<td>dest_folder</td>
+<td>str</td>
+<td>None</td>
+<td>folder used to save extracted faces. If not provided, a new folder with the video name is created</td>
+</tr>
+<tr class="odd">
+<td>every_n_frames</td>
+<td>int</td>
+<td>1</td>
+<td>skip some frames</td>
+</tr>
+<tr class="even">
+<td>margin</td>
+<td>float</td>
+<td>2.0</td>
+<td>margin to add to each face, w.r.t. detected bounding box</td>
+</tr>
+<tr class="odd">
+<td>start_from</td>
+<td>float</td>
+<td>0.0</td>
+<td>seconds after video start to begin processing</td>
+</tr>
+<tr class="even">
+<td>export_metadata</td>
+<td>bool</td>
+<td>False</td>
+<td>if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding</td>
+</tr>
+</tbody>
+</table>
+<div id="cell-26" class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
+set det-size: (320, 320)</code></pre>
+</div>
+</div>
+<div id="cell-27" class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>ff.extract_faces(</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>    video_path<span class="op">=</span><span class="st">"/home/rafael/video/video.mp4"</span>,</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">600</span>,</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="st">"/home/rafael/video_faces"</span>,</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Frames processed: 0/14 | Time elapsed: 00:00Frames processed: 14/14 | Time elapsed: 00:06</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>12</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="processing-aligned-images" class="level2">
+<h2 class="anchored" data-anchor-id="processing-aligned-images">Processing aligned images</h2>
+<hr>
+<p><a href="https://github.com/rafribeiro/forensicface/blob/main/forensicface/app.py#L654" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="forensicface.process_aligned_face_image" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.process_aligned_face_image">ForensicFace.process_aligned_face_image</h3>
+<blockquote class="blockquote">
+<pre><code> ForensicFace.process_aligned_face_image (rgb_aligned_face:numpy.ndarray)</code></pre>
+</blockquote>
+<div id="cell-30" class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(extended<span class="op">=</span><span class="va">True</span>, models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv4"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CUDAExecutionProvider', 'CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}, 'CUDAExecutionProvider': {'device_id': '0', 'gpu_mem_limit': '18446744073709551615', 'gpu_external_alloc': '0', 'gpu_external_free': '0', 'gpu_external_empty_cache': '0', 'cudnn_conv_algo_search': 'EXHAUSTIVE', 'cudnn_conv1d_pad_to_nc1d': '0', 'arena_extend_strategy': 'kNextPowerOfTwo', 'do_copy_in_default_stream': '1', 'enable_cuda_graph': '0', 'cudnn_conv_use_max_workspace': '1', 'tunable_op_enable': '0', 'enable_skip_layer_norm_strict_mode': '0', 'tunable_op_tuning_enable': '0'}}
+find model: /home/rafael/.insightface/models/sepaelv2/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
+set det-size: (320, 320)</code></pre>
+</div>
+</div>
+<div id="cell-31" class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>ret2 <span class="op">=</span> ff.process_aligned_face_image(ret[<span class="st">"aligned_face"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: process_image_single_face: This method is deprecated and will be removed in a future release.
+Use the 'process_image' method instead. 
+FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
+Instead of returning a dict, it will return a list (with one dict). </code></pre>
+</div>
+</div>
+<div id="cell-32" class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>np.allclose(ret[<span class="st">"embedding"</span>], ret2[<span class="st">"embedding"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>True</code></pre>
+</div>
+</div>
+<div id="cell-33" class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>ret2[<span class="st">"embedding"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(1024,)</code></pre>
+</div>
+</div>
+<div id="cell-34" class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"fiqa_score"</span>], ret2[<span class="st">"fiqa_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(2.1983922, 2.1983922)</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="section" class="level1">
+<h1></h1>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/rafribeiro\.github\.io\/forensicface");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
