@@ -14,7 +14,7 @@ Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
 `~/.forensicface/models/<model_name>/`
 
 O arquivo onnx do modelo de reconhecimento (adaface_ir101web12m.onnx)
-deve estar na pasta `~/.forensicface/models/<model_name>/adaface/`
+deve estar na pasta `~/.forensicface/models/<model_name>/*face*/`
 
 O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
 estar na pasta `~/.forensicface/models/<model_name>/cr_fiqa/`
