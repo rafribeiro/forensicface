@@ -4,20 +4,17 @@
 __all__ = ['custom_formatwarning', 'ForensicFace']
 
 # %% ../nbs/00_forensicface.ipynb 2
-from nbdev.showdoc import *
-from fastcore.utils import *
+import os
 import onnxruntime
 import cv2
 import numpy as np
 import os.path as osp
 from glob import glob
 from imutils import build_montages
-from insightface.app import FaceAnalysis
-from insightface.utils import face_align
 from tqdm import tqdm
 import warnings
+from .backends import FaceData, FaceBackend, create_backend
 from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
-import warnings
 
 
 def custom_formatwarning(message, category, filename, lineno, line=None):
@@ -44,6 +41,8 @@ class ForensicFace:
         concat_embeddings: bool = True,
         extended=True,
         det_thresh: float = 0.5,
+        backend_name: str = "onnx",
+        backend: FaceBackend | None = None,
     ):
         """
         A face comparison tool for forensic analysis and comparison of facial images.
@@ -80,7 +79,7 @@ class ForensicFace:
 
             self.ort_fiqa = onnxruntime.InferenceSession(
                 osp.join(
-                    osp.expanduser("~/.insightface/models"),
+                    osp.expanduser("~/.forensicface/models"),
                     self.models[0],
                     "cr_fiqa",
                     "cr_fiqa_l.onnx",
@@ -94,16 +93,15 @@ class ForensicFace:
         else:
             allowed_modules = ["detection"]
 
-        self.detectmodel = FaceAnalysis(
-            name=self.models[0],
+        self.backend = backend or create_backend(
+            backend_name=backend_name,
+            model_name=self.models[0],
             allowed_modules=allowed_modules,
             providers=(
                 [("CUDAExecutionProvider", {"device_id": gpu})]
                 if use_gpu
                 else ["CPUExecutionProvider"]
             ),
-        )
-        self.detectmodel.prepare(
             ctx_id=gpu if use_gpu else -1,
             det_size=self.det_size,
             det_thresh=self.det_thresh,
@@ -116,7 +114,7 @@ class ForensicFace:
         """Loads a single ONNX model."""
         model_path = glob(
             osp.join(
-                osp.expanduser("~/.insightface/models"), model_name, "*", "*face*.onnx"
+                osp.expanduser("~/.forensicface/models"), model_name, "*", "*face*.onnx"
             )
         )
         assert len(model_path) == 1, f"More than one ONNX model found in {model_path}"
@@ -247,7 +245,7 @@ class ForensicFace:
                 FutureWarning,
             )
         bgr_img = self._load_image(imgpath)
-        faces = self.detectmodel.get(bgr_img)
+        faces = self.backend.detect_faces(bgr_img)
         if len(faces) == 0:
             return []
 
@@ -258,7 +256,7 @@ class ForensicFace:
 
         results = []
         for face in faces:
-            bgr_aligned_face = face_align.norm_crop(bgr_img, face.kps)
+            bgr_aligned_face = self.backend.norm_crop(bgr_img, face.kps)
             embeddings, fiqa_score = self._compute_embeddings(bgr_aligned_face)
             if draw_keypoints:
                 bgr_aligned_face = self._draw_keypoints_on_aligned_face(
@@ -273,7 +271,7 @@ class ForensicFace:
 
     def _draw_keypoints_on_aligned_face(self, bgr_aligned_face, keypoints):
         aligned_face = bgr_aligned_face.copy()
-        M = face_align.estimate_norm(keypoints)
+        M = self.backend.estimate_norm(keypoints)
         aligned_kps = transform_keypoints(keypoints=keypoints, M=M)
         annotated_aligned_face = annotate_img_with_kps(
             aligned_face, kps=aligned_kps, color="green"
@@ -306,21 +304,31 @@ class ForensicFace:
             fiqa_score[0][0] if fiqa_score is not None else None,
         )
 
-    def _assemble_result(self, face, bgr_aligned_face, embeddings, fiqa_score):
+    def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""
         ret = {
             "ipd": np.linalg.norm(face.kps[0] - face.kps[1]),
         }
 
         if self.extended:
+            gender = None
+            if face.gender is not None:
+                gender = "M" if face.gender == 1 else "F"
+
+            yaw, pitch, roll = None, None, None
+            if face.pose is not None:
+                yaw = face.pose[1]
+                pitch = face.pose[0]
+                roll = face.pose[2]
+
             ret.update(
                 {
                     "fiqa_score": fiqa_score,
-                    "gender": "M" if face.gender == 1 else "F",
+                    "gender": gender,
                     "age": face.age,
-                    "yaw": face.pose[1],
-                    "pitch": face.pose[0],
-                    "roll": face.pose[2],
+                    "yaw": yaw,
+                    "pitch": pitch,
+                    "roll": roll,
                 }
             )
 
@@ -424,244 +432,232 @@ class ForensicFace:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-# %% ../nbs/00_forensicface.ipynb 17
-@patch
-def compare(self: ForensicFace, img1path: str, img2path: str):
-    """
-    Compares the similarity between two face images based on their embeddings.
+    def compare(self, img1path: str, img2path: str):
+        """
+        Compares the similarity between two face images based on their embeddings.
 
-    Parameters:
-        - img1path (str): Path to the first image file
-        - img2path (str): Path to the second image file
+        Parameters:
+            - img1path (str): Path to the first image file
+            - img2path (str): Path to the second image file
 
-    Returns:
-        A float representing the similarity score between the two faces based on their embeddings.
-        The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
-    """
-    img1data = self.process_image(img1path, single_face=True)
-    assert len(img1data) > 0, f"No face detected in {img1path}"
-    img2data = self.process_image(img2path, single_face=True)
-    assert len(img2data) > 0, f"No face detected in {img2path}"
-    assert self.concat_embeddings == True
+        Returns:
+            A float representing the similarity score between the two faces based on their embeddings.
+            The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+        """
+        img1data = self.process_image(img1path, single_face=True)
+        assert len(img1data) > 0, f"No face detected in {img1path}"
+        img2data = self.process_image(img2path, single_face=True)
+        assert len(img2data) > 0, f"No face detected in {img2path}"
+        assert self.concat_embeddings == True
 
-    return np.dot(img1data["embedding"], img2data["embedding"]) / (
-        np.linalg.norm(img1data["embedding"]) * np.linalg.norm(img2data["embedding"])
-    )
-
-# %% ../nbs/00_forensicface.ipynb 20
-@patch
-def aggregate_embeddings(self: ForensicFace, embeddings, weights=None, method="mean"):
-    """
-    Aggregates multiple embeddings into a single embedding.
-
-    Args:
-        embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be
-            aggregated.
-        weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
-            to each embedding. If not provided, all embeddings are equally weighted.
-
-        method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
-            'mean' and 'median'.
-
-    Returns:
-        numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
-    """
-    if weights is None:
-        weights = np.ones(embeddings.shape[0], dtype="int")
-    assert embeddings.shape[0] == weights.shape[0]
-    assert method in ["mean", "median"]
-    if method == "mean":
-        return np.average(embeddings, axis=0, weights=weights)
-    else:
-        weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
-        return np.median(weighted_embeddings, axis=0)
-
-# %% ../nbs/00_forensicface.ipynb 21
-@patch
-def aggregate_from_images(
-    self: ForensicFace, list_of_image_paths, method="mean", quality_weight=False
-):
-    """
-    Given a list of image paths, this method returns the average embedding of all faces found in the images.
-
-    Args:
-        list_of_image_paths (List[str]): List of paths to images.
-        method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
-            'mean' and 'median'.
-        quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.
-
-    Returns:
-        Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
-        average embedding. Otherwise, returns an empty list.
-    """
-    if quality_weight:
-        assert (
-            self.extended == True
-        ), "You must initialize ForensicFace with extended = True"
-    assert self.concat_embeddings == True
-    embeddings = []
-    weights = []
-    for imgpath in list_of_image_paths:
-        d = self.process_image(imgpath, single_face=True)
-        if len(d) > 0:
-            embeddings.append(d["embedding"])
-            weights.append(d["fiqa_score"] if quality_weight == True else 1.0)
-    if len(embeddings) > 0:
-        return self.aggregate_embeddings(
-            np.array(embeddings), method=method, weights=np.array(weights)
+        return np.dot(img1data["embedding"], img2data["embedding"]) / (
+            np.linalg.norm(img1data["embedding"]) * np.linalg.norm(img2data["embedding"])
         )
-    else:
-        return []
 
-# %% ../nbs/00_forensicface.ipynb 25
-@patch
-def _get_extended_bbox(self: ForensicFace, bbox, frame_shape, margin_factor):
-    """
-    Computes and returns the bounding box with extended margins.
+    def aggregate_embeddings(self, embeddings, weights=None, method="mean"):
+        """
+        Aggregates multiple embeddings into a single embedding.
 
-    Parameters:
-        bbox (ndarray): The bounding box coordinates (startX, startY, endX, endY).
-        frame_shape (tuple): The shape of the video frame (height, width, channels).
-        margin_factor (float): The factor to be applied for computing the margin.
+        Args:
+            embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be
+                aggregated.
+            weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
+                to each embedding. If not provided, all embeddings are equally weighted.
 
-    Returns:
-        A list with the coordinates of the extended bounding box (startX_out, startY_out, endX_out, endY_out).
-    """
-    # add a margin on the bounding box
-    (startX, startY, endX, endY) = bbox.astype("int")
-    (h, w) = frame_shape[:2]
-    out_width = (endX - startX) * margin_factor
-    out_height = (endY - startY) * margin_factor
+            method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+                'mean' and 'median'.
 
-    startX_out = int((startX + endX) / 2 - out_width / 2)
-    endX_out = int((startX + endX) / 2 + out_width / 2)
-    startY_out = int((startY + endY) / 2 - out_height / 2)
-    endY_out = int((startY + endY) / 2 + out_height / 2)
+        Returns:
+            numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
+        """
+        if weights is None:
+            weights = np.ones(embeddings.shape[0], dtype="int")
+        assert embeddings.shape[0] == weights.shape[0]
+        assert method in ["mean", "median"]
+        if method == "mean":
+            return np.average(embeddings, axis=0, weights=weights)
+        else:
+            weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
+            return np.median(weighted_embeddings, axis=0)
 
-    # tests if the output bbox coordinates are out of frame limits
-    if startX_out < 0:
-        startX_out = 0
-    if endX_out > int(w):
-        endX_out = int(w)
-    if startY_out < 0:
-        startY_out = 0
-    if endY_out > int(h):
-        endY_out = int(h)
-    return [startX_out, startY_out, endX_out, endY_out]
+    def aggregate_from_images(
+        self, list_of_image_paths, method="mean", quality_weight=False
+    ):
+        """
+        Given a list of image paths, this method returns the average embedding of all faces found in the images.
 
+        Args:
+            list_of_image_paths (List[str]): List of paths to images.
+            method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+                'mean' and 'median'.
+            quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.
 
-@patch
-def extract_faces(
-    self: ForensicFace,
-    video_path: str,  # path to video file
-    dest_folder: str = None,  # folder used to save extracted faces. If not provided, a new folder with the video name is created
-    every_n_frames: int = 1,  # skip some frames
-    margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
-    start_from: float = 0.0,  # seconds after video start to begin processing
-    export_metadata: bool = False,  # if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding
-):
-    """
-    Extracts faces from a video and saves them as individual images.
+        Returns:
+            Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
+            average embedding. Otherwise, returns an empty list.
+        """
+        if quality_weight:
+            assert (
+                self.extended == True
+            ), "You must initialize ForensicFace with extended = True"
+        assert self.concat_embeddings == True
+        embeddings = []
+        weights = []
+        for imgpath in list_of_image_paths:
+            d = self.process_image(imgpath, single_face=True)
+            if len(d) > 0:
+                embeddings.append(d["embedding"])
+                weights.append(d["fiqa_score"] if quality_weight == True else 1.0)
+        if len(embeddings) > 0:
+            return self.aggregate_embeddings(
+                np.array(embeddings), method=method, weights=np.array(weights)
+            )
+        else:
+            return []
 
-    Parameters:
-        video_path (str): The path to the input video file.
-        dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created.
-        every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
-        margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0.
-        start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.
+    def _get_extended_bbox(self, bbox, frame_shape, margin_factor):
+        """
+        Computes and returns the bounding box with extended margins.
 
-    Returns:
-        The number of extracted faces.
-    """
-    import pandas as pd
+        Parameters:
+            bbox (ndarray): The bounding box coordinates (startX, startY, endX, endY).
+            frame_shape (tuple): The shape of the video frame (height, width, channels).
+            margin_factor (float): The factor to be applied for computing the margin.
 
-    if dest_folder is None:
-        dest_folder = os.path.splitext(video_path)[0]
+        Returns:
+            A list with the coordinates of the extended bounding box (startX_out, startY_out, endX_out, endY_out).
+        """
+        # add a margin on the bounding box
+        (startX, startY, endX, endY) = bbox.astype("int")
+        (h, w) = frame_shape[:2]
+        out_width = (endX - startX) * margin_factor
+        out_height = (endY - startY) * margin_factor
 
-    os.makedirs(dest_folder, exist_ok=True)
+        startX_out = int((startX + endX) / 2 - out_width / 2)
+        endX_out = int((startX + endX) / 2 + out_width / 2)
+        startY_out = int((startY + endY) / 2 - out_height / 2)
+        endY_out = int((startY + endY) / 2 + out_height / 2)
 
-    # initialize video stream from file
-    vs = cv2.VideoCapture(video_path)
-    fps = vs.get(cv2.CAP_PROP_FPS)
-    start_frame = int(fps * start_from)
-    total_frames = int(vs.get(cv2.CAP_PROP_FRAME_COUNT)) // every_n_frames
+        # tests if the output bbox coordinates are out of frame limits
+        if startX_out < 0:
+            startX_out = 0
+        if endX_out > int(w):
+            endX_out = int(w)
+        if startY_out < 0:
+            startY_out = 0
+        if endY_out > int(h):
+            endY_out = int(h)
+        return [startX_out, startY_out, endX_out, endY_out]
 
-    # seek to starting frame
-    vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    current_frame = start_frame
-    nfaces = 0
-    if export_metadata:
-        metadata = []
-    with tqdm(
-        total=total_frames,
-        bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
-    ) as pbar:
-        while True:
+    def extract_faces(
+        self,
+        video_path: str,  # path to video file
+        dest_folder: str = None,  # folder used to save extracted faces. If not provided, a new folder with the video name is created
+        every_n_frames: int = 1,  # skip some frames
+        margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
+        start_from: float = 0.0,  # seconds after video start to begin processing
+        export_metadata: bool = False,  # if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding
+    ):
+        """
+        Extracts faces from a video and saves them as individual images.
 
-            ret, frame = vs.read()
+        Parameters:
+            video_path (str): The path to the input video file.
+            dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created.
+            every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
+            margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0.
+            start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.
 
-            if not ret:
-                break
+        Returns:
+            The number of extracted faces.
+        """
+        import pandas as pd
 
-            current_frame = current_frame + 1
-            if (current_frame % every_n_frames) != 0:
-                continue
+        if dest_folder is None:
+            dest_folder = os.path.splitext(video_path)[0]
 
-            (h, w) = frame.shape[:2]
+        os.makedirs(dest_folder, exist_ok=True)
 
-            # faces = self.detectmodel.get(frame)
-            rets = self.process_image(frame, single_face=False)
-            for i, ret in enumerate(rets):
-                startX, startY, endX, endY = ret["bbox"]
-                faceW = endX - startX
-                faceH = endY - startY
-                outBbox = self._get_extended_bbox(
-                    ret["bbox"], frame.shape, margin_factor=margin
-                )
-                # export the face (with added margin)
-                face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
-                face_img_path = os.path.join(
-                    dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
-                )
-                cv2.imwrite(face_img_path, face_crop)
-                if export_metadata:
-                    metadata.append(
-                        {
-                            **{"frame": current_frame, "face": i},
-                            **{
-                                k: v
-                                for k, v in ret.items()
-                                if k not in ["det_score", "aligned_face"]
-                            },
-                        }
+        # initialize video stream from file
+        vs = cv2.VideoCapture(video_path)
+        fps = vs.get(cv2.CAP_PROP_FPS)
+        start_frame = int(fps * start_from)
+        total_frames = int(vs.get(cv2.CAP_PROP_FRAME_COUNT)) // every_n_frames
+
+        # seek to starting frame
+        vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+        current_frame = start_frame
+        nfaces = 0
+        if export_metadata:
+            metadata = []
+        with tqdm(
+            total=total_frames,
+            bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
+        ) as pbar:
+            while True:
+
+                ret, frame = vs.read()
+
+                if not ret:
+                    break
+
+                current_frame = current_frame + 1
+                if (current_frame % every_n_frames) != 0:
+                    continue
+
+                (h, w) = frame.shape[:2]
+
+                # faces are provided by the configured backend
+                rets = self.process_image(frame, single_face=False)
+                for i, ret in enumerate(rets):
+                    startX, startY, endX, endY = ret["bbox"]
+                    faceW = endX - startX
+                    faceH = endY - startY
+                    outBbox = self._get_extended_bbox(
+                        ret["bbox"], frame.shape, margin_factor=margin
                     )
-                nfaces += 1
-            pbar.update(1)
-    vs.release()
-    if export_metadata:
-        pd.DataFrame(metadata).to_json(
-            os.path.join(
-                dest_folder,
-                os.path.splitext(os.path.basename(video_path))[0] + ".jsonl",
-            ),
-            lines=True,
-            orient="records",
-        )
-    return nfaces
+                    # export the face (with added margin)
+                    face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
+                    face_img_path = os.path.join(
+                        dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
+                    )
+                    cv2.imwrite(face_img_path, face_crop)
+                    if export_metadata:
+                        metadata.append(
+                            {
+                                **{"frame": current_frame, "face": i},
+                                **{
+                                    k: v
+                                    for k, v in ret.items()
+                                    if k not in ["det_score", "aligned_face"]
+                                },
+                            }
+                        )
+                    nfaces += 1
+                pbar.update(1)
+        vs.release()
+        if export_metadata:
+            pd.DataFrame(metadata).to_json(
+                os.path.join(
+                    dest_folder,
+                    os.path.splitext(os.path.basename(video_path))[0] + ".jsonl",
+                ),
+                lines=True,
+                orient="records",
+            )
+        return nfaces
 
-# %% ../nbs/00_forensicface.ipynb 29
-@patch
-def process_aligned_face_image(self: ForensicFace, rgb_aligned_face: np.ndarray):
-    assert rgb_aligned_face.shape == (*self.IMG_SIZE, 3)
-    bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
-    embeddings, fiqa_score = self._compute_embeddings(bgr_aligned_face)
+    def process_aligned_face_image(self, rgb_aligned_face: np.ndarray):
+        assert rgb_aligned_face.shape == (*self.IMG_SIZE, 3)
+        bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
+        embeddings, fiqa_score = self._compute_embeddings(bgr_aligned_face)
 
-    if self.concat_embeddings:
-        ret = {"embedding": embeddings}
-    else:
-        ret = {}
-        for model_name, embedding in zip(self.models, embeddings):
-            ret["embedding_" + model_name] = embedding
-    if self.extended:
-        ret = {**ret, **{"fiqa_score": fiqa_score}}
-    return ret
+        if self.concat_embeddings:
+            ret = {"embedding": embeddings}
+        else:
+            ret = {}
+            for model_name, embedding in zip(self.models, embeddings):
+                ret["embedding_" + model_name] = embedding
+        if self.extended:
+            ret = {**ret, **{"fiqa_score": fiqa_score}}
+        return ret

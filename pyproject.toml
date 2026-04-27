@@ -1,0 +1,64 @@
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "forensicface"
+version = "0.5.0"
+description = "A package for forensic face examination"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Rafael O. Ribeiro", email = "rafaeloliveiraribeiro@gmail.com" }
+]
+keywords = ["nbdev", "jupyter", "python", "face", "recognition", "forensics"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "numpy",
+  "pandas",
+  "onnx",
+  "opencv-python-headless",
+  "onnxruntime-gpu>=1.25.0",
+  "scikit-image",
+  "imutils",
+  "tqdm",
+]
+
+[project.urls]
+Homepage = "https://github.com/rafribeiro/forensicface"
+Documentation = "https://rafribeiro.github.io/forensicface"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.uv]
+managed = true
+
+[tool.uv.build-backend]
+module-root = "src"
+module-name = "forensicface"
+source-exclude = [
+  "build/**",
+  "dist/**",
+  "_docs/**",
+  "_proc/**",
+  "nbs/**",
+  "index_files/**",
+  "forensicface.egg-info/**",
+]
+wheel-exclude = [
+  "build/**",
+  "dist/**",
+  "_docs/**",
+  "_proc/**",
+  "nbs/**",
+  "index_files/**",
+  "forensicface.egg-info/**",
+]

@@ -80,13 +80,13 @@ def compute_ss_ds(X, x_id, x_names=None, Z=None, z_id=None, z_names=None):
 # %% ../nbs/01_utils.ipynb 10
 def freeze_env():
     import sys
-    import pkg_resources
+    from importlib.metadata import distributions
 
     env = {}
     env.update({"Python version": f"{sys.version}"})
 
     installed_packages = [
-        (d.project_name, d.version) for d in pkg_resources.working_set
+        (d.metadata.get("Name", d.name), d.version) for d in distributions()
     ]
     installed_packages.sort(
         key=lambda x: x[0].lower()
