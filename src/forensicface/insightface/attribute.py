@@ -8,14 +8,15 @@ import numpy as np
 import onnxruntime
 import onnx
 
-from . import _insightface_face_align as face_align
+from . import face_align
 
 
 class AttributeONNX:
-    def __init__(self, model_file=None, session=None):
+    def __init__(self, model_file=None, session=None, providers=None):
         assert model_file is not None
         self.model_file = model_file
         self.session = session
+        self.providers = providers
         find_sub = False
         find_mul = False
         model = onnx.load(self.model_file)
@@ -37,7 +38,10 @@ class AttributeONNX:
         self.input_mean = input_mean
         self.input_std = input_std
         if self.session is None:
-            self.session = onnxruntime.InferenceSession(self.model_file, None)
+            self.session = onnxruntime.InferenceSession(
+                self.model_file,
+                providers=self.providers,
+            )
         input_cfg = self.session.get_inputs()[0]
         input_shape = input_cfg.shape
         self.input_size = tuple(input_shape[2:4][::-1])

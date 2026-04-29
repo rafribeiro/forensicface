@@ -6,7 +6,6 @@ from pathlib import Path
 import forensicface.app as app_module
 from forensicface.app import ForensicFace
 from forensicface.backends import FaceBackend, FaceData
-from forensicface.forensicface import ForensicFace as LegacyForensicFace
 
 
 class _DummyInput:
@@ -16,6 +15,9 @@ class _DummyInput:
 class _DummyRecSession:
     def get_inputs(self):
         return [_DummyInput()]
+
+    def get_providers(self):
+        return ["CPUExecutionProvider"]
 
     def run(self, _output_names, _inputs):
         # One embedding output tensor.
@@ -46,6 +48,20 @@ class DummyBackend(FaceBackend):
 
     def estimate_norm(self, _keypoints: np.ndarray) -> np.ndarray:
         return np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
+
+
+class _DummyProviderSession:
+    def __init__(self, providers):
+        self._providers = providers
+
+    def get_providers(self):
+        return self._providers
+
+
+class _DummyBackendWithProvider(DummyBackend):
+    def __init__(self, provider_name: str):
+        super().__init__(n_faces=1)
+        self.det_model = type("_DetModel", (), {"session": _DummyProviderSession([provider_name])})()
 
 
 def _patch_model_loading(monkeypatch):
@@ -108,16 +124,31 @@ def test_backend_name_is_forwarded_to_factory(monkeypatch):
     assert isinstance(result, dict)
 
 
-def test_legacy_forensicface_alias_is_deprecated(monkeypatch):
+def test_initialization_prints_loaded_models_det_size_and_provider(monkeypatch, capsys):
     _patch_model_loading(monkeypatch)
 
-    with pytest.warns(DeprecationWarning):
-        ff = LegacyForensicFace(models=["dummy"], extended=False, backend=DummyBackend(n_faces=1))
+    ff = ForensicFace(models=["dummy"], extended=False, backend=DummyBackend(n_faces=1))
 
-    img = np.zeros((128, 128, 3), dtype=np.uint8)
-    with pytest.warns(FutureWarning):
-        result = ff.process_image(img, single_face=True)
-    assert isinstance(result, dict)
+    captured = capsys.readouterr()
+    assert "[ForensicFace] Initialized" in captured.out
+    assert "loaded_models=['dummy']" in captured.out
+    assert "det_size=(320, 320)" in captured.out
+    assert "session_providers=all models use CPUExecutionProvider" in captured.out
+    assert ff is not None
+
+
+def test_initialization_reports_effective_detector_provider(monkeypatch, capsys):
+    _patch_model_loading(monkeypatch)
+
+    ff = ForensicFace(
+        models=["dummy"],
+        extended=False,
+        backend=_DummyBackendWithProvider("CUDAExecutionProvider"),
+    )
+
+    captured = capsys.readouterr()
+    assert "session_providers=dummy: CPUExecutionProvider, detection: CUDAExecutionProvider" in captured.out
+    assert ff is not None
 
 
 def test_onnx_backend_propagates_optional_fields(monkeypatch):
@@ -245,20 +276,20 @@ def test_onnx_backend_loads_landmark_3d68_when_requested(monkeypatch):
             return None
 
     class _DummyLandmarkModel:
-        def __init__(self, model_file=None):
+        def __init__(self, model_file=None, **_kwargs):
             self.model_file = model_file
 
         def prepare(self, *_args, **_kwargs):
             return None
 
     class _DummyGenderAgeModel:
-        def __init__(self, model_file=None):
+        def __init__(self, model_file=None, **_kwargs):
             self.model_file = model_file
 
         def prepare(self, *_args, **_kwargs):
             return None
 
-    def _fake_scrfd(model_file=None):
+    def _fake_scrfd(model_file=None, **_kwargs):
         name = Path(model_file).name.lower()
         if "det" in name:
             return _DummyDetModel()
@@ -283,6 +314,7 @@ def test_onnx_backend_loads_landmark_3d68_when_requested(monkeypatch):
         ctx_id=-1,
         det_size=(320, 320),
         det_thresh=0.5,
+        models_root="/fake/model",
     )
 
     assert backend.det_model is not None
@@ -304,7 +336,12 @@ def test_load_model_uses_forensicface_model_root(monkeypatch):
     monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
     ff = object.__new__(ForensicFace)
-    ff._load_model(model_name="sepaelv2", use_gpu=False, gpu=0)
+    ff._load_model(
+        model_name="sepaelv2",
+        providers=["CPUExecutionProvider"],
+        gpu=0,
+        models_root=str(Path.home() / ".forensicface" / "models"),
+    )
 
     assert captured["pattern"].startswith(str(Path.home() / ".forensicface" / "models" / "sepaelv2"))
     assert "*face*.onnx" in captured["pattern"]
@@ -315,7 +352,7 @@ def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypat
 
     monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: False)
 
-    with pytest.raises(FileNotFoundError, match=r"~/.forensicface/models"):
+    with pytest.raises(FileNotFoundError, match=r"/fake/model"):
         backends_module.ONNXOnlyBackend(
             model_name="sepaelv2",
             allowed_modules=["detection"],
@@ -323,4 +360,5 @@ def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypat
             ctx_id=-1,
             det_size=(320, 320),
             det_thresh=0.5,
+            models_root="/fake/model",
         )

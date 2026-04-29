@@ -8,16 +8,17 @@ import numpy as np
 import onnxruntime
 import onnx
 
-from . import _insightface_face_align as face_align
-from ._insightface_meanshape68 import MEAN_LMK68
-from . import _insightface_transform as transform
+from . import face_align
+from .meanshape68 import MEAN_LMK68
+from . import transform
 
 
 class LandmarkONNX:
-    def __init__(self, model_file=None, session=None):
+    def __init__(self, model_file=None, session=None, providers=None):
         assert model_file is not None
         self.model_file = model_file
         self.session = session
+        self.providers = providers
         find_sub = False
         find_mul = False
         model = onnx.load(self.model_file)
@@ -39,7 +40,10 @@ class LandmarkONNX:
         self.input_mean = input_mean
         self.input_std = input_std
         if self.session is None:
-            self.session = onnxruntime.InferenceSession(self.model_file, None)
+            self.session = onnxruntime.InferenceSession(
+                self.model_file,
+                providers=self.providers,
+            )
         input_cfg = self.session.get_inputs()[0]
         input_shape = input_cfg.shape
         self.input_size = tuple(input_shape[2:4][::-1])

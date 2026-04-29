@@ -61,7 +61,28 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional file path to write full output JSON",
     )
+    parser.add_argument(
+        "--omit-field",
+        action="append",
+        default=[],
+        metavar="FIELD",
+        help="Drop a top-level field from each face record before serialization",
+    )
     return parser.parse_args()
+
+
+def _prune_output(value: Any, omit_fields: set[str]) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _prune_output(item, omit_fields)
+            for key, item in value.items()
+            if key not in omit_fields
+        }
+    if isinstance(value, list):
+        return [_prune_output(item, omit_fields) for item in value]
+    if isinstance(value, tuple):
+        return [_prune_output(item, omit_fields) for item in value]
+    return value
 
 
 def main() -> None:
@@ -79,6 +100,7 @@ def main() -> None:
         det_thresh=args.det_thresh,
         extended=True,
         backend_name="onnx",
+        concat_embeddings=False,
     )
 
     result = ff.process_image(
@@ -89,7 +111,7 @@ def main() -> None:
 
     # Force complete array materialization in prints.
     np.set_printoptions(threshold=np.inf)
-    full_output = _to_plain(result)
+    full_output = _to_plain(_prune_output(result, set(args.omit_field)))
 
     serialized = json.dumps(full_output, indent=2, ensure_ascii=True)
     print(serialized)

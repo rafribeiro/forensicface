@@ -5,10 +5,10 @@ import os.path as osp
 
 import numpy as np
 
-from . import _insightface_face_align as face_align
-from ._insightface_attribute import AttributeONNX
-from ._insightface_landmark import LandmarkONNX
-from ._insightface_scrfd import SCRFD
+from .insightface import face_align
+from .insightface.attribute import AttributeONNX
+from .insightface.landmark import LandmarkONNX
+from .insightface.scrfd import SCRFD
 
 
 @dataclass
@@ -54,19 +54,19 @@ class ONNXOnlyBackend(FaceBackend):
         ctx_id: int,
         det_size: tuple[int, int],
         det_thresh: float,
+        models_root: str,
     ):
         self.name = "onnx"
-        model_root = osp.expanduser("~/.forensicface/models")
-        model_dir = osp.join(model_root, model_name)
+        model_dir = osp.join(models_root, model_name)
         if not osp.isdir(model_dir):
             raise FileNotFoundError(
                 f"Model directory not found: {model_dir}. "
-                "Download models into ~/.forensicface/models or provide a valid model name."
+                f"Download models into {models_root} or provide a valid model name."
             )
 
         onnx_files = sorted(glob.glob(osp.join(model_dir, "*.onnx")))
         if not onnx_files:
-            raise FileNotFoundError(f"No ONNX files found under {model_dir}")
+            raise FileNotFoundError(f"No ONNX model files found under {model_dir}")
 
         self.det_model = None
         self.landmark_model = None
@@ -76,7 +76,7 @@ class ONNXOnlyBackend(FaceBackend):
         wants_landmark_3d68 = "landmark_3d_68" in allowed_modules
         for onnx_file in onnx_files:
             try:
-                candidate = SCRFD(model_file=onnx_file)
+                candidate = SCRFD(model_file=onnx_file, providers=providers)
             except Exception:
                 candidate = None
 
@@ -103,7 +103,10 @@ class ONNXOnlyBackend(FaceBackend):
                 and is_landmark_candidate
             ):
                 try:
-                    self.landmark_model = LandmarkONNX(model_file=onnx_file)
+                    self.landmark_model = LandmarkONNX(
+                        model_file=onnx_file,
+                        providers=providers,
+                    )
                     continue
                 except Exception:
                     pass
@@ -114,7 +117,10 @@ class ONNXOnlyBackend(FaceBackend):
                 and "genderage" in low_name
             ):
                 try:
-                    self.genderage_model = AttributeONNX(model_file=onnx_file)
+                    self.genderage_model = AttributeONNX(
+                        model_file=onnx_file,
+                        providers=providers,
+                    )
                     continue
                 except Exception:
                     pass
@@ -196,6 +202,7 @@ def create_backend(
     ctx_id: int,
     det_size: tuple[int, int],
     det_thresh: float,
+    models_root: str,
 ) -> FaceBackend:
     if backend_name == "onnx":
         return ONNXOnlyBackend(
@@ -205,6 +212,7 @@ def create_backend(
             ctx_id=ctx_id,
             det_size=det_size,
             det_thresh=det_thresh,
+            models_root=models_root,
         )
     raise ValueError(
         f"Unknown backend_name '{backend_name}'. Supported values: 'onnx'."

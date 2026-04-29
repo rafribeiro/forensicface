@@ -28,15 +28,24 @@ def distance2kps(points, distance, max_shape=None):
 
 
 class SCRFD:
-    def __init__(self, model_file=None, session=None):
+    def __init__(self, model_file=None, session=None, providers=None):
         self.model_file = model_file
         self.session = session
+        self.providers = providers
         self.taskname = "detection"
         self.batched = False
         if self.session is None:
             assert self.model_file is not None
             assert osp.exists(self.model_file)
-            self.session = onnxruntime.InferenceSession(self.model_file, None)
+            sess_options = onnxruntime.SessionOptions()
+            # SCRFD models can emit benign VerifyOutputSizes warnings for dynamic heads.
+            # Keep runtime logs focused on actionable errors for end users.
+            sess_options.log_severity_level = 3
+            self.session = onnxruntime.InferenceSession(
+                self.model_file,
+                sess_options=sess_options,
+                providers=self.providers,
+            )
         self.center_cache = {}
         self.nms_thresh = 0.4
         self.det_thresh = 0.5
