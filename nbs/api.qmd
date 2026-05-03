@@ -6,4 +6,4 @@ title: API Reference
 This reference is generated from Python docstrings using `quartodoc`.
 :::
 
-{{< include ../_api/index.md >}}
+Go to the full API index: [API reference index](api/index.qmd)

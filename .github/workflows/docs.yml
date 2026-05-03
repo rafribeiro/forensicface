@@ -38,7 +38,7 @@ jobs:
         run: uv sync --extra dev --extra docs
 
       - name: Build API reference and site
-        run: ./scripts/build_docs.sh
+        run: ./scripts/build_docs_ci.sh
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

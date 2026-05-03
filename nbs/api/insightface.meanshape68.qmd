@@ -1,0 +1,4 @@
+# insightface.meanshape68 { #forensicface.insightface.meanshape68 }
+
+`insightface.meanshape68`
+

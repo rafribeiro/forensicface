@@ -1,0 +1,4 @@
+# insightface.attribute { #forensicface.insightface.attribute }
+
+`insightface.attribute`
+

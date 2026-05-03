@@ -1,0 +1,43 @@
+# ort_runtime_setup { #forensicface.ort_runtime_setup }
+
+`ort_runtime_setup`
+
+
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [configure_onnxruntime_acceleration](#forensicface.ort_runtime_setup.configure_onnxruntime_acceleration) | Configure ONNX Runtime library loading as early as possible. |
+
+### configure_onnxruntime_acceleration { #forensicface.ort_runtime_setup.configure_onnxruntime_acceleration }
+
+```python
+ort_runtime_setup.configure_onnxruntime_acceleration(
+    prefer_cuda=True,
+    allow_coreml_on_macos=True,
+    verbose=True,
+)
+```
+
+Configure ONNX Runtime library loading as early as possible.
+
+Call this before importing libraries that create ONNX Runtime sessions,
+e.g. before importing forensicface / insightface wrappers.
+
+Returns a providers list suitable for ort.InferenceSession(...).
+
+#### Windows {.doc-section .doc-section-windows}
+
+Uses os.add_dll_directory + PATH + ort.preload_dlls(directory="").
+
+#### Linux {.doc-section .doc-section-linux}
+
+Adds NVIDIA wheel lib dirs to LD_LIBRARY_PATH for child processes,
+preloads shared libraries by absolute path with ctypes, then calls
+ort.preload_dlls(directory="") where available.
+
+#### macOS {.doc-section .doc-section-macos}
+
+CUDA is not available through onnxruntime-gpu. Optionally returns
+CoreMLExecutionProvider if present, otherwise CPUExecutionProvider.

@@ -1,0 +1,5 @@
+# runtime_summary { #forensicface.runtime_summary }
+
+`runtime_summary`
+
+Initialization summary helpers for ForensicFace.

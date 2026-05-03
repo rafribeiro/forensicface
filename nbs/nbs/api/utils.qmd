@@ -1,0 +1,86 @@
+# utils { #forensicface.utils }
+
+`utils`
+
+
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [annotate_img_with_kps](#forensicface.utils.annotate_img_with_kps) | Annotate an image with keypoints. |
+| [compute_ss_ds](#forensicface.utils.compute_ss_ds) | Compute cosine similarities between the cartesian product of two arrays X and Z and |
+| [transform_keypoints](#forensicface.utils.transform_keypoints) | Transforms keypoints from the original image space to the aligned image space. |
+
+### annotate_img_with_kps { #forensicface.utils.annotate_img_with_kps }
+
+```python
+utils.annotate_img_with_kps(bgr_img, kps, color='red', radius=2)
+```
+
+Annotate an image with keypoints.
+
+Parameters:
+bgr_img (numpy.ndarray): The input image in BGR format.
+kps (numpy.ndarray): A numpy array of shape (5, 2) containing the keypoints.
+color (str, optional): The color of the keypoints. Default is 'red'.
+                    Options are 'red', 'blue', 'green', 'white', 'black'.
+radius (int, optional): The radius of the keypoints. Default is 2.
+
+Returns:
+numpy.ndarray: The image with keypoints annotated.
+
+### compute_ss_ds { #forensicface.utils.compute_ss_ds }
+
+```python
+utils.compute_ss_ds(X, x_id, x_names=None, Z=None, z_id=None, z_names=None)
+```
+
+Compute cosine similarities between the cartesian product of two arrays X and Z and
+return same-source (ss) and different-source (ds) scores.
+If only the array X and x_id are provided, compute the cosine similarities between all pairwise
+combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.
+
+#### Inputs {.doc-section .doc-section-inputs}
+
+X, Z: 2d numpy arrays with embeddings (1 per line)
+x_id, z_id: 1d numpy arrays with identity labels
+x_names, z_names: 1d numpy arrays with names of files associated with the embeddings
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**scores**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   1d numpy array with scores
+
+<code>[**y**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   1d numpy arrays with ss (1) and ds (0) labels to the scores array
+
+<code>[**names**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   list of tuples with names of files associated with each score
+
+### transform_keypoints { #forensicface.utils.transform_keypoints }
+
+```python
+utils.transform_keypoints(keypoints, M)
+```
+
+Transforms keypoints from the original image space to the aligned image space.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy array]{.parameter-annotation}</code>
+
+:   A 2D array of shape (5, 2) representing the original keypoints.
+
+<code>[**M**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy array]{.parameter-annotation}</code>
+
+:   The 2x3 affine transformation matrix.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   numpy array: A 2D array of shape (5, 2) representing the transformed keypoints.

@@ -1,0 +1,35 @@
+# backends { #forensicface.backends }
+
+`backends`
+
+
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [ONNXOnlyBackend](#forensicface.backends.ONNXOnlyBackend) | ONNX-only face pipeline using insightface model_zoo components. |
+
+### ONNXOnlyBackend { #forensicface.backends.ONNXOnlyBackend }
+
+```python
+backends.ONNXOnlyBackend(
+    model_name,
+    allowed_modules,
+    providers,
+    ctx_id,
+    det_size,
+    det_thresh,
+    models_root,
+)
+```
+
+ONNX-only face pipeline using insightface model_zoo components.
+
+#### Attribution {.doc-section .doc-section-attribution}
+
+This implementation is adapted from InsightFace's MIT-licensed code,
+primarily:
+- ``insightface.app.face_analysis.FaceAnalysis`` (pipeline pattern)
+- ``insightface.model_zoo.scrfd.SCRFD`` (detector)
+- ``insightface.utils.face_align`` (alignment)

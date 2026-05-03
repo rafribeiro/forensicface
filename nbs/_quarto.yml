@@ -6,6 +6,7 @@ project:
     - index.ipynb
     - 00_forensicface.ipynb
     - 01_utils.ipynb
+    - api/*.qmd
     - api.qmd
 
 execute:
@@ -37,3 +38,34 @@ website:
       - 00_forensicface.ipynb
       - 01_utils.ipynb
       - api.qmd
+
+quartodoc:
+  package: forensicface
+  source_dir: src
+  dir: api
+  sections:
+    - title: Core
+      desc: Public API for forensicface.
+      contents:
+        - app
+        - backends
+        - ort_runtime_setup
+        - runtime_summary
+        - utils
+    - title: Insightface Internals
+      desc: Internal components vendored from insightface.
+      contents:
+        - insightface.attribute
+        - insightface.face_align
+        - insightface.landmark
+        - insightface.meanshape68
+        - insightface.scrfd
+        - insightface.transform
+  options:
+    signature_name: relative
+    include_private: false
+    include_inherited: false
+  parser: google
+  renderer:
+    style: markdown
+    table_style: description-list

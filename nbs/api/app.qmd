@@ -1,0 +1,286 @@
+# app { #forensicface.app }
+
+`app`
+
+
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [ForensicFace](#forensicface.app.ForensicFace) | Class for processing facial images to extract useful features for forensic analysis. |
+
+### ForensicFace { #forensicface.app.ForensicFace }
+
+```python
+app.ForensicFace(
+    models=['sepaelv2'],
+    model=None,
+    det_size=320,
+    use_gpu=True,
+    gpu=0,
+    concat_embeddings=True,
+    extended=True,
+    det_thresh=0.5,
+    backend_name='onnx',
+    backend=None,
+    models_root=osp.join(osp.expanduser('~'), '.forensicface', 'models'),
+)
+```
+
+Class for processing facial images to extract useful features for forensic analysis.
+
+#### Methods
+
+| Name | Description |
+| --- | --- |
+| [aggregate_embeddings](#forensicface.app.ForensicFace.aggregate_embeddings) | Aggregates multiple embeddings into a single embedding. |
+| [aggregate_from_images](#forensicface.app.ForensicFace.aggregate_from_images) | Given a list of image paths, this method returns the average embedding of all faces found in the images. |
+| [build_mosaic](#forensicface.app.ForensicFace.build_mosaic) | Build a rectangular mosaic of the aligned faces. |
+| [compare](#forensicface.app.ForensicFace.compare) | Compares the similarity between two face images based on their embeddings. |
+| [extract_faces](#forensicface.app.ForensicFace.extract_faces) | Extracts faces from a video and saves them as individual images. |
+| [process_image](#forensicface.app.ForensicFace.process_image) | Process an image assuming one or multiple faces. |
+| [process_image_multiple_faces](#forensicface.app.ForensicFace.process_image_multiple_faces) | Process an image with one or multiple faces. |
+| [process_image_single_face](#forensicface.app.ForensicFace.process_image_single_face) | Process a an image considering it has a single face and extract useful features for forensic analysis. |
+
+##### aggregate_embeddings { #forensicface.app.ForensicFace.aggregate_embeddings }
+
+```python
+app.ForensicFace.aggregate_embeddings(embeddings, weights=None, method='mean')
+```
+
+Aggregates multiple embeddings into a single embedding.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**embeddings**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy.ndarray]{.parameter-annotation}</code>
+
+:   A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated.
+
+<code>[**weights**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy.ndarray]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A 1D array of shape (num_embeddings,) containing the weights to be assigned to each embedding. If not provided, all embeddings are equally weighted.
+
+<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'mean\']{.parameter-default}</code>
+
+:   choice of agregating based on the mean or median of the embeddings. Possible values are 'mean' and 'median'.
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
+
+##### aggregate_from_images { #forensicface.app.ForensicFace.aggregate_from_images }
+
+```python
+app.ForensicFace.aggregate_from_images(
+    list_of_image_paths,
+    method='mean',
+    quality_weight=False,
+)
+```
+
+Given a list of image paths, this method returns the average embedding of all faces found in the images.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**list_of_image_paths**]{.parameter-name} [:]{.parameter-annotation-sep} [List\[str\]]{.parameter-annotation}</code>
+
+:   List of paths to images.
+
+<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'mean\']{.parameter-default}</code>
+
+:   choice of agregating based on the mean or median of the embeddings. Possible values are 'mean' and 'median'.
+
+<code>[**quality_weight**]{.parameter-name} [:]{.parameter-annotation-sep} [boolean]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, use the FIQA(L) score as a weight for aggregation.
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   average embedding. Otherwise, returns an empty list.
+
+##### build_mosaic { #forensicface.app.ForensicFace.build_mosaic }
+
+```python
+app.ForensicFace.build_mosaic(
+    img_path_list,
+    mosaic_shape,
+    border=0.03,
+    save_to=None,
+    draw_keypoints=False,
+)
+```
+
+Build a rectangular mosaic of the aligned faces.
+Based on the imutils build_montages function.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**img_path_list**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   list of paths to image files or list of bgr_images
+
+<code>[**mosaic_shape**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   tuple of integers, (n_cols, n_rows)
+
+<code>[**border**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [0.03]{.parameter-default}</code>
+
+:   float, percent of image to use as white border
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   cv2 BGR image with mosaic
+
+##### compare { #forensicface.app.ForensicFace.compare }
+
+```python
+app.ForensicFace.compare(img1path, img2path)
+```
+
+Compares the similarity between two face images based on their embeddings.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**- img1path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
+
+:   Path to the first image file
+
+<code>[**- img2path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
+
+:   Path to the second image file
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   A float representing the similarity score between the two faces based on their embeddings.
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+
+##### extract_faces { #forensicface.app.ForensicFace.extract_faces }
+
+```python
+app.ForensicFace.extract_faces(
+    video_path,
+    dest_folder=None,
+    every_n_frames=1,
+    margin=2.0,
+    start_from=0.0,
+    export_metadata=False,
+)
+```
+
+Extracts faces from a video and saves them as individual images.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**video_path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
+
+:   The path to the input video file.
+
+<code>[**dest_folder**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The path to the output folder. If not provided, a new folder with the same name as the input video file is created.
+
+<code>[**every_n_frames**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
+
+<code>[**margin**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+
+:   The factor by which the detected face bounding box should be extended. Default is 2.0.
+
+<code>[**start_from**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   The time point (in seconds) after which the video frames should be processed. Default is 0.0.
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   The number of extracted faces.
+
+##### process_image { #forensicface.app.ForensicFace.process_image }
+
+```python
+app.ForensicFace.process_image(
+    imgpath,
+    single_face=True,
+    draw_keypoints=False,
+    select_single_face_by='size',
+)
+```
+
+Process an image assuming one or multiple faces.
+Args:
+    - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR.
+    - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face.
+    - single_face (bool): If set to True, assume the image may contain more than one face.
+    - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected.
+        Only applicable when single_face == True. Must be either 'size' or 'centrality'.
+Returns:
+    A dictionary containing the following keys:
+        - 'keypoints': A 2D numpy array of shape (5, 2) containing the facial keypoints
+                for each face in the image. The keypoints are ordered as follows:
+               left eye, right eye, nose tip, left mouth corner, and right mouth corner.
+
+        - 'ipd': A float representing the inter-pupillary distance for each face in the image.
+
+        - 'embedding': A 1D numpy array of shape (512,) containing the facial embedding
+               for each face in the image.
+               If the concat_emmbeddings == True, keys for each model are used with the names <model_name>_embedding
+
+        - 'bbox': A 1D numpy array of shape (4,) containing the bounding box coordinates for each face
+          in the image. The coordinates are ordered as follows: (xmin, ymin, xmax, ymax).
+
+        - 'aligned_face': A 3D numpy array of shape (H, W, C) in RGB order containing the aligned face image for
+                  each face in the image. The image has been cropped and aligned based on the
+                  facial keypoints.
+
+        - 'det_score': A float representing the face detection score.
+
+        If the 'extended' is set to True, the dictionary will also contain the following keys:
+        - 'gender': A string representing the gender for each face in the image.
+                       Possible values are 'M' for male and 'F' for female.
+
+        - 'age': An integer representing the estimated age for each face in the image.
+
+        - 'pitch': A float representing the pitch angle for each face in the image.
+
+        - 'yaw': A float representing the yaw angle for each face in the image.
+
+        - 'roll': A float representing the roll angle for each face in the image.
+
+        - fiqa_score: A float indicating facial image quality.
+
+##### process_image_multiple_faces { #forensicface.app.ForensicFace.process_image_multiple_faces }
+
+```python
+app.ForensicFace.process_image_multiple_faces(imgpath, draw_keypoints=False)
+```
+
+Process an image with one or multiple faces.
+THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.
+
+##### process_image_single_face { #forensicface.app.ForensicFace.process_image_single_face }
+
+```python
+app.ForensicFace.process_image_single_face(imgpath, draw_keypoints=False)
+```
+
+Process a an image considering it has a single face and extract useful features for forensic analysis.
+If more than one face is detected, the largest face will be returned.
+THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.

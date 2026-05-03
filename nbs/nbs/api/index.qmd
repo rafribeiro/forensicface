@@ -1,0 +1,26 @@
+# Function reference {.doc .doc-index}
+
+## Core
+
+Public API for forensicface.
+
+| | |
+| --- | --- |
+| [app](app.qmd#forensicface.app) |  |
+| [backends](backends.qmd#forensicface.backends) |  |
+| [ort_runtime_setup](ort_runtime_setup.qmd#forensicface.ort_runtime_setup) |  |
+| [runtime_summary](runtime_summary.qmd#forensicface.runtime_summary) | Initialization summary helpers for ForensicFace. |
+| [utils](utils.qmd#forensicface.utils) |  |
+
+## Insightface Internals
+
+Internal components vendored from insightface.
+
+| | |
+| --- | --- |
+| [insightface.attribute](insightface.attribute.qmd#forensicface.insightface.attribute) |  |
+| [insightface.face_align](insightface.face_align.qmd#forensicface.insightface.face_align) |  |
+| [insightface.landmark](insightface.landmark.qmd#forensicface.insightface.landmark) |  |
+| [insightface.meanshape68](insightface.meanshape68.qmd#forensicface.insightface.meanshape68) |  |
+| [insightface.scrfd](insightface.scrfd.qmd#forensicface.insightface.scrfd) |  |
+| [insightface.transform](insightface.transform.qmd#forensicface.insightface.transform) |  |

@@ -39,6 +39,7 @@ Documentation = "https://rafribeiro.github.io/forensicface"
 dev = ["pytest>=8.0"]
 docs = [
   "jupyter>=1.1.0",
+  "matplotlib>=3.9.0",
   "quartodoc>=0.11.1",
 ]
 

@@ -1,0 +1,37 @@
+# insightface.transform { #forensicface.insightface.transform }
+
+`insightface.transform`
+
+
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [P2sRt](#forensicface.insightface.transform.P2sRt) | Decompose affine camera matrix into scale, rotation, translation. |
+| [estimate_affine_matrix_3d23d](#forensicface.insightface.transform.estimate_affine_matrix_3d23d) | Least-squares affine matrix from 3D points X to Y. |
+| [matrix2angle](#forensicface.insightface.transform.matrix2angle) | Convert rotation matrix to pitch, yaw, roll in degrees. |
+
+### P2sRt { #forensicface.insightface.transform.P2sRt }
+
+```python
+insightface.transform.P2sRt(P)
+```
+
+Decompose affine camera matrix into scale, rotation, translation.
+
+### estimate_affine_matrix_3d23d { #forensicface.insightface.transform.estimate_affine_matrix_3d23d }
+
+```python
+insightface.transform.estimate_affine_matrix_3d23d(X, Y)
+```
+
+Least-squares affine matrix from 3D points X to Y.
+
+### matrix2angle { #forensicface.insightface.transform.matrix2angle }
+
+```python
+insightface.transform.matrix2angle(R)
+```
+
+Convert rotation matrix to pitch, yaw, roll in degrees.

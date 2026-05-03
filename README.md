@@ -41,6 +41,10 @@ uv sync --extra docs
 ./scripts/build_docs.sh
 ```
 
+No `build_docs.sh`, os notebooks são executados localmente antes de gerar o site.
+No CI (GitHub Actions), é usado `./scripts/build_docs_ci.sh`, que renderiza sem
+executar notebooks novamente.
+
 Saída do site: `_docs/`
 
 ## Como utilizar
