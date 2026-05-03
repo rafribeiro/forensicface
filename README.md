@@ -29,6 +29,20 @@ possível utilizar outros modelos.
 - CUDA e CuDNN são instalados automaticamente no ambiente virtual  
     onde o forensicface for instalado.  
 
+## Documentação
+
+- Tutoriais e exemplos: notebooks em `nbs/`, publicados com Quarto
+- Referência de API: gerada via docstrings com `quartodoc`
+
+Build local da documentação:
+
+``` sh
+uv sync --extra docs
+./scripts/build_docs.sh
+```
+
+Saída do site: `_docs/`
+
 ## Como utilizar
 
 Importação da classe ForensicFace:
@@ -119,4 +133,3 @@ good["fiqa_score"], bad["fiqa_score"]
 - Reconhecimento: [adaface](https://github.com/mk-minchul/AdaFace)
 
 - Estimativa de qualidade: [CR-FIQA](https://github.com/fdbtrs/CR-FIQA)
-

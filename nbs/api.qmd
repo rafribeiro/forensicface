@@ -1,0 +1,9 @@
+---
+title: API Reference
+---
+
+::: {.callout-note}
+This reference is generated from Python docstrings using `quartodoc`.
+:::
+
+{{< include ../_api/index.md >}}

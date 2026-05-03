@@ -1,9 +1,0 @@
-project:
-  output-dir: _docs
-
-website:
-  title: "forensicface"
-  site-url: "https://rafribeiro.github.io/forensicface"
-  description: "A package for forensic face examination"
-  repo-branch: main
-  repo-url: "https://github.com/rafribeiro/forensicface"

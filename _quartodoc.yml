@@ -1,0 +1,37 @@
+package: forensicface
+
+sections:
+  - title: Core
+    desc: Public API for forensicface.
+    contents:
+      - forensicface.app
+      - forensicface.backends
+      - forensicface.ort_runtime_setup
+      - forensicface.runtime_summary
+      - forensicface.utils
+
+  - title: Insightface Internals
+    desc: Internal components vendored from insightface.
+    contents:
+      - forensicface.insightface.attribute
+      - forensicface.insightface.face_align
+      - forensicface.insightface.landmark
+      - forensicface.insightface.meanshape68
+      - forensicface.insightface.scrfd
+      - forensicface.insightface.transform
+
+options:
+  signature_name: relative
+  members: true
+  include_private: false
+  include_inherited: false
+
+docstrings:
+  style: google
+
+renderer:
+  style: markdown
+  show_source: true
+  table_style: description-list
+
+output: _api
