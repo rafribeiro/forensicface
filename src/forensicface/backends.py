@@ -58,15 +58,16 @@ class ONNXOnlyBackend(FaceBackend):
     ):
         self.name = "onnx"
         model_dir = osp.join(models_root, model_name)
-        if not osp.isdir(model_dir):
+
+        onnx_files = self._collect_onnx_files(models_root, model_name)
+        if not onnx_files:
+            new_detection = osp.join(models_root, "detection")
+            new_attributes = osp.join(models_root, "attributes")
             raise FileNotFoundError(
-                f"Model directory not found: {model_dir}. "
+                f"No ONNX model files found. Searched: {new_detection}, "
+                f"{new_attributes} (new shared layout) and {model_dir} (legacy layout). "
                 f"Download models into {models_root} or provide a valid model name."
             )
-
-        onnx_files = sorted(glob.glob(osp.join(model_dir, "*.onnx")))
-        if not onnx_files:
-            raise FileNotFoundError(f"No ONNX model files found under {model_dir}")
 
         self.det_model = None
         self.landmark_model = None
@@ -80,7 +81,11 @@ class ONNXOnlyBackend(FaceBackend):
             except Exception:
                 candidate = None
 
-            if candidate is not None and candidate.taskname == "detection":
+            if (
+                self.det_model is None
+                and candidate is not None
+                and candidate.taskname == "detection"
+            ):
                 self.det_model = candidate
                 self._detection_file = onnx_file
                 continue
@@ -126,8 +131,10 @@ class ONNXOnlyBackend(FaceBackend):
                     pass
 
         if self.det_model is None:
+            new_detection = osp.join(models_root, "detection")
             raise RuntimeError(
-                f"Could not load a SCRFD detection model from {model_dir}."
+                f"Could not load a SCRFD detection model. "
+                f"Searched: {new_detection} (new shared layout) and {model_dir} (legacy layout)."
             )
 
         self.det_model.prepare(ctx_id, input_size=det_size, det_thresh=det_thresh)
@@ -135,6 +142,34 @@ class ONNXOnlyBackend(FaceBackend):
             self.landmark_model.prepare(ctx_id)
         if self.genderage_model is not None:
             self.genderage_model.prepare(ctx_id)
+
+    @staticmethod
+    def _collect_onnx_files(models_root: str, model_name: str) -> list[str]:
+        """Collects candidate ONNX files for backend probing.
+
+        Prefers the new shared layout (``detection/`` and ``attributes/``
+        directories under ``models_root``) and falls back to the legacy
+        per-model layout (``<models_root>/<model_name>/``). Files from the
+        new layout appear first so backward-compatible detection picks them
+        up before any duplicates in the legacy folder.
+        """
+        sources = [
+            osp.join(models_root, "detection"),
+            osp.join(models_root, "attributes"),
+            osp.join(models_root, model_name),
+        ]
+        files: list[str] = []
+        seen: set[str] = set()
+        for source in sources:
+            if not osp.isdir(source):
+                continue
+            for path in sorted(glob.glob(osp.join(source, "*.onnx"))):
+                normalized = osp.normpath(path)
+                if normalized in seen:
+                    continue
+                seen.add(normalized)
+                files.append(path)
+        return files
 
     def detect_faces(self, bgr_img: np.ndarray) -> list[FaceData]:
         bboxes, kpss = self.det_model.detect(bgr_img, max_num=0, metric="default")
