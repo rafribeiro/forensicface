@@ -1,3 +1,5 @@
+import os.path as osp
+
 import numpy as np
 import pytest
 import cv2
@@ -322,11 +324,11 @@ def test_onnx_backend_loads_landmark_3d68_when_requested(monkeypatch):
     assert backend.genderage_model is not None
 
 
-def test_load_model_uses_forensicface_model_root(monkeypatch):
-    captured = {}
+def test_load_model_prefers_new_recognition_layout(monkeypatch):
+    captured = {"patterns": []}
 
     def fake_glob(pattern):
-        captured["pattern"] = pattern
+        captured["patterns"].append(pattern)
         return ["/fake/path/face.onnx"]
 
     class _DummySession:
@@ -336,15 +338,80 @@ def test_load_model_uses_forensicface_model_root(monkeypatch):
     monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
     ff = object.__new__(ForensicFace)
+    models_root = str(Path.home() / ".forensicface" / "models")
     ff._load_model(
         model_name="sepaelv2",
         providers=["CPUExecutionProvider"],
         gpu=0,
-        models_root=str(Path.home() / ".forensicface" / "models"),
+        models_root=models_root,
     )
 
-    assert captured["pattern"].startswith(str(Path.home() / ".forensicface" / "models" / "sepaelv2"))
-    assert "*face*.onnx" in captured["pattern"]
+    new_prefix = str(Path(models_root) / "recognition" / "sepaelv2")
+    assert captured["patterns"][0].startswith(new_prefix)
+    assert "*face*.onnx" in captured["patterns"][0]
+
+
+def test_load_model_falls_back_to_legacy_layout(monkeypatch):
+    captured = {"patterns": []}
+
+    def fake_glob(pattern):
+        captured["patterns"].append(pattern)
+        # First call (new layout) returns empty; second call (legacy) returns a hit.
+        return [] if len(captured["patterns"]) == 1 else ["/fake/path/face.onnx"]
+
+    class _DummySession:
+        pass
+
+    monkeypatch.setattr(app_module, "glob", fake_glob)
+    monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
+
+    ff = object.__new__(ForensicFace)
+    models_root = str(Path.home() / ".forensicface" / "models")
+    ff._load_model(
+        model_name="sepaelv2",
+        providers=["CPUExecutionProvider"],
+        gpu=0,
+        models_root=models_root,
+    )
+
+    assert len(captured["patterns"]) == 2
+    legacy_prefix = str(Path(models_root) / "sepaelv2")
+    assert captured["patterns"][1].startswith(legacy_prefix)
+    assert "*face*.onnx" in captured["patterns"][1]
+
+
+def test_resolve_quality_model_prefers_new_layout(monkeypatch, tmp_path):
+    quality_dir = tmp_path / "quality"
+    quality_dir.mkdir()
+    new_path = quality_dir / "cr_fiqa_l.onnx"
+    new_path.write_bytes(b"fake-onnx")
+
+    ff = object.__new__(ForensicFace)
+    ff.models_root = str(tmp_path)
+
+    resolved = ff._resolve_quality_model("sepaelv2")
+    assert Path(resolved) == new_path
+
+
+def test_resolve_quality_model_falls_back_to_legacy_layout(tmp_path):
+    legacy_dir = tmp_path / "sepaelv2" / "cr_fiqa"
+    legacy_dir.mkdir(parents=True)
+    legacy_path = legacy_dir / "cr_fiqa_l.onnx"
+    legacy_path.write_bytes(b"fake-onnx")
+
+    ff = object.__new__(ForensicFace)
+    ff.models_root = str(tmp_path)
+
+    resolved = ff._resolve_quality_model("sepaelv2")
+    assert Path(resolved) == legacy_path
+
+
+def test_resolve_quality_model_raises_when_missing(tmp_path):
+    ff = object.__new__(ForensicFace)
+    ff.models_root = str(tmp_path)
+
+    with pytest.raises(FileNotFoundError, match="cr_fiqa_l.onnx"):
+        ff._resolve_quality_model("sepaelv2")
 
 
 def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypatch):
@@ -362,3 +429,107 @@ def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypat
             det_thresh=0.5,
             models_root="/fake/model",
         )
+
+
+def test_backend_prefers_new_shared_structure_over_legacy(monkeypatch):
+    import forensicface.backends as backends_module
+
+    new_det = "/fake/model/detection/det_10g.onnx"
+    legacy_det = "/fake/model/sepaelv2/det_10g.onnx"
+
+    glob_calls = {"patterns": []}
+
+    def fake_glob(pattern):
+        glob_calls["patterns"].append(pattern)
+        if pattern.endswith(osp.join("detection", "*.onnx")):
+            return [new_det]
+        if pattern.endswith(osp.join("attributes", "*.onnx")):
+            return []
+        if pattern.endswith(osp.join("sepaelv2", "*.onnx")):
+            return [legacy_det]
+        return []
+
+    class _DummyDetModel:
+        taskname = "detection"
+
+        def __init__(self, model_file):
+            self.model_file = model_file
+
+        def prepare(self, *_args, **_kwargs):
+            return None
+
+    def fake_scrfd(model_file=None, **_kwargs):
+        return _DummyDetModel(model_file)
+
+    monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(backends_module.glob, "glob", fake_glob)
+    monkeypatch.setattr(backends_module, "SCRFD", fake_scrfd)
+
+    backend = backends_module.ONNXOnlyBackend(
+        model_name="sepaelv2",
+        allowed_modules=["detection"],
+        providers=["CPUExecutionProvider"],
+        ctx_id=-1,
+        det_size=(320, 320),
+        det_thresh=0.5,
+        models_root="/fake/model",
+    )
+
+    assert backend.det_model.model_file == new_det
+
+
+def test_backend_falls_back_to_legacy_when_new_layout_missing(monkeypatch):
+    import forensicface.backends as backends_module
+
+    legacy_dir = osp.join("/fake/model", "sepaelv2")
+    legacy_det = osp.join(legacy_dir, "det_10g.onnx")
+
+    def fake_isdir(path):
+        return osp.normpath(path) == osp.normpath(legacy_dir)
+
+    def fake_glob(pattern):
+        if pattern.endswith(osp.join("sepaelv2", "*.onnx")):
+            return [legacy_det]
+        return []
+
+    class _DummyDetModel:
+        taskname = "detection"
+
+        def __init__(self, model_file):
+            self.model_file = model_file
+
+        def prepare(self, *_args, **_kwargs):
+            return None
+
+    def fake_scrfd(model_file=None, **_kwargs):
+        return _DummyDetModel(model_file)
+
+    monkeypatch.setattr(backends_module.osp, "isdir", fake_isdir)
+    monkeypatch.setattr(backends_module.glob, "glob", fake_glob)
+    monkeypatch.setattr(backends_module, "SCRFD", fake_scrfd)
+
+    backend = backends_module.ONNXOnlyBackend(
+        model_name="sepaelv2",
+        allowed_modules=["detection"],
+        providers=["CPUExecutionProvider"],
+        ctx_id=-1,
+        det_size=(320, 320),
+        det_thresh=0.5,
+        models_root="/fake/model",
+    )
+
+    assert backend.det_model.model_file == legacy_det
+
+
+def test_collect_onnx_files_dedupes_across_sources(monkeypatch):
+    import forensicface.backends as backends_module
+
+    duplicate = "/fake/model/detection/det_10g.onnx"
+
+    monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(backends_module.glob, "glob", lambda *_args, **_kwargs: [duplicate])
+
+    files = backends_module.ONNXOnlyBackend._collect_onnx_files(
+        "/fake/model", "sepaelv2"
+    )
+    assert files == [duplicate]

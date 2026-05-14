@@ -7,15 +7,34 @@
 pip install forensicface
 ```
 
-Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
-(1k3d68.onnx) e sexo/idade (genderage.onnx) devem estar na pasta
-`~/.forensicface/models/<model_name>/`
+### Estrutura de pastas dos modelos
 
-O arquivo onnx do modelo de reconhecimento (ex. adaface_ir101web12m.onnx)
-deve estar na pasta `~/.forensicface/models/<model_name>/*face*/`
+A partir desta versão, os modelos são organizados por **tipo** em quatro
+pastas compartilhadas sob `~/.forensicface/models/`. Modelos que não
+dependem do `model_name` (detecção, atributos, qualidade) são
+compartilhados entre todos os modelos de reconhecimento, evitando
+duplicação em disco.
 
-O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
-estar na pasta `~/.forensicface/models/<model_name>/cr_fiqa/`
+| Tipo | Caminho |
+|---|---|
+| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
+| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
+| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
+| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
+| Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
+
+### Compatibilidade com a estrutura antiga
+
+O carregador continua aceitando a estrutura legada por *fallback*:
+
+- Detecção/pose/sexo-idade: `~/.forensicface/models/<model_name>/`
+- Reconhecimento: `~/.forensicface/models/<model_name>/*face*/`
+- Qualidade: `~/.forensicface/models/<model_name>/cr_fiqa/`
+
+Se a estrutura nova existir, ela é usada; caso contrário, recai sobre a
+estrutura antiga. Isto permite migrar gradualmente — basta mover os
+arquivos onnx compartilhados para as pastas novas e remover as cópias
+duplicadas.
 
 O modelo padrão é denominado `sepaelv2`. A partir da versão 0.1.5 é
 possível utilizar outros modelos.
@@ -28,6 +47,17 @@ possível utilizar outros modelos.
     na inicialização do forensicface (parâmetro `models_root`)
 - CUDA e CuDNN são instalados automaticamente no ambiente virtual  
     onde o forensicface for instalado.  
+
+## Notas de migração (estrutura compartilhada)
+
+- Os modelos de detecção, atributos e qualidade passaram a viver em
+  pastas compartilhadas (`detection/`, `attributes/`, `quality/`) sob
+  `models_root`, evitando que cada modelo de reconhecimento mantenha
+  cópias idênticas dos mesmos arquivos onnx.
+- Os modelos de reconhecimento ficam em `recognition/<model_name>/`.
+- A estrutura antiga (`<model_name>/...`) continua suportada como
+  *fallback* — usuários existentes não precisam migrar para a nova
+  versão funcionar.
 
 ## Documentação
 
