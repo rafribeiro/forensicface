@@ -208,6 +208,79 @@ class ForensicFace:
             select_single_face_by="size",
         )
 
+    def align_only(
+        self,
+        imgpath,
+        *,
+        single_face: bool = True,
+        select_single_face_by: str = "size",
+    ):
+        """Detect + align without extracting embedding/FIQA.
+
+        Useful in two scenarios:
+        1. Batched extract: run align_only per-image to fill a buffer of
+           aligned crops, then call ``_compute_embeddings_batch`` once
+           per chunk. Lets ONNX use real batch parallelism on GPU.
+        2. Materialize aligned crops on disk for later re-extraction
+           with newer recognition models.
+
+        Args:
+            imgpath: path to the image (str) or a BGR ``np.ndarray``.
+            single_face: when True, return only the best detected face.
+            select_single_face_by: ``"size"`` or ``"centrality"``;
+                applied only when single_face=True and multiple faces
+                are detected.
+
+        Returns:
+            If single_face=True: a dict, or ``None`` when no face is
+                detected.
+            If single_face=False: a list of dicts (possibly empty).
+
+            Each dict has:
+                - ``aligned_bgr``: ``ndarray (112, 112, 3)`` BGR uint8
+                  — ready to stack and feed ``_compute_embeddings_batch``.
+                - ``bbox``: ``ndarray (4,)`` int — (xmin, ymin, xmax, ymax).
+                - ``kps``: ``ndarray (5, 2)`` — facial landmarks.
+                - ``det_score``: float.
+
+            When ``extended=True``, also:
+                - ``gender``: ``int | None`` (0 or 1, or None).
+                - ``age``: ``int | None``.
+                - ``pose``: ``ndarray (3,) | None`` — (pitch, yaw, roll).
+        """
+        bgr_img = self._load_image(imgpath)
+        faces = self.backend.detect_faces(bgr_img)
+        if len(faces) == 0:
+            return None if single_face else []
+
+        if single_face:
+            faces = [
+                self._get_best_face(
+                    bgr_img, faces, criterion=select_single_face_by
+                )
+            ]
+
+        results = []
+        for face in faces:
+            aligned_bgr = self.backend.norm_crop(bgr_img, face.kps)
+            item = {
+                "aligned_bgr": aligned_bgr,
+                "bbox": face.bbox.astype("int"),
+                "kps": face.kps,
+                "det_score": float(face.det_score),
+            }
+            if self.extended:
+                item["gender"] = (
+                    int(face.gender) if face.gender is not None else None
+                )
+                item["age"] = int(face.age) if face.age is not None else None
+                item["pose"] = (
+                    face.pose.copy() if face.pose is not None else None
+                )
+            results.append(item)
+
+        return results[0] if single_face else results
+
     def process_image(
         self,
         imgpath,
@@ -378,6 +451,116 @@ class ForensicFace:
         normalized_keypoints[:, 1] /= self.IMG_SIZE[0]
         return normalized_keypoints.reshape(1, 5, 2)
 
+    def _compute_embeddings_batch(
+        self,
+        bgr_aligned_batch: np.ndarray,
+        aligned_keypoints_batch: np.ndarray = None,
+    ):
+        """Computes embeddings + FIQA for ``N`` aligned faces in parallel.
+
+        Batched counterpart of ``_compute_embeddings``. Each ONNX session
+        is invoked once with input shape ``(N, 3, 112, 112)`` instead of
+        ``N`` calls with shape ``(1, 3, 112, 112)``. Speedup scales with
+        ``N`` until GPU memory or Python overhead dominates.
+
+        Args:
+            bgr_aligned_batch: ``ndarray (N, 112, 112, 3)`` BGR uint8 —
+                aligned crops, typically the output of ``align_only``
+                stacked along axis 0.
+            aligned_keypoints_batch: ``ndarray (N, 5, 2)`` float — aligned
+                5-point keypoints in the 112×112 coordinate system, one
+                per face. Required when any loaded recognition model is
+                in ``KEYPOINT_RECOGNITION_MODELS`` (e.g. sepaelv6/KPRPE);
+                ignored otherwise.
+
+        Returns:
+            embeddings:
+                If ``concat_embeddings=True``: ``ndarray (N, total_dim)``
+                with embeddings concatenated across all loaded models.
+                Otherwise: list of ndarrays, one per loaded model, each
+                of shape ``(N, model_dim)``.
+            fiqa_scores:
+                ``ndarray (N,)`` with the FIQA score per face, or ``None``
+                when ``extended=False``.
+
+        Notes:
+            Practically equivalent to calling ``_compute_embeddings`` N
+            times. ONNX Runtime performs the same matmul ops on GPU, but
+            parallel reductions are not bit-exact deterministic — cosine
+            similarity comparisons are unaffected.
+        """
+        assert (
+            bgr_aligned_batch.ndim == 4
+            and bgr_aligned_batch.shape[1:] == (*self.IMG_SIZE, 3)
+        ), (
+            f"Expected shape (N, {self.IMG_SIZE[0]}, {self.IMG_SIZE[1]}, 3); "
+            f"got {bgr_aligned_batch.shape}."
+        )
+
+        batch = bgr_aligned_batch.astype(np.float32)
+        batch = ((batch / 255.0) - 0.5) / 0.5
+        batch_input = batch.transpose(0, 3, 1, 2).copy()
+
+        # Pré-normaliza keypoints uma vez (compartilhado entre modelos
+        # KEYPOINT_RECOGNITION_MODELS, se houver mais que um). Mesma
+        # transformação que `_to_keypoints_input` faz no path single.
+        keypoints_input = None
+        if aligned_keypoints_batch is not None:
+            kp = np.asarray(aligned_keypoints_batch, dtype=np.float32)
+            if kp.ndim != 3 or kp.shape[1:] != (5, 2):
+                raise ValueError(
+                    "aligned_keypoints_batch must have shape (N, 5, 2); "
+                    f"received {kp.shape}."
+                )
+            if kp.shape[0] != batch.shape[0]:
+                raise ValueError(
+                    f"aligned_keypoints_batch has N={kp.shape[0]} but "
+                    f"bgr_aligned_batch has N={batch.shape[0]}."
+                )
+            kp_normed = kp.copy()
+            kp_normed[:, :, 0] /= self.IMG_SIZE[1]
+            kp_normed[:, :, 1] /= self.IMG_SIZE[0]
+            keypoints_input = kp_normed
+
+        embeddings_per_model = []
+        for rec_ort, model_name in zip(
+            self.rec_inference_sessions, self.models
+        ):
+            if model_name in self.KEYPOINT_RECOGNITION_MODELS:
+                if keypoints_input is None:
+                    raise ValueError(
+                        f"Model '{model_name}' requires aligned_keypoints_batch "
+                        "(5-point keypoints in the 112x112 coordinate system)."
+                    )
+                model_inputs = {
+                    self.SEPAELV6_IMAGE_INPUT: batch_input,
+                    self.SEPAELV6_KEYPOINTS_INPUT: keypoints_input,
+                }
+            else:
+                model_inputs = {rec_ort.get_inputs()[0].name: batch_input}
+            model_output = rec_ort.run(None, model_inputs)
+            if len(model_output) == 2:
+                # (N, dim) × (N, 1) — broadcasts to (N, dim).
+                emb = model_output[0] * model_output[1]
+            else:
+                emb = model_output[0]
+            embeddings_per_model.append(emb)
+
+        if self.concat_embeddings:
+            embeddings = np.concatenate(embeddings_per_model, axis=1)
+        else:
+            embeddings = embeddings_per_model
+
+        fiqa_scores = None
+        if self.extended and self.ort_fiqa is not None:
+            fiqa_output = self.ort_fiqa.run(
+                None, {self.ort_fiqa.get_inputs()[0].name: batch_input}
+            )
+            # CR-FIQA returns (logits, quality); shape of quality is (N, 1).
+            fiqa_scores = np.asarray(fiqa_output[-1]).reshape(-1)
+
+        return embeddings, fiqa_scores
+
     def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""
         ret = {
@@ -421,6 +604,181 @@ class ForensicFace:
 
         ret["aligned_face"] = cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB)
         return ret
+
+    def _assemble_result_from_align_only(
+        self, align_item, embeddings, fiqa_score
+    ):
+        """Builds a ``process_image``-compatible result dict from an
+        ``align_only`` output plus embeddings extracted in batch.
+
+        Output keys and types match ``_assemble_result`` exactly, so
+        callers can treat the two interchangeably.
+        """
+        bgr_aligned = align_item["aligned_bgr"]
+        kps = align_item["kps"]
+
+        ret = {"ipd": np.linalg.norm(kps[0] - kps[1])}
+
+        if self.extended:
+            raw_gender = align_item.get("gender")
+            gender = None
+            if raw_gender is not None:
+                gender = "M" if raw_gender == 1 else "F"
+
+            yaw, pitch, roll = None, None, None
+            pose = align_item.get("pose")
+            if pose is not None:
+                pitch = pose[0]
+                yaw = pose[1]
+                roll = pose[2]
+
+            ret.update(
+                {
+                    "fiqa_score": fiqa_score,
+                    "gender": gender,
+                    "age": align_item.get("age"),
+                    "yaw": yaw,
+                    "pitch": pitch,
+                    "roll": roll,
+                }
+            )
+
+        ret.update(
+            {
+                "det_score": align_item["det_score"],
+                "keypoints": kps,
+                "bbox": align_item["bbox"],
+            }
+        )
+
+        if self.concat_embeddings:
+            ret["embedding"] = embeddings
+        else:
+            for model_name, emb in zip(self.models, embeddings):
+                ret[f"embedding_{model_name}"] = emb
+
+        ret["aligned_face"] = cv2.cvtColor(bgr_aligned, cv2.COLOR_BGR2RGB)
+        return ret
+
+    def process_images_batch(
+        self,
+        imgpaths,
+        *,
+        single_face: bool = True,
+        select_single_face_by: str = "size",
+        batch_size: int = 32,
+    ):
+        """Batched counterpart of ``process_image``.
+
+        Pipeline:
+        1. Per-image: ``align_only`` (detect + warp), accumulate aligned
+           crops into a buffer.
+        2. Per-chunk of ``batch_size``: ``_compute_embeddings_batch`` in
+           one ONNX call.
+        3. Reassemble into ``process_image``-compatible dicts.
+
+        Args:
+            imgpaths: iterable of image paths (str) or BGR ndarrays.
+            single_face: when True, returns one dict per image (the
+                best face) or ``None`` when no face is detected.
+            select_single_face_by: ``"size"`` or ``"centrality"`` —
+                only used with single_face=True.
+            batch_size: number of faces fed to the recognition ONNX
+                session at once. ``32`` is a balanced default on GPU;
+                reduce on CPU or when GPU memory is tight.
+
+        Returns:
+            Parallel to ``imgpaths``:
+                - single_face=True:  ``list[dict | None]``. Each dict
+                  has the same shape as ``process_image(single_face=True)``;
+                  ``None`` for images with no detected face.
+                - single_face=False: ``list[list[dict]]`` — outer list
+                  parallel to imgpaths; inner list is the per-image
+                  face list, possibly empty.
+
+        Notes:
+            Embeddings produced here are numerically identical to those
+            from ``process_image`` (same ONNX ops, just batched).
+        """
+        imgpaths = list(imgpaths)
+        if not imgpaths:
+            return []
+
+        if single_face:
+            aligned_items = [
+                self.align_only(
+                    p,
+                    single_face=True,
+                    select_single_face_by=select_single_face_by,
+                )
+                for p in imgpaths
+            ]
+            results: list = [None] * len(imgpaths)
+
+            valid_indices = [
+                i for i, item in enumerate(aligned_items) if item is not None
+            ]
+            for chunk_start in range(0, len(valid_indices), batch_size):
+                chunk_idx = valid_indices[chunk_start : chunk_start + batch_size]
+                crops = np.stack(
+                    [aligned_items[i]["aligned_bgr"] for i in chunk_idx],
+                    axis=0,
+                )
+                embeddings, fiqa_scores = self._compute_embeddings_batch(crops)
+
+                for k, idx in enumerate(chunk_idx):
+                    if self.concat_embeddings:
+                        emb = embeddings[k]
+                    else:
+                        emb = [per_model[k] for per_model in embeddings]
+                    fiqa = (
+                        float(fiqa_scores[k])
+                        if fiqa_scores is not None
+                        else None
+                    )
+                    results[idx] = self._assemble_result_from_align_only(
+                        aligned_items[idx], emb, fiqa
+                    )
+            return results
+
+        # multi-face: flatten all detected faces, batch over the flat
+        # list, scatter the dicts back into per-image bins.
+        aligned_per_image = [
+            self.align_only(
+                p,
+                single_face=False,
+                select_single_face_by=select_single_face_by,
+            )
+            for p in imgpaths
+        ]
+        results_multi: list = [[] for _ in imgpaths]
+        flat: list = []
+        for img_idx, faces in enumerate(aligned_per_image):
+            for face_item in faces:
+                flat.append((img_idx, face_item))
+        if not flat:
+            return results_multi
+
+        for chunk_start in range(0, len(flat), batch_size):
+            chunk = flat[chunk_start : chunk_start + batch_size]
+            crops = np.stack(
+                [face_item["aligned_bgr"] for _, face_item in chunk], axis=0
+            )
+            embeddings, fiqa_scores = self._compute_embeddings_batch(crops)
+
+            for k, (img_idx, face_item) in enumerate(chunk):
+                if self.concat_embeddings:
+                    emb = embeddings[k]
+                else:
+                    emb = [per_model[k] for per_model in embeddings]
+                fiqa = (
+                    float(fiqa_scores[k]) if fiqa_scores is not None else None
+                )
+                results_multi[img_idx].append(
+                    self._assemble_result_from_align_only(face_item, emb, fiqa)
+                )
+
+        return results_multi
 
     def _load_image(self, imgpath):
         """Load image from file path or return the array if already loaded."""
