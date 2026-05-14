@@ -29,6 +29,30 @@ possível utilizar outros modelos.
 - CUDA e CuDNN são instalados automaticamente no ambiente virtual  
     onde o forensicface for instalado.  
 
+## Migrar modelos para o layout compartilhado
+
+Ferramenta `python -m forensicface.tools.migrate_shared` move arquivos
+compartilhados (`det_10g.onnx`, `1k3d68.onnx`, `genderage.onnx`,
+`cr_fiqa_l.onnx`) das pastas `<model_name>/` para
+`detection/`, `attributes/` e `quality/`, e relocaliza cada modelo de
+reconhecimento para `recognition/<model_name>/`. Cópias duplicadas
+verificadas por SHA-256 são removidas, liberando o espaço em disco.
+
+``` sh
+# Dry-run (default): mostra o que seria feito, não toca em nada
+python -m forensicface.tools.migrate_shared
+
+# Aplica de fato
+python -m forensicface.tools.migrate_shared --apply --yes
+
+# Modelos em diretório customizado
+python -m forensicface.tools.migrate_shared --models-root /path/to/models
+```
+
+A migração é **idempotente**: rodar duas vezes não tem efeito na
+segunda. Se algum arquivo na pasta nova diferir do legado em hash, a
+ferramenta aborta e reporta o conflito sem apagar nada.
+
 ## Documentação
 
 - Tutoriais e exemplos: notebooks em `nbs/`, publicados com Quarto
