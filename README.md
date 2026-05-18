@@ -14,6 +14,12 @@ Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
 O arquivo onnx do modelo de reconhecimento (ex. adaface_ir101web12m.onnx)
 deve estar na pasta `~/.forensicface/models/<model_name>/*face*/`
 
+Para o modelo `sepaelv6`, o arquivo de reconhecimento
+`kprpe_adaface_webface12m.onnx` tambem deve estar nessa pasta. Este
+modelo recebe, alem da face alinhada 112x112, os cinco pontos-chave
+transformados para o sistema de coordenadas da face alinhada e
+normalizados para `[0, 1]`.
+
 O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
 estar na pasta `~/.forensicface/models/<model_name>/cr_fiqa/`
 

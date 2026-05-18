@@ -12,6 +12,11 @@ class _DummyInput:
     name = "input"
 
 
+class _NamedInput:
+    def __init__(self, name):
+        self.name = name
+
+
 class _DummyRecSession:
     def get_inputs(self):
         return [_DummyInput()]
@@ -21,6 +26,22 @@ class _DummyRecSession:
 
     def run(self, _output_names, _inputs):
         # One embedding output tensor.
+        return [np.ones((1, 4), dtype=np.float32)]
+
+
+class _CapturingRecSession:
+    def __init__(self, input_names):
+        self._inputs = [_NamedInput(name) for name in input_names]
+        self.captured_inputs = None
+
+    def get_inputs(self):
+        return self._inputs
+
+    def get_providers(self):
+        return ["CPUExecutionProvider"]
+
+    def run(self, _output_names, inputs):
+        self.captured_inputs = inputs
         return [np.ones((1, 4), dtype=np.float32)]
 
 
@@ -101,6 +122,82 @@ def test_process_image_multi_face_returns_list(monkeypatch):
     assert isinstance(result, list)
     assert len(result) == 2
     assert all("embedding" in item for item in result)
+
+
+def test_sepaelv6_receives_aligned_normalized_keypoints(monkeypatch):
+    rec_session = _CapturingRecSession(["input_images", "keypoints"])
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_args, **_kwargs: rec_session
+    )
+
+    ff = ForensicFace(models=["sepaelv6"], extended=False, backend=DummyBackend(n_faces=1))
+    img = np.zeros((128, 128, 3), dtype=np.uint8)
+
+    with pytest.warns(FutureWarning):
+        result = ff.process_image(img, single_face=True)
+
+    assert result["embedding"].shape == (4,)
+    assert set(rec_session.captured_inputs) == {"input_images", "keypoints"}
+    assert rec_session.captured_inputs["input_images"].shape == (1, 3, 112, 112)
+    assert rec_session.captured_inputs["input_images"].dtype == np.float32
+    assert rec_session.captured_inputs["keypoints"].shape == (1, 5, 2)
+    assert rec_session.captured_inputs["keypoints"].dtype == np.float32
+    expected_keypoints = np.array(
+        [[[20, 20], [40, 20], [30, 30], [22, 40], [38, 40]]],
+        dtype=np.float32,
+    ) / 112.0
+    assert np.allclose(rec_session.captured_inputs["keypoints"], expected_keypoints)
+
+
+def test_sepaelv6_validates_required_onnx_input_names(monkeypatch):
+    rec_session = _CapturingRecSession(["input_images"])
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_args, **_kwargs: rec_session
+    )
+
+    ff = ForensicFace(models=["sepaelv6"], extended=False, backend=DummyBackend(n_faces=1))
+    img = np.zeros((128, 128, 3), dtype=np.uint8)
+
+    with pytest.warns(FutureWarning):
+        with pytest.raises(ValueError, match="Missing: \\['keypoints'\\]"):
+            ff.process_image(img, single_face=True)
+
+
+def test_process_aligned_face_image_accepts_keypoints_for_sepaelv6(monkeypatch):
+    rec_session = _CapturingRecSession(["input_images", "keypoints"])
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_args, **_kwargs: rec_session
+    )
+
+    ff = ForensicFace(models=["sepaelv6"], extended=False, backend=DummyBackend(n_faces=1))
+    rgb_aligned_face = np.zeros((112, 112, 3), dtype=np.uint8)
+    aligned_keypoints = np.array(
+        [[20, 20], [40, 20], [30, 30], [22, 40], [38, 40]],
+        dtype=np.float32,
+    )
+
+    result = ff.process_aligned_face_image(
+        rgb_aligned_face, keypoints=aligned_keypoints
+    )
+
+    assert result["embedding"].shape == (4,)
+    assert np.allclose(
+        rec_session.captured_inputs["keypoints"],
+        aligned_keypoints.reshape(1, 5, 2) / 112.0,
+    )
+
+
+def test_process_aligned_face_image_requires_keypoints_for_sepaelv6(monkeypatch):
+    rec_session = _CapturingRecSession(["input_images", "keypoints"])
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_args, **_kwargs: rec_session
+    )
+
+    ff = ForensicFace(models=["sepaelv6"], extended=False, backend=DummyBackend(n_faces=1))
+    rgb_aligned_face = np.zeros((112, 112, 3), dtype=np.uint8)
+
+    with pytest.raises(ValueError, match="requires aligned 5-point keypoints"):
+        ff.process_aligned_face_image(rgb_aligned_face)
 
 
 def test_backend_name_is_forwarded_to_factory(monkeypatch):
