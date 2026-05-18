@@ -143,10 +143,10 @@ def test_align_only_single_face_returns_dict(monkeypatch):
     result = ff.align_only(img, single_face=True)
 
     assert isinstance(result, dict)
-    assert result["aligned_bgr"].shape == (112, 112, 3)
-    assert result["aligned_bgr"].dtype == np.uint8
+    assert result["aligned_face"].shape == (112, 112, 3)
+    assert result["aligned_face"].dtype == np.uint8
     assert result["bbox"].shape == (4,)
-    assert result["kps"].shape == (5, 2)
+    assert result["keypoints"].shape == (5, 2)
     assert isinstance(result["det_score"], float)
 
 
@@ -159,7 +159,7 @@ def test_align_only_multi_face_returns_list(monkeypatch):
     assert isinstance(result, list)
     assert len(result) == 3
     for item in result:
-        assert item["aligned_bgr"].shape == (112, 112, 3)
+        assert item["aligned_face"].shape == (112, 112, 3)
 
 
 def test_align_only_single_face_returns_none_when_no_face(monkeypatch):
@@ -181,7 +181,7 @@ def test_align_only_extended_includes_attribute_fields(monkeypatch):
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
     result = ff.align_only(img, single_face=True)
-    assert "gender" in result and result["gender"] in (0, 1)
+    assert "gender" in result and result["gender"] in ("M", "F")
     assert "age" in result and isinstance(result["age"], int)
     assert result["pose"].shape == (3,)
 

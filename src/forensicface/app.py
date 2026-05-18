@@ -148,17 +148,30 @@ class ForensicFace:
 
     def _to_input_ada(self, aligned_bgr_img):
         """
-        Preprocesses the input face for the face recognition model.
+        Preprocesses the input face(s) for the face recognition model.
 
         Args:
-            face: Face image as a numpy array in BGR order.
+            aligned_bgr_img: Face image(s) in BGR order as a numpy array.
+                Accepts a single image with shape ``(H, W, 3)`` or a batch
+                with shape ``(N, H, W, 3)``.
 
         Returns:
-            Preprocessed face image as a numpy array.
+            Preprocessed face image(s) as a numpy array with shape
+            ``(1, 3, H, W)`` for a single input or ``(N, 3, H, W)`` for
+            a batch input. Same normalization in both cases — single
+            source of truth for image preprocessing.
         """
-        _aligned_bgr_img = aligned_bgr_img.astype(np.float32)
-        _aligned_bgr_img = ((_aligned_bgr_img / 255.0) - 0.5) / 0.5
-        return _aligned_bgr_img.transpose(2, 0, 1).reshape(1, 3, *self.IMG_SIZE)
+        arr = aligned_bgr_img.astype(np.float32)
+        arr = ((arr / 255.0) - 0.5) / 0.5
+        if arr.ndim == 3:
+            # Single: (H, W, 3) → (1, 3, H, W)
+            return arr.transpose(2, 0, 1).reshape(1, 3, *self.IMG_SIZE)
+        if arr.ndim == 4:
+            # Batch: (N, H, W, 3) → (N, 3, H, W)
+            return arr.transpose(0, 3, 1, 2).copy()
+        raise ValueError(
+            f"Expected ndim 3 (H, W, 3) or 4 (N, H, W, 3); got {arr.ndim}."
+        )
 
     def _get_best_face(self, img, faces, criterion="size"):
         """Get the best face based on a criterion: 'centrality' or 'size'."""
@@ -237,14 +250,17 @@ class ForensicFace:
             If single_face=False: a list of dicts (possibly empty).
 
             Each dict has:
-                - ``aligned_bgr``: ``ndarray (112, 112, 3)`` BGR uint8
-                  — ready to stack and feed ``_compute_embeddings_batch``.
+                - ``aligned_face``: ``ndarray (112, 112, 3)`` RGB uint8
+                  — same color order as ``process_image`` returns. To
+                  feed ``_compute_embeddings_batch`` (which expects BGR),
+                  convert with ``cv2.cvtColor(..., cv2.COLOR_RGB2BGR)``
+                  before stacking.
                 - ``bbox``: ``ndarray (4,)`` int — (xmin, ymin, xmax, ymax).
-                - ``kps``: ``ndarray (5, 2)`` — facial landmarks.
+                - ``keypoints``: ``ndarray (5, 2)`` — facial landmarks.
                 - ``det_score``: float.
 
             When ``extended=True``, also:
-                - ``gender``: ``int | None`` (0 or 1, or None).
+                - ``gender``: ``str | None`` — ``"M"``, ``"F"`` or ``None``.
                 - ``age``: ``int | None``.
                 - ``pose``: ``ndarray (3,) | None`` — (pitch, yaw, roll).
         """
@@ -263,16 +279,18 @@ class ForensicFace:
         results = []
         for face in faces:
             aligned_bgr = self.backend.norm_crop(bgr_img, face.kps)
+            aligned_rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB)
             item = {
-                "aligned_bgr": aligned_bgr,
+                "aligned_face": aligned_rgb,
                 "bbox": face.bbox.astype("int"),
-                "kps": face.kps,
+                "keypoints": face.kps,
                 "det_score": float(face.det_score),
             }
             if self.extended:
-                item["gender"] = (
-                    int(face.gender) if face.gender is not None else None
-                )
+                gender = None
+                if face.gender is not None:
+                    gender = "M" if int(face.gender) == 1 else "F"
+                item["gender"] = gender
                 item["age"] = int(face.age) if face.age is not None else None
                 item["pose"] = (
                     face.pose.copy() if face.pose is not None else None
@@ -484,10 +502,13 @@ class ForensicFace:
                 when ``extended=False``.
 
         Notes:
-            Practically equivalent to calling ``_compute_embeddings`` N
-            times. ONNX Runtime performs the same matmul ops on GPU, but
-            parallel reductions are not bit-exact deterministic — cosine
-            similarity comparisons are unaffected.
+            Equivalent to calling ``_compute_embeddings`` N times:
+            ONNX Runtime performs the same matmul ops, only the
+            parallel layout changes. Results are equivalent for
+            practical purposes (e.g. cosine similarity), but on GPU
+            the parallel reductions are not bit-exact deterministic,
+            so embeddings may differ by tiny amounts vs the per-image
+            path.
         """
         assert (
             bgr_aligned_batch.ndim == 4
@@ -497,9 +518,10 @@ class ForensicFace:
             f"got {bgr_aligned_batch.shape}."
         )
 
-        batch = bgr_aligned_batch.astype(np.float32)
-        batch = ((batch / 255.0) - 0.5) / 0.5
-        batch_input = batch.transpose(0, 3, 1, 2).copy()
+        # Reuse `_to_input_ada` to keep image normalization in a single
+        # place — future recognition models with different normalization
+        # only need to be addressed there.
+        batch_input = self._to_input_ada(bgr_aligned_batch)
 
         # Pré-normaliza keypoints uma vez (compartilhado entre modelos
         # KEYPOINT_RECOGNITION_MODELS, se houver mais que um). Mesma
@@ -561,6 +583,61 @@ class ForensicFace:
 
         return embeddings, fiqa_scores
 
+    @staticmethod
+    def _looks_like_cuda_oom(exc: BaseException) -> bool:
+        """Best-effort match for CUDA out-of-memory errors raised by
+        ONNX Runtime. Provider-specific exception types vary by build,
+        so we string-match on the message — broad enough to catch
+        ORT's CUDA, TRT, and DML provider OOMs."""
+        msg = str(exc).lower()
+        return (
+            "out of memory" in msg
+            or "cudaerrormemoryallocation" in msg
+            or "cuda" in msg and "oom" in msg
+            or "alloc" in msg and "memory" in msg
+        )
+
+    def _try_compute_embeddings_batch(self, bgr_aligned_batch):
+        """Calls ``_compute_embeddings_batch`` with CUDA OOM auto-retry.
+
+        On OOM, halves the batch and recurses on each half, concatenating
+        results to match the original call signature. Emits a one-line
+        warning so the user notices and lowers ``batch_size`` upstream.
+        Re-raises if even ``batch_size=1`` OOMs (= genuine out-of-memory,
+        not just over-eager batching).
+        """
+        try:
+            return self._compute_embeddings_batch(bgr_aligned_batch)
+        except Exception as exc:
+            n = bgr_aligned_batch.shape[0]
+            if n <= 1 or not self._looks_like_cuda_oom(exc):
+                raise
+            half = n // 2
+            warnings.warn(
+                f"CUDA OOM with batch_size={n}; falling back to {half}. "
+                f"Pass a smaller `batch_size` to `process_images_batch` "
+                f"to avoid this overhead.",
+                stacklevel=2,
+            )
+            emb_a, fiqa_a = self._try_compute_embeddings_batch(
+                bgr_aligned_batch[:half]
+            )
+            emb_b, fiqa_b = self._try_compute_embeddings_batch(
+                bgr_aligned_batch[half:]
+            )
+            if isinstance(emb_a, np.ndarray):
+                embeddings = np.concatenate([emb_a, emb_b], axis=0)
+            else:
+                # list[ndarray] when concat_embeddings=False.
+                embeddings = [
+                    np.concatenate([a, b], axis=0)
+                    for a, b in zip(emb_a, emb_b)
+                ]
+            fiqa_scores = None
+            if fiqa_a is not None and fiqa_b is not None:
+                fiqa_scores = np.concatenate([fiqa_a, fiqa_b], axis=0)
+            return embeddings, fiqa_scores
+
     def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""
         ret = {
@@ -613,18 +690,15 @@ class ForensicFace:
 
         Output keys and types match ``_assemble_result`` exactly, so
         callers can treat the two interchangeably.
+
+        Note: ``align_only`` already returns ``aligned_face`` in RGB
+        and ``gender`` as ``"M"``/``"F"`` — no conversion here.
         """
-        bgr_aligned = align_item["aligned_bgr"]
-        kps = align_item["kps"]
+        kps = align_item["keypoints"]
 
         ret = {"ipd": np.linalg.norm(kps[0] - kps[1])}
 
         if self.extended:
-            raw_gender = align_item.get("gender")
-            gender = None
-            if raw_gender is not None:
-                gender = "M" if raw_gender == 1 else "F"
-
             yaw, pitch, roll = None, None, None
             pose = align_item.get("pose")
             if pose is not None:
@@ -635,7 +709,7 @@ class ForensicFace:
             ret.update(
                 {
                     "fiqa_score": fiqa_score,
-                    "gender": gender,
+                    "gender": align_item.get("gender"),
                     "age": align_item.get("age"),
                     "yaw": yaw,
                     "pitch": pitch,
@@ -657,7 +731,7 @@ class ForensicFace:
             for model_name, emb in zip(self.models, embeddings):
                 ret[f"embedding_{model_name}"] = emb
 
-        ret["aligned_face"] = cv2.cvtColor(bgr_aligned, cv2.COLOR_BGR2RGB)
+        ret["aligned_face"] = align_item["aligned_face"]
         return ret
 
     def process_images_batch(
@@ -666,7 +740,7 @@ class ForensicFace:
         *,
         single_face: bool = True,
         select_single_face_by: str = "size",
-        batch_size: int = 32,
+        batch_size: int = 16,
     ):
         """Batched counterpart of ``process_image``.
 
@@ -684,8 +758,12 @@ class ForensicFace:
             select_single_face_by: ``"size"`` or ``"centrality"`` —
                 only used with single_face=True.
             batch_size: number of faces fed to the recognition ONNX
-                session at once. ``32`` is a balanced default on GPU;
-                reduce on CPU or when GPU memory is tight.
+                session at once. Default ``16`` is conservative — fits
+                a single recognition model on an 8GB GPU (e.g. RTX 3070)
+                with room for a second model. Raise it on bigger GPUs
+                for more throughput; lower it on CPU. If the batch
+                causes a CUDA OOM, the call auto-halves the batch and
+                warns once (see ``_try_compute_embeddings_batch``).
 
         Returns:
             Parallel to ``imgpaths``:
@@ -697,8 +775,11 @@ class ForensicFace:
                   face list, possibly empty.
 
         Notes:
-            Embeddings produced here are numerically identical to those
-            from ``process_image`` (same ONNX ops, just batched).
+            Embeddings produced here are equivalent to those from
+            ``process_image`` (same ONNX ops, just batched). On GPU
+            the parallel reductions are not bit-exact deterministic,
+            so embeddings may differ from the per-image path by tiny
+            amounts — cosine similarity stays essentially the same.
         """
         imgpaths = list(imgpaths)
         if not imgpaths:
@@ -720,11 +801,20 @@ class ForensicFace:
             ]
             for chunk_start in range(0, len(valid_indices), batch_size):
                 chunk_idx = valid_indices[chunk_start : chunk_start + batch_size]
+                # `align_only` returns RGB (consistent with `process_image`)
+                # but the recognition ONNX session was trained on BGR — flip
+                # color order at the boundary instead of inside the alignment.
                 crops = np.stack(
-                    [aligned_items[i]["aligned_bgr"] for i in chunk_idx],
+                    [
+                        cv2.cvtColor(
+                            aligned_items[i]["aligned_face"],
+                            cv2.COLOR_RGB2BGR,
+                        )
+                        for i in chunk_idx
+                    ],
                     axis=0,
                 )
-                embeddings, fiqa_scores = self._compute_embeddings_batch(crops)
+                embeddings, fiqa_scores = self._try_compute_embeddings_batch(crops)
 
                 for k, idx in enumerate(chunk_idx):
                     if self.concat_embeddings:
@@ -761,10 +851,15 @@ class ForensicFace:
 
         for chunk_start in range(0, len(flat), batch_size):
             chunk = flat[chunk_start : chunk_start + batch_size]
+            # RGB → BGR for ONNX (see corresponding comment in single_face path).
             crops = np.stack(
-                [face_item["aligned_bgr"] for _, face_item in chunk], axis=0
+                [
+                    cv2.cvtColor(face_item["aligned_face"], cv2.COLOR_RGB2BGR)
+                    for _, face_item in chunk
+                ],
+                axis=0,
             )
-            embeddings, fiqa_scores = self._compute_embeddings_batch(crops)
+            embeddings, fiqa_scores = self._try_compute_embeddings_batch(crops)
 
             for k, (img_idx, face_item) in enumerate(chunk):
                 if self.concat_embeddings:
