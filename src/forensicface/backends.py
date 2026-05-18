@@ -164,10 +164,14 @@ class ONNXOnlyBackend(FaceBackend):
             if not osp.isdir(source):
                 continue
             for path in sorted(glob.glob(osp.join(source, "*.onnx"))):
-                normalized = osp.normpath(path)
-                if normalized in seen:
+                # Dedup by filename, not by full path: o mesmo arquivo
+                # onnx pode estar em `models_root/detection/` E em
+                # `models_root/<model_name>/` (estrutura legada
+                # convivendo com a nova) — só queremos uma entrada.
+                filename = osp.basename(path)
+                if filename in seen:
                     continue
-                seen.add(normalized)
+                seen.add(filename)
                 files.append(path)
         return files
 
