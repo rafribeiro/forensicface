@@ -280,10 +280,17 @@ class ForensicFace:
         for face in faces:
             aligned_bgr = self.backend.norm_crop(bgr_img, face.kps)
             aligned_rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB)
+            # `aligned_keypoints` está no sistema 112×112 da face alinhada
+            # — é o que modelos KEYPOINT_RECOGNITION_MODELS (sepaelv6/KPRPE)
+            # consomem como segundo input. Pre-computado aqui pra que
+            # `process_images_batch` possa empilhá-los sem ter que rodar
+            # `_align_keypoints` outra vez.
+            aligned_kps = self._align_keypoints(face.kps)
             item = {
                 "aligned_face": aligned_rgb,
                 "bbox": face.bbox.astype("int"),
                 "keypoints": face.kps,
+                "aligned_keypoints": aligned_kps,
                 "det_score": float(face.det_score),
             }
             if self.extended:
@@ -597,7 +604,9 @@ class ForensicFace:
             or "alloc" in msg and "memory" in msg
         )
 
-    def _try_compute_embeddings_batch(self, bgr_aligned_batch):
+    def _try_compute_embeddings_batch(
+        self, bgr_aligned_batch, aligned_keypoints_batch=None,
+    ):
         """Calls ``_compute_embeddings_batch`` with CUDA OOM auto-retry.
 
         On OOM, halves the batch and recurses on each half, concatenating
@@ -605,9 +614,16 @@ class ForensicFace:
         warning so the user notices and lowers ``batch_size`` upstream.
         Re-raises if even ``batch_size=1`` OOMs (= genuine out-of-memory,
         not just over-eager batching).
+
+        ``aligned_keypoints_batch`` é fatiado em paralelo com
+        ``bgr_aligned_batch`` quando fornecido — necessário pra modelos
+        em ``KEYPOINT_RECOGNITION_MODELS`` (sepaelv6/KPRPE).
         """
         try:
-            return self._compute_embeddings_batch(bgr_aligned_batch)
+            return self._compute_embeddings_batch(
+                bgr_aligned_batch,
+                aligned_keypoints_batch=aligned_keypoints_batch,
+            )
         except Exception as exc:
             n = bgr_aligned_batch.shape[0]
             if n <= 1 or not self._looks_like_cuda_oom(exc):
@@ -619,11 +635,19 @@ class ForensicFace:
                 f"to avoid this overhead.",
                 stacklevel=2,
             )
+            kps_a = (
+                aligned_keypoints_batch[:half]
+                if aligned_keypoints_batch is not None else None
+            )
+            kps_b = (
+                aligned_keypoints_batch[half:]
+                if aligned_keypoints_batch is not None else None
+            )
             emb_a, fiqa_a = self._try_compute_embeddings_batch(
-                bgr_aligned_batch[:half]
+                bgr_aligned_batch[:half], aligned_keypoints_batch=kps_a,
             )
             emb_b, fiqa_b = self._try_compute_embeddings_batch(
-                bgr_aligned_batch[half:]
+                bgr_aligned_batch[half:], aligned_keypoints_batch=kps_b,
             )
             if isinstance(emb_a, np.ndarray):
                 embeddings = np.concatenate([emb_a, emb_b], axis=0)
@@ -799,6 +823,9 @@ class ForensicFace:
             valid_indices = [
                 i for i, item in enumerate(aligned_items) if item is not None
             ]
+            needs_kps = bool(
+                set(self.models) & self.KEYPOINT_RECOGNITION_MODELS
+            )
             for chunk_start in range(0, len(valid_indices), batch_size):
                 chunk_idx = valid_indices[chunk_start : chunk_start + batch_size]
                 # `align_only` returns RGB (consistent with `process_image`)
@@ -814,7 +841,18 @@ class ForensicFace:
                     ],
                     axis=0,
                 )
-                embeddings, fiqa_scores = self._try_compute_embeddings_batch(crops)
+                # Keypoints alinhados só são empilhados quando algum modelo
+                # carregado é KEYPOINT_RECOGNITION_MODELS (ex: sepaelv6).
+                # Caso contrário, evita custo de stack desnecessário.
+                kps_batch = None
+                if needs_kps:
+                    kps_batch = np.stack(
+                        [aligned_items[i]["aligned_keypoints"] for i in chunk_idx],
+                        axis=0,
+                    )
+                embeddings, fiqa_scores = self._try_compute_embeddings_batch(
+                    crops, aligned_keypoints_batch=kps_batch,
+                )
 
                 for k, idx in enumerate(chunk_idx):
                     if self.concat_embeddings:
@@ -849,6 +887,9 @@ class ForensicFace:
         if not flat:
             return results_multi
 
+        needs_kps = bool(
+            set(self.models) & self.KEYPOINT_RECOGNITION_MODELS
+        )
         for chunk_start in range(0, len(flat), batch_size):
             chunk = flat[chunk_start : chunk_start + batch_size]
             # RGB → BGR for ONNX (see corresponding comment in single_face path).
@@ -859,7 +900,15 @@ class ForensicFace:
                 ],
                 axis=0,
             )
-            embeddings, fiqa_scores = self._try_compute_embeddings_batch(crops)
+            kps_batch = None
+            if needs_kps:
+                kps_batch = np.stack(
+                    [face_item["aligned_keypoints"] for _, face_item in chunk],
+                    axis=0,
+                )
+            embeddings, fiqa_scores = self._try_compute_embeddings_batch(
+                crops, aligned_keypoints_batch=kps_batch,
+            )
 
             for k, (img_idx, face_item) in enumerate(chunk):
                 if self.concat_embeddings:

@@ -40,6 +40,38 @@ class _BatchRecSession:
         return [np.full((n, self.dim), 0.5, dtype=np.float32)]
 
 
+class _ImageInput:
+    name = "input_images"
+
+
+class _KeypointsInput:
+    name = "keypoints"
+
+
+class _BatchKPRPESession:
+    """Mock recognition session that consumes both an image batch and a
+    keypoints batch — matches the contract of `KEYPOINT_RECOGNITION_MODELS`
+    (e.g. sepaelv6/KPRPE)."""
+
+    def __init__(self, dim: int = 4):
+        self.dim = dim
+        self.last_inputs: dict | None = None
+        self.call_count = 0
+
+    def get_inputs(self):
+        return [_ImageInput(), _KeypointsInput()]
+
+    def get_providers(self):
+        return ["CPUExecutionProvider"]
+
+    def run(self, _output_names, inputs):
+        self.call_count += 1
+        self.last_inputs = {k: v.shape for k, v in inputs.items()}
+        batch = inputs["input_images"]
+        n = batch.shape[0]
+        return [np.full((n, self.dim), 0.5, dtype=np.float32)]
+
+
 class _BatchFIQASession:
     """Mock CR-FIQA session — returns (logits, quality) with N rows each."""
 
@@ -382,3 +414,133 @@ def test_process_images_batch_without_concat_returns_per_model_embeddings(monkey
     assert "embedding_dummy0" in result
     assert "embedding_dummy1" in result
     assert result["embedding_dummy0"].shape == (4,)
+
+
+# ---------------------------------------------------------------------------
+# sepaelv6 / KPRPE keypoint-aware batched API
+# ---------------------------------------------------------------------------
+
+def test_align_only_includes_aligned_keypoints(monkeypatch):
+    """`align_only` must emit `aligned_keypoints` in the 112×112 frame so
+    `process_images_batch` can stack them and feed KPRPE models."""
+    ff, _ = _make_ff(monkeypatch, n_faces=1)
+    img = np.zeros((128, 128, 3), dtype=np.uint8)
+
+    result = ff.align_only(img, single_face=True)
+    assert "aligned_keypoints" in result
+    assert result["aligned_keypoints"].shape == (5, 2)
+
+
+def test_compute_embeddings_batch_with_kprpe_passes_keypoints(monkeypatch):
+    """When a loaded model is in KEYPOINT_RECOGNITION_MODELS (sepaelv6),
+    `_compute_embeddings_batch` must build inputs with both `input_images`
+    and `keypoints` — and keypoints must be normalized to [0, 1] by IMG_SIZE."""
+    kprpe = _BatchKPRPESession(dim=4)
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_a, **_k: kprpe
+    )
+    ff = ForensicFace(
+        models=["sepaelv6"],
+        extended=False,
+        backend=_DummyBackend(n_faces=1),
+    )
+
+    batch = np.zeros((3, 112, 112, 3), dtype=np.uint8)
+    kps_batch = np.array(
+        [
+            [[10, 20], [30, 20], [56, 56], [22, 90], [38, 90]],
+            [[12, 22], [32, 22], [58, 58], [24, 92], [40, 92]],
+            [[14, 24], [34, 24], [60, 60], [26, 94], [42, 94]],
+        ],
+        dtype=np.float32,
+    )
+
+    embeddings, _ = ff._compute_embeddings_batch(
+        batch, aligned_keypoints_batch=kps_batch
+    )
+    assert embeddings.shape == (3, 4)
+    assert kprpe.call_count == 1
+    # Both ONNX inputs present with batch dim N=3.
+    assert kprpe.last_inputs["input_images"] == (3, 3, 112, 112)
+    assert kprpe.last_inputs["keypoints"] == (3, 5, 2)
+
+
+def test_compute_embeddings_batch_kprpe_raises_when_keypoints_missing(monkeypatch):
+    """sepaelv6 without keypoints must fail explicitly — not silently
+    feed only images and produce garbage embeddings."""
+    kprpe = _BatchKPRPESession(dim=4)
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_a, **_k: kprpe
+    )
+    ff = ForensicFace(
+        models=["sepaelv6"],
+        extended=False,
+        backend=_DummyBackend(n_faces=1),
+    )
+
+    batch = np.zeros((2, 112, 112, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="requires aligned_keypoints_batch"):
+        ff._compute_embeddings_batch(batch)
+
+
+def test_compute_embeddings_batch_keypoints_shape_validation(monkeypatch):
+    """Wrong shape on keypoints batch must raise before reaching ONNX."""
+    kprpe = _BatchKPRPESession(dim=4)
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_a, **_k: kprpe
+    )
+    ff = ForensicFace(
+        models=["sepaelv6"],
+        extended=False,
+        backend=_DummyBackend(n_faces=1),
+    )
+    batch = np.zeros((2, 112, 112, 3), dtype=np.uint8)
+
+    # Wrong shape: (N, 3, 2) instead of (N, 5, 2).
+    bad_kps = np.zeros((2, 3, 2), dtype=np.float32)
+    with pytest.raises(ValueError, match=r"shape \(N, 5, 2\)"):
+        ff._compute_embeddings_batch(batch, aligned_keypoints_batch=bad_kps)
+
+    # Mismatched N between batch and keypoints.
+    mismatched_kps = np.zeros((3, 5, 2), dtype=np.float32)
+    with pytest.raises(ValueError, match="N=3.*N=2"):
+        ff._compute_embeddings_batch(
+            batch, aligned_keypoints_batch=mismatched_kps,
+        )
+
+
+def test_process_images_batch_with_kprpe_end_to_end(monkeypatch):
+    """End-to-end: process_images_batch collects aligned_keypoints from
+    each align_only result and feeds them to the KPRPE ONNX session."""
+    kprpe = _BatchKPRPESession(dim=4)
+    monkeypatch.setattr(
+        ForensicFace, "_load_model", lambda *_a, **_k: kprpe
+    )
+    ff = ForensicFace(
+        models=["sepaelv6"],
+        extended=False,
+        backend=_DummyBackend(n_faces=1),
+    )
+
+    imgs = [np.zeros((128, 128, 3), dtype=np.uint8) for _ in range(4)]
+    results = ff.process_images_batch(imgs, single_face=True, batch_size=32)
+
+    assert len(results) == 4
+    for item in results:
+        assert isinstance(item, dict)
+        assert item["embedding"].shape == (4,)
+    # One ONNX call covered all 4 faces; both inputs were passed.
+    assert kprpe.call_count == 1
+    assert kprpe.last_inputs["keypoints"] == (4, 5, 2)
+
+
+def test_process_images_batch_without_kprpe_skips_keypoint_stacking(monkeypatch):
+    """When no loaded model is KPRPE, the batched path must NOT pay the
+    extra cost of stacking aligned_keypoints — the session shouldn't
+    receive a `keypoints` input at all."""
+    ff, rec_sessions = _make_ff(monkeypatch, n_faces=1, dim=4, n_models=1)
+    imgs = [np.zeros((128, 128, 3), dtype=np.uint8) for _ in range(2)]
+
+    ff.process_images_batch(imgs, single_face=True)
+    # Single-input session was called with only one input key.
+    assert rec_sessions[0].last_input_shape == (2, 3, 112, 112)
