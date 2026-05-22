@@ -21,10 +21,8 @@ dos modelos de atributos, pose e qualidade.
 | Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
 | Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
 
-O carregador continua aceitando a estrutura legada por *fallback*.
-
-O modelo padrão é denominado `sepaelv2`. A partir da versão 0.1.5 é
-possível utilizar outros modelos.
+A estrutura de pastas anterior continua funcionando, mas é recomendado que você
+mude para a estrutura nova de pastas. 
 
 ## Notas de migração (0.5.1)
 
