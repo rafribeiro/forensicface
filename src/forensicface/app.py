@@ -257,6 +257,10 @@ class ForensicFace:
                   before stacking.
                 - ``bbox``: ``ndarray (4,)`` int — (xmin, ymin, xmax, ymax).
                 - ``keypoints``: ``ndarray (5, 2)`` — facial landmarks.
+                - ``aligned_keypoints``: ``ndarray (5, 2)`` — facial
+                  landmarks in the aligned 112×112 coordinate system,
+                  suitable for sepaelv6 batching and other keypoint-aware
+                  recognition models.
                 - ``det_score``: float.
 
             When ``extended=True``, also:
