@@ -93,12 +93,7 @@ class ForensicFace:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
 
             self.ort_fiqa = onnxruntime.InferenceSession(
-                osp.join(
-                    self.models_root,
-                    self.models[0],
-                    "cr_fiqa",
-                    "cr_fiqa_l.onnx",
-                ),
+                self._resolve_quality_model(self.models[0]),
                 providers=[self.providers[0]],
             )
         else:
@@ -131,19 +126,55 @@ class ForensicFace:
         return modules
 
     def _load_model(self, model_name, providers, gpu, models_root):
-        """Loads a single ONNX model."""
-        model_path = glob(
-            osp.join(
-                models_root, model_name, "*", "*face*.onnx"
-            )
-        )
+        """Loads a single ONNX face recognition model.
+
+        Tries the new shared layout first
+        (``<models_root>/recognition/<model_name>/*face*.onnx``)
+        and falls back to the legacy per-model layout
+        (``<models_root>/<model_name>/*/*face*.onnx``).
+        """
+        new_pattern = osp.join(models_root, "recognition", model_name, "*face*.onnx")
+        legacy_pattern = osp.join(models_root, model_name, "*", "*face*.onnx")
+
+        model_path = glob(new_pattern)
+        searched_pattern = new_pattern
         if len(model_path) == 0:
-            raise Exception(f"No face embedding model found in {osp.join(models_root, model_name)}")
+            model_path = glob(legacy_pattern)
+            searched_pattern = legacy_pattern
+
+        if len(model_path) == 0:
+            raise Exception(
+                f"No face embedding model found for '{model_name}'. "
+                f"Searched: {new_pattern} and {legacy_pattern}"
+            )
         if len(model_path) > 1:
-            raise Exception(f"Multiple face embedding models found in {osp.join(models_root, model_name)}: {model_path}\nPlease ensure there is only one ONNX file for face embedding in the model directory.")
+            raise Exception(
+                f"Multiple face embedding models found at {searched_pattern}: {model_path}\n"
+                f"Please ensure there is only one ONNX file for face embedding in the model directory."
+            )
         return onnxruntime.InferenceSession(
             model_path[0],
             providers=providers,
+        )
+
+    def _resolve_quality_model(self, model_name: str) -> str:
+        """Resolves the CR-FIQA quality model path.
+
+        Tries the new shared layout first
+        (``<models_root>/quality/cr_fiqa_l.onnx``) and falls back to the
+        legacy per-model layout
+        (``<models_root>/<model_name>/cr_fiqa/cr_fiqa_l.onnx``).
+        """
+        new_path = osp.join(self.models_root, "quality", "cr_fiqa_l.onnx")
+        if osp.isfile(new_path):
+            return new_path
+        legacy_path = osp.join(
+            self.models_root, model_name, "cr_fiqa", "cr_fiqa_l.onnx"
+        )
+        if osp.isfile(legacy_path):
+            return legacy_path
+        raise FileNotFoundError(
+            f"CR-FIQA quality model not found. Searched: {new_path} and {legacy_path}"
         )
 
     def _to_input_ada(self, aligned_bgr_img):

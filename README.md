@@ -7,24 +7,22 @@
 pip install forensicface
 ```
 
-Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
-(1k3d68.onnx) e sexo/idade (genderage.onnx) devem estar na pasta
-`~/.forensicface/models/<model_name>/`
+### Estrutura de pastas dos modelos
 
-O arquivo onnx do modelo de reconhecimento (ex. adaface_ir101web12m.onnx)
-deve estar na pasta `~/.forensicface/models/<model_name>/*face*/`
+A partir desta versão, os modelos são organizados por **tipo** em quatro
+pastas sob `~/.forensicface/models/`. Isto evita duplicação dos arquivos
+dos modelos de atributos, pose e qualidade.
 
-Para o modelo `sepaelv6`, o arquivo de reconhecimento
-`kprpe_adaface_webface12m.onnx` tambem deve estar nessa pasta. Este
-modelo recebe, alem da face alinhada 112x112, os cinco pontos-chave
-transformados para o sistema de coordenadas da face alinhada e
-normalizados para `[0, 1]`.
+| Tipo | Caminho |
+|---|---|
+| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
+| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
+| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
+| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
+| Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
 
-O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
-estar na pasta `~/.forensicface/models/<model_name>/cr_fiqa/`
-
-O modelo padrão é denominado `sepaelv2`. A partir da versão 0.1.5 é
-possível utilizar outros modelos.
+A estrutura de pastas anterior continua funcionando, mas é recomendado que você
+mude para a estrutura nova de pastas. 
 
 ## Notas de migração (0.5.1)
 
@@ -34,6 +32,16 @@ possível utilizar outros modelos.
     na inicialização do forensicface (parâmetro `models_root`)
 - CUDA e CuDNN são instalados automaticamente no ambiente virtual  
     onde o forensicface for instalado.  
+
+## Notas de migração (estrutura compartilhada)
+
+- Os modelos de detecção, atributos e qualidade se localizam em
+  pastas específicas (`detection/`, `attributes/`, `quality/`) sob
+  `models_root`, evitando múltiplas cópias de arquivos onnx.
+- Os modelos de reconhecimento ficam em `recognition/<model_name>/`.
+- A estrutura antiga (`<model_name>/...`) continua suportada como
+  *fallback* — usuários existentes não precisam migrar para a nova
+  versão funcionar.
 
 ## Documentação
 
