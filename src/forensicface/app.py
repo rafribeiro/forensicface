@@ -26,6 +26,9 @@ class ForensicFace:
     """
 
     IMG_SIZE = (112, 112)
+    KEYPOINT_RECOGNITION_MODELS = {"sepaelv6"}
+    SEPAELV6_IMAGE_INPUT = "input_images"
+    SEPAELV6_KEYPOINTS_INPUT = "keypoints"
 
     def __init__(
         self,
@@ -90,12 +93,7 @@ class ForensicFace:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
 
             self.ort_fiqa = onnxruntime.InferenceSession(
-                osp.join(
-                    self.models_root,
-                    self.models[0],
-                    "cr_fiqa",
-                    "cr_fiqa_l.onnx",
-                ),
+                self._resolve_quality_model(self.models[0]),
                 providers=[self.providers[0]],
             )
         else:
@@ -128,19 +126,55 @@ class ForensicFace:
         return modules
 
     def _load_model(self, model_name, providers, gpu, models_root):
-        """Loads a single ONNX model."""
-        model_path = glob(
-            osp.join(
-                models_root, model_name, "*", "*face*.onnx"
-            )
-        )
+        """Loads a single ONNX face recognition model.
+
+        Tries the new shared layout first
+        (``<models_root>/recognition/<model_name>/*face*.onnx``)
+        and falls back to the legacy per-model layout
+        (``<models_root>/<model_name>/*/*face*.onnx``).
+        """
+        new_pattern = osp.join(models_root, "recognition", model_name, "*face*.onnx")
+        legacy_pattern = osp.join(models_root, model_name, "*", "*face*.onnx")
+
+        model_path = glob(new_pattern)
+        searched_pattern = new_pattern
         if len(model_path) == 0:
-            raise Exception(f"No face embedding model found in {osp.join(models_root, model_name)}")
+            model_path = glob(legacy_pattern)
+            searched_pattern = legacy_pattern
+
+        if len(model_path) == 0:
+            raise Exception(
+                f"No face embedding model found for '{model_name}'. "
+                f"Searched: {new_pattern} and {legacy_pattern}"
+            )
         if len(model_path) > 1:
-            raise Exception(f"Multiple face embedding models found in {osp.join(models_root, model_name)}: {model_path}\nPlease ensure there is only one ONNX file for face embedding in the model directory.")
+            raise Exception(
+                f"Multiple face embedding models found at {searched_pattern}: {model_path}\n"
+                f"Please ensure there is only one ONNX file for face embedding in the model directory."
+            )
         return onnxruntime.InferenceSession(
             model_path[0],
             providers=providers,
+        )
+
+    def _resolve_quality_model(self, model_name: str) -> str:
+        """Resolves the CR-FIQA quality model path.
+
+        Tries the new shared layout first
+        (``<models_root>/quality/cr_fiqa_l.onnx``) and falls back to the
+        legacy per-model layout
+        (``<models_root>/<model_name>/cr_fiqa/cr_fiqa_l.onnx``).
+        """
+        new_path = osp.join(self.models_root, "quality", "cr_fiqa_l.onnx")
+        if osp.isfile(new_path):
+            return new_path
+        legacy_path = osp.join(
+            self.models_root, model_name, "cr_fiqa", "cr_fiqa_l.onnx"
+        )
+        if osp.isfile(legacy_path):
+            return legacy_path
+        raise FileNotFoundError(
+            f"CR-FIQA quality model not found. Searched: {new_path} and {legacy_path}"
         )
 
     def _to_input_ada(self, aligned_bgr_img):
@@ -273,10 +307,13 @@ class ForensicFace:
         results = []
         for face in faces:
             bgr_aligned_face = self.backend.norm_crop(bgr_img, face.kps)
-            embeddings, fiqa_score = self._compute_embeddings(bgr_aligned_face)
+            aligned_kps = self._align_keypoints(face.kps)
+            embeddings, fiqa_score = self._compute_embeddings(
+                bgr_aligned_face, aligned_keypoints=aligned_kps
+            )
             if draw_keypoints:
                 bgr_aligned_face = self._draw_keypoints_on_aligned_face(
-                    bgr_aligned_face, face.kps
+                    bgr_aligned_face, aligned_kps
                 )
             result = self._assemble_result(
                 face, bgr_aligned_face, embeddings, fiqa_score
@@ -285,21 +322,31 @@ class ForensicFace:
 
         return results if not single_face else results[0]
 
-    def _draw_keypoints_on_aligned_face(self, bgr_aligned_face, keypoints):
-        aligned_face = bgr_aligned_face.copy()
+    def _align_keypoints(self, keypoints):
         M = self.backend.estimate_norm(keypoints)
-        aligned_kps = transform_keypoints(keypoints=keypoints, M=M)
+        return transform_keypoints(keypoints=keypoints, M=M)
+
+    def _draw_keypoints_on_aligned_face(self, bgr_aligned_face, aligned_keypoints):
+        aligned_face = bgr_aligned_face.copy()
         annotated_aligned_face = annotate_img_with_kps(
-            aligned_face, kps=aligned_kps, color="green"
+            aligned_face, kps=aligned_keypoints, color="green"
         )
         return annotated_aligned_face
 
-    def _compute_embeddings(self, bgr_aligned_face):
+    def _compute_embeddings(self, bgr_aligned_face, aligned_keypoints=None):
         """Computes embeddings and FIQA score for an aligned face."""
         img_to_input = self._to_input_ada(bgr_aligned_face)
         embeddings = []
-        for rec_ort in self.rec_inference_sessions:
-            model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
+        for model_name, rec_ort in zip(self.models, self.rec_inference_sessions):
+            if model_name in self.KEYPOINT_RECOGNITION_MODELS:
+                model_inputs = self._build_keypoint_model_inputs(
+                    model_name=model_name,
+                    rec_ort=rec_ort,
+                    img_to_input=img_to_input,
+                    aligned_keypoints=aligned_keypoints,
+                )
+            else:
+                model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
             model_output = rec_ort.run(None, model_inputs)
             if (
                 len(model_output) == 2
@@ -319,6 +366,48 @@ class ForensicFace:
             np.concatenate(embeddings) if self.concat_embeddings else embeddings,
             fiqa_score[0][0] if fiqa_score is not None else None,
         )
+
+    def _build_keypoint_model_inputs(
+        self, model_name, rec_ort, img_to_input, aligned_keypoints
+    ):
+        input_names = [input_info.name for input_info in rec_ort.get_inputs()]
+        required_input_names = {
+            self.SEPAELV6_IMAGE_INPUT,
+            self.SEPAELV6_KEYPOINTS_INPUT,
+        }
+        missing_input_names = required_input_names.difference(input_names)
+        if missing_input_names:
+            raise ValueError(
+                f"Model '{model_name}' requires ONNX inputs "
+                f"{sorted(required_input_names)}, but the loaded session has "
+                f"{input_names}. Missing: {sorted(missing_input_names)}."
+            )
+
+        return {
+            self.SEPAELV6_IMAGE_INPUT: img_to_input,
+            self.SEPAELV6_KEYPOINTS_INPUT: self._to_keypoints_input(
+                aligned_keypoints, model_name=model_name
+            ),
+        }
+
+    def _to_keypoints_input(self, aligned_keypoints, model_name):
+        if aligned_keypoints is None:
+            raise ValueError(
+                f"Model '{model_name}' requires aligned 5-point keypoints in "
+                "the 112x112 face image coordinate system."
+            )
+
+        aligned_keypoints = np.asarray(aligned_keypoints, dtype=np.float32)
+        if aligned_keypoints.shape != (5, 2):
+            raise ValueError(
+                f"Model '{model_name}' requires keypoints with shape (5, 2); "
+                f"received {aligned_keypoints.shape}."
+            )
+
+        normalized_keypoints = aligned_keypoints.copy()
+        normalized_keypoints[:, 0] /= self.IMG_SIZE[1]
+        normalized_keypoints[:, 1] /= self.IMG_SIZE[0]
+        return normalized_keypoints.reshape(1, 5, 2)
 
     def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""
@@ -663,10 +752,23 @@ class ForensicFace:
             )
         return nfaces
 
-    def process_aligned_face_image(self, rgb_aligned_face: np.ndarray):
+    def process_aligned_face_image(
+        self, rgb_aligned_face: np.ndarray, keypoints: np.ndarray | None = None
+    ):
+        """
+        Process an already aligned RGB face image.
+
+        Args:
+            rgb_aligned_face: RGB face image with shape (112, 112, 3).
+            keypoints: Optional 5x2 keypoints in the aligned 112x112 image
+                coordinate system. Required when a keypoint-aware recognition
+                model such as sepaelv6 is loaded.
+        """
         assert rgb_aligned_face.shape == (*self.IMG_SIZE, 3)
         bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
-        embeddings, fiqa_score = self._compute_embeddings(bgr_aligned_face)
+        embeddings, fiqa_score = self._compute_embeddings(
+            bgr_aligned_face, aligned_keypoints=keypoints
+        )
 
         if self.concat_embeddings:
             ret = {"embedding": embeddings}

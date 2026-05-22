@@ -7,37 +7,23 @@
 pip install forensicface
 ```
 
-Os arquivos onnx dos modelos de detecção (det_10g.onnx), pose
-(1k3d68.onnx) e sexo/idade (genderage.onnx) devem estar na pasta
-`~/.forensicface/models/<model_name>/`
+A partir da versão 0.7.0, os arquivos dos modelos pré-treinados são organizados por 
+**tipo** em quatro pastas sob `~/.forensicface/models/`:
 
-O arquivo onnx do modelo de reconhecimento (ex. adaface_ir101web12m.onnx)
-deve estar na pasta `~/.forensicface/models/<model_name>/*face*/`
+| Tipo | Caminho |
+|---|---|
+| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
+| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
+| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
+| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
+| Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
 
-O arquivo onnx do modelo de qualidade CR_FIQA (cr_fiqa_l.onnx) deve
-estar na pasta `~/.forensicface/models/<model_name>/cr_fiqa/`
+A estrutura de pastas anterior continua funcionando, mas é recomendado que você
+mude para a nova estrutura de pastas. Para auxiliar na migração, a partir da 
+versão 0.7.0 foi incluída uma ferramenta para realizar a migração de forma automática:  
 
-O modelo padrão é denominado `sepaelv2`. A partir da versão 0.1.5 é
-possível utilizar outros modelos.
-
-## Notas de migração (0.5.1)
-
-- A dependência do pacote `insightface` foi removida.  
-- O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
-- É possível especificar outro diretório raiz para os modelos  
-    na inicialização do forensicface (parâmetro `models_root`)
-- CUDA e CuDNN são instalados automaticamente no ambiente virtual  
-    onde o forensicface for instalado.  
-
-## Migrar modelos para o layout compartilhado
-
-Ferramenta `python -m forensicface.tools.migrate_shared` move arquivos
-compartilhados (`det_10g.onnx`, `1k3d68.onnx`, `genderage.onnx`,
-`cr_fiqa_l.onnx`) das pastas `<model_name>/` para
-`detection/`, `attributes/` e `quality/`, e relocaliza cada modelo de
-reconhecimento para `recognition/<model_name>/`. Cópias duplicadas
-verificadas por SHA-256 são removidas, liberando o espaço em disco.
-
+`python -m forensicface.tools.migrate_shared` move arquivos para a nova estrutura e
+remove as cópias desnecessárias, liberando o espaço em disco.  
 ``` sh
 # Dry-run (default): mostra o que seria feito, não toca em nada
 python -m forensicface.tools.migrate_shared
@@ -49,27 +35,33 @@ python -m forensicface.tools.migrate_shared --apply --yes
 python -m forensicface.tools.migrate_shared --models-root /path/to/models
 ```
 
-A migração é **idempotente**: rodar duas vezes não tem efeito na
-segunda. Se algum arquivo na pasta nova diferir do legado em hash, a
-ferramenta aborta e reporta o conflito sem apagar nada.
+
+
+## Notas de migração
+
+v.0.7.0:
+- Adicionado suporte a extração de embeddings em lote
+- Layout das pastas dos modelos pré-treinados otimizado
+- Incluída ferramenta para migração para novo layout de pastas de modelos
+
+v.0.6.0:
+- Adicionado suporte ao modelo KPRPE ViT / Adaface / Webface12M, sob o alias `sepaelv6`.
+Crédito do modelo: https://github.com/mk-minchul/CVLface
+
+v.0.5.1:
+- A dependência do pacote `insightface` foi removida.  
+- O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
+- É possível especificar outro diretório raiz para os modelos  
+    na inicialização do forensicface (parâmetro `models_root`)
+- CUDA e CuDNN são instalados automaticamente no ambiente virtual  
+    onde o forensicface for instalado.  
+
 
 ## Documentação
 
-- Tutoriais e exemplos: notebooks em `nbs/`, publicados com Quarto
-- Referência de API: gerada via docstrings com `quartodoc`
-
-Build local da documentação:
-
-``` sh
-uv sync --extra docs
-./scripts/build_docs.sh
-```
-
-No `build_docs.sh`, os notebooks são executados localmente antes de gerar o site.
-No CI (GitHub Actions), é usado `./scripts/build_docs_ci.sh`, que renderiza sem
-executar notebooks novamente.
-
-Saída do site: `_docs/`
+- Docs: https://rafribeiro.github.io/forensicface/
+- Tutoriais e exemplos: notebooks em `nbs/` (em desenvolvimento)
+- Referência de API: https://rafribeiro.github.io/forensicface/api.html
 
 ## Como utilizar
 
