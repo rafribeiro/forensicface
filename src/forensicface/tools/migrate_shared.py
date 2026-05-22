@@ -287,7 +287,11 @@ def apply_plan(plan: MigrationPlan) -> None:
         )
     for action in plan.actions:
         if action.kind in (ActionKind.MOVE_SHARED, ActionKind.MOVE_RECOGNITION):
-            assert action.dst is not None
+            if action.dst is None:
+                raise RuntimeError(
+                    f"Invalid migration action: {action.kind.value} requires "
+                    f"a destination path for source {action.src}"
+                )
             action.dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(action.src), str(action.dst))
         elif action.kind == ActionKind.DELETE_DUPLICATE:
