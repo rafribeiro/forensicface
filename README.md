@@ -7,11 +7,8 @@
 pip install forensicface
 ```
 
-### Estrutura de pastas dos modelos
-
-A partir desta versão, os modelos são organizados por **tipo** em quatro
-pastas sob `~/.forensicface/models/`. Isto evita duplicação dos arquivos
-dos modelos de atributos, pose e qualidade.
+A partir da versão 0.7.0, os arquivos dos modelos pré-treinados são organizados por 
+**tipo** em quatro pastas sob `~/.forensicface/models/`:
 
 | Tipo | Caminho |
 |---|---|
@@ -22,10 +19,36 @@ dos modelos de atributos, pose e qualidade.
 | Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
 
 A estrutura de pastas anterior continua funcionando, mas é recomendado que você
-mude para a estrutura nova de pastas. 
+mude para a nova estrutura de pastas. Para auxiliar na migração, a partir da 
+versão 0.7.0 foi incluída uma ferramenta para realizar a migração de forma automática:  
 
-## Notas de migração (0.5.1)
+`python -m forensicface.tools.migrate_shared` move arquivos para a nova estrutura e
+remove as cópias desnecessárias, liberando o espaço em disco.  
+``` sh
+# Dry-run (default): mostra o que seria feito, não toca em nada
+python -m forensicface.tools.migrate_shared
 
+# Aplica de fato
+python -m forensicface.tools.migrate_shared --apply --yes
+
+# Modelos em diretório customizado
+python -m forensicface.tools.migrate_shared --models-root /path/to/models
+```
+
+
+
+## Notas de migração
+
+v.0.7.0:
+- Adicionado suporte a extração de embeddings em lote
+- Layout das pastas dos modelos pré-treinados otimizado
+- Incluída ferramenta para migração para novo layout de pastas de modelos
+
+v.0.6.0:
+- Adicionado suporte ao modelo KPRPE ViT / Adaface / Webface12M, sob o alias `sepaelv6`.
+Crédito do modelo: https://github.com/mk-minchul/CVLface
+
+v.0.5.1:
 - A dependência do pacote `insightface` foi removida.  
 - O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
 - É possível especificar outro diretório raiz para os modelos  
@@ -33,33 +56,12 @@ mude para a estrutura nova de pastas.
 - CUDA e CuDNN são instalados automaticamente no ambiente virtual  
     onde o forensicface for instalado.  
 
-## Notas de migração (estrutura compartilhada)
-
-- Os modelos de detecção, atributos e qualidade se localizam em
-  pastas específicas (`detection/`, `attributes/`, `quality/`) sob
-  `models_root`, evitando múltiplas cópias de arquivos onnx.
-- Os modelos de reconhecimento ficam em `recognition/<model_name>/`.
-- A estrutura antiga (`<model_name>/...`) continua suportada como
-  *fallback* — usuários existentes não precisam migrar para a nova
-  versão funcionar.
 
 ## Documentação
 
-- Tutoriais e exemplos: notebooks em `nbs/`, publicados com Quarto
-- Referência de API: gerada via docstrings com `quartodoc`
-
-Build local da documentação:
-
-``` sh
-uv sync --extra docs
-./scripts/build_docs.sh
-```
-
-No `build_docs.sh`, os notebooks são executados localmente antes de gerar o site.
-No CI (GitHub Actions), é usado `./scripts/build_docs_ci.sh`, que renderiza sem
-executar notebooks novamente.
-
-Saída do site: `_docs/`
+- Docs: https://rafribeiro.github.io/forensicface/
+- Tutoriais e exemplos: notebooks em `nbs/` (em desenvolvimento)
+- Referência de API: https://rafribeiro.github.io/forensicface/api.html
 
 ## Como utilizar
 
