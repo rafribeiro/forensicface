@@ -1,11 +1,8 @@
 __all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult']
-import os
 import onnxruntime
 import cv2
 import numpy as np
 import os.path as osp
-from imutils import build_montages
-from tqdm import tqdm
 import warnings
 from .backends import FaceData, FaceBackend, create_backend
 from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
@@ -13,6 +10,7 @@ from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
 from .geometry import extend_bbox, select_best_face
 from .model_store import resolve_quality_model, resolve_recognition_model
+from .mosaic import build_aligned_face_mosaic
 from .preprocessing import normalize_aligned_keypoints, to_ada_input
 from .recognition import (
     RecognitionRunner,
@@ -26,6 +24,7 @@ from .results import (
     build_face_result,
     build_face_result_from_align_result,
 )
+from .video import extract_faces_from_video
 
 
 def custom_formatwarning(message, category, filename, lineno, line=None):
@@ -726,48 +725,14 @@ class ForensicFace:
         Returns:
             np.ndarray: OpenCV BGR image with mosaic.
         """
-        assert mosaic_shape is not None
-        top = int(border * self.IMG_SIZE[0])  # shape[0] = rows
-        bottom = top
-        left = int(border * self.IMG_SIZE[1])  # shape[1] = cols
-        right = left
-
-        imgs = []
-        list_of_arrays = False
-        for img in img_path_list:
-            if type(img) != str:  # image array passed as argument
-                list_of_arrays = True
-            ret = self.process_image(
-                img, draw_keypoints=draw_keypoints, single_face=True
-            )
-            if len(ret) > 0:
-                img = cv2.cvtColor(ret["aligned_face"], cv2.COLOR_RGB2BGR)
-                img = cv2.copyMakeBorder(
-                    img,
-                    top=top,
-                    bottom=bottom,
-                    left=left,
-                    right=right,
-                    borderType=cv2.BORDER_CONSTANT,
-                    value=(255, 255, 255),
-                )
-                imgs.append(img)
-        mosaic = build_montages(
-            imgs,
-            image_shape=(
-                int(self.IMG_SIZE[0] * (1 + 2 * border)),
-                int(self.IMG_SIZE[1] * (1 + 2 * border)),
-            ),
-            montage_shape=mosaic_shape,
-        )[0]
-        if list_of_arrays:
-            warnings.warn(
-                "A list of arrays was passed as argument. Make sure image arrays are in BGR format.",
-                Warning,
-            )
-        if save_to is not None:
-            cv2.imwrite(save_to, mosaic)
-        return mosaic
+        return build_aligned_face_mosaic(
+            self,
+            img_path_list,
+            mosaic_shape,
+            border=border,
+            save_to=save_to,
+            draw_keypoints=draw_keypoints,
+        )
 
     def compare(self, img1path: str, img2path: str) -> float:
         """
@@ -931,81 +896,15 @@ class ForensicFace:
         Returns:
             int: The number of extracted faces.
         """
-        import pandas as pd
-
-        if dest_folder is None:
-            dest_folder = os.path.splitext(video_path)[0]
-
-        os.makedirs(dest_folder, exist_ok=True)
-
-        # initialize video stream from file
-        vs = cv2.VideoCapture(video_path)
-        fps = vs.get(cv2.CAP_PROP_FPS)
-        start_frame = int(fps * start_from)
-        total_frames = int(vs.get(cv2.CAP_PROP_FRAME_COUNT)) // every_n_frames
-
-        # seek to starting frame
-        vs.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        current_frame = start_frame
-        nfaces = 0
-        if export_metadata:
-            metadata = []
-        with tqdm(
-            total=total_frames,
-            bar_format="Frames processed: {n}/{total} | Time elapsed: {elapsed}",
-        ) as pbar:
-            while True:
-
-                ret, frame = vs.read()
-
-                if not ret:
-                    break
-
-                current_frame = current_frame + 1
-                if (current_frame % every_n_frames) != 0:
-                    continue
-
-                (h, w) = frame.shape[:2]
-
-                # faces are provided by the configured backend
-                rets = self.process_image(frame, single_face=False)
-                for i, ret in enumerate(rets):
-                    startX, startY, endX, endY = ret["bbox"]
-                    faceW = endX - startX
-                    faceH = endY - startY
-                    outBbox = self._get_extended_bbox(
-                        ret["bbox"], frame.shape, margin_factor=margin
-                    )
-                    # export the face (with added margin)
-                    face_crop = frame[outBbox[1] : outBbox[3], outBbox[0] : outBbox[2]]
-                    face_img_path = os.path.join(
-                        dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
-                    )
-                    cv2.imwrite(face_img_path, face_crop)
-                    if export_metadata:
-                        metadata.append(
-                            {
-                                **{"frame": current_frame, "face": i},
-                                **{
-                                    k: v
-                                    for k, v in ret.items()
-                                    if k not in ["det_score", "aligned_face"]
-                                },
-                            }
-                        )
-                    nfaces += 1
-                pbar.update(1)
-        vs.release()
-        if export_metadata:
-            pd.DataFrame(metadata).to_json(
-                os.path.join(
-                    dest_folder,
-                    os.path.splitext(os.path.basename(video_path))[0] + ".jsonl",
-                ),
-                lines=True,
-                orient="records",
-            )
-        return nfaces
+        return extract_faces_from_video(
+            self,
+            video_path,
+            dest_folder=dest_folder,
+            every_n_frames=every_n_frames,
+            margin=margin,
+            start_from=start_from,
+            export_metadata=export_metadata,
+        )
 
     def process_aligned_face_image(
         self, rgb_aligned_face: np.ndarray, keypoints: np.ndarray | None = None

@@ -8,12 +8,14 @@ sections:
       - forensicface.backends
       - forensicface.geometry
       - forensicface.model_store
+      - forensicface.mosaic
       - forensicface.ort_runtime_setup
       - forensicface.preprocessing
       - forensicface.recognition
       - forensicface.results
       - forensicface.runtime_summary
       - forensicface.utils
+      - forensicface.video
 
   - title: Insightface Internals
     desc: Internal components vendored from insightface.

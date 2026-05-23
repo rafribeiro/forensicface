@@ -18,8 +18,10 @@ Update: the first implementation pass introduced `FaceResult(dict)` for public
 face results and extracted initial helper modules for result assembly,
 preprocessing, geometry, and model-store path resolution. A follow-up pass
 extracted recognition/FIQA inference into `recognition.py` while keeping
-`ForensicFace` private wrapper methods for compatibility. The remaining items
-below still describe the direction for follow-up refactors.
+`ForensicFace` private wrapper methods for compatibility. A later pass moved
+the mosaic and video extraction workflows into `mosaic.py` and `video.py`,
+again keeping `ForensicFace` methods as wrappers. The remaining items below
+still describe the direction for follow-up refactors.
 
 Recommended direction:
 

@@ -152,7 +152,8 @@ Important method groups:
   `_assemble_result_from_align_only()`. Shared result construction and
   `FaceResult` live in `results.py`.
 - Convenience workflows: `compare()`, `aggregate_embeddings()`,
-  `aggregate_from_images()`, `build_mosaic()`, `extract_faces()`.
+  `aggregate_from_images()`, `build_mosaic()`, `extract_faces()`. Mosaic
+  construction lives in `mosaic.py`, and video crop export lives in `video.py`.
 - Deprecated compatibility wrappers: `process_image_single_face()` and
   `process_image_multiple_faces()`.
 

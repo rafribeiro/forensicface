@@ -51,12 +51,14 @@ quartodoc:
         - backends
         - geometry
         - model_store
+        - mosaic
         - ort_runtime_setup
         - preprocessing
         - recognition
         - results
         - runtime_summary
         - utils
+        - video
     - title: Insightface Internals
       desc: Internal components vendored from insightface.
       contents:
