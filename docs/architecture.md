@@ -47,6 +47,7 @@ internals.
 | --- | --- | --- |
 | Process one image | `ForensicFace.process_image()` | One result dict by default; a list when `single_face=False` |
 | Detect and align only | `ForensicFace.align_only()` | Aligned face data without embeddings/FIQA |
+| Process aligned crops in batch | `ForensicFace.process_aligned_faces_batch()` | List of embedding/FIQA result objects |
 | Process many images efficiently | `ForensicFace.process_images_batch()` | List parallel to input images |
 | Process an already aligned crop | `ForensicFace.process_aligned_face_image()` | Embedding dict and optional FIQA |
 | Compare two images | `ForensicFace.compare()` | Cosine similarity float |
@@ -141,11 +142,11 @@ Important method groups:
   `_resolve_quality_model()`, `_get_loaded_modules()`. Path-resolution rules
   live in `model_store.py`.
 - Image processing: `_load_image()`, `process_image()`, `align_only()`,
-  `process_aligned_face_image()`.
+  `process_aligned_face_image()`, `process_aligned_faces_batch()`.
 - Embedding inference: `_to_input_ada()`, `_compute_embeddings()`,
-  `_compute_embeddings_batch()`, `_try_compute_embeddings_batch()`. Stateless
-  preprocessing lives in `preprocessing.py`; recognition/FIQA ONNX execution
-  lives in `recognition.py`.
+  `_try_compute_embeddings_batch()`, and `RecognitionRunner.compute_batch()`.
+  Stateless preprocessing lives in `preprocessing.py`; recognition/FIQA ONNX
+  execution lives in `recognition.py`.
 - Keypoint-aware recognition: `_build_keypoint_model_inputs()`,
   `_to_keypoints_input()`.
 - Result assembly: `_assemble_result()`,
@@ -305,7 +306,7 @@ Use this table when deciding where to start.
 | Change type | Start here | Watch for |
 | --- | --- | --- |
 | New public face-processing option | `ForensicFace.process_image()` and `process_images_batch()` | Keep single and batch outputs compatible |
-| New recognition model | `_compute_embeddings()`, `_compute_embeddings_batch()`, model lookup | ONNX input names, preprocessing, embedding output format |
+| New recognition model | `RecognitionRunner`, `_compute_embeddings()`, model lookup | ONNX input names, preprocessing, embedding output format |
 | New keypoint-aware model | `KEYPOINT_RECOGNITION_MODELS`, `_build_keypoint_model_inputs()` | Batch and single-face keypoint normalization |
 | New backend | `FaceBackend` and `create_backend()` | Return `FaceData` with 5-point keypoints for alignment |
 | Runtime/provider issue | `ort_runtime_setup.py`, `runtime_summary.py` | Platform-specific provider behavior |

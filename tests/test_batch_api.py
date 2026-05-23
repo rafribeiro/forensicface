@@ -1,4 +1,4 @@
-"""Tests for the optional batched API (align_only, _compute_embeddings_batch,
+"""Tests for the optional batched API (align_only, process_aligned_faces_batch,
 process_images_batch, _assemble_result_from_align_only)."""
 
 import numpy as np
@@ -239,56 +239,61 @@ def test_align_only_non_extended_omits_attribute_fields(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _compute_embeddings_batch
+# process_aligned_faces_batch
 # ---------------------------------------------------------------------------
 
-def test_compute_embeddings_batch_concat_shape(monkeypatch):
+def test_process_aligned_faces_batch_concat_shape(monkeypatch):
     ff, rec_sessions = _make_ff(monkeypatch, dim=4, two_outputs=False, n_models=2)
     batch = np.zeros((5, 112, 112, 3), dtype=np.uint8)
 
-    embeddings, fiqa = ff._compute_embeddings_batch(batch)
+    results = ff.process_aligned_faces_batch(batch)
+    embeddings = np.stack([item.embedding for item in results], axis=0)
 
     assert embeddings.shape == (5, 8)  # 2 models × 4 dims each, concatenated
-    assert fiqa is None
+    assert all("fiqa_score" not in item for item in results)
     for sess in rec_sessions:
         assert sess.last_input_shape == (5, 3, 112, 112)
         assert sess.call_count == 1
 
 
-def test_compute_embeddings_batch_without_concat_returns_list(monkeypatch):
+def test_process_aligned_faces_batch_without_concat_returns_per_model_results(monkeypatch):
     ff, _ = _make_ff(
         monkeypatch, dim=4, n_models=2, concat_embeddings=False
     )
     batch = np.zeros((3, 112, 112, 3), dtype=np.uint8)
 
-    embeddings, fiqa = ff._compute_embeddings_batch(batch)
+    results = ff.process_aligned_faces_batch(batch)
 
-    assert isinstance(embeddings, list)
-    assert len(embeddings) == 2
-    assert all(arr.shape == (3, 4) for arr in embeddings)
-    assert fiqa is None
+    assert len(results) == 3
+    for item in results:
+        assert "embedding" not in item
+        assert item["embedding_dummy0"].shape == (4,)
+        assert item["embedding_dummy1"].shape == (4,)
+        assert "fiqa_score" not in item
 
 
-def test_compute_embeddings_batch_two_outputs_multiplies(monkeypatch):
+def test_process_aligned_faces_batch_two_outputs_multiplies(monkeypatch):
     ff, _ = _make_ff(monkeypatch, dim=4, two_outputs=True, n_models=1)
     batch = np.zeros((2, 112, 112, 3), dtype=np.uint8)
 
-    embeddings, _ = ff._compute_embeddings_batch(batch)
+    results = ff.process_aligned_faces_batch(batch)
+    embeddings = np.stack([item.embedding for item in results], axis=0)
     # normed=0.5, norm=2.0 → 0.5*2.0=1.0
     np.testing.assert_allclose(embeddings, np.full((2, 4), 1.0, dtype=np.float32))
 
 
-def test_compute_embeddings_batch_fiqa_shape_when_extended(monkeypatch):
+def test_process_aligned_faces_batch_fiqa_shape_when_extended(monkeypatch):
     ff, _ = _make_ff(monkeypatch, extended=True, n_models=1, dim=4)
     batch = np.zeros((7, 112, 112, 3), dtype=np.uint8)
 
-    embeddings, fiqa = ff._compute_embeddings_batch(batch)
+    results = ff.process_aligned_faces_batch(batch)
+    embeddings = np.stack([item.embedding for item in results], axis=0)
+    fiqa = np.array([item.fiqa_score for item in results])
     assert embeddings.shape == (7, 4)
-    assert fiqa is not None
     assert fiqa.shape == (7,)
 
 
-def test_compute_embeddings_batch_matches_single_numerically(monkeypatch):
+def test_process_aligned_faces_batch_matches_single_numerically(monkeypatch):
     """The batch version must produce bit-identical embeddings to the
     single _compute_embeddings, since ONNX ops are the same."""
     ff, _ = _make_ff(monkeypatch, dim=4, two_outputs=True, n_models=1)
@@ -296,19 +301,20 @@ def test_compute_embeddings_batch_matches_single_numerically(monkeypatch):
         0, 256, size=(3, 112, 112, 3), dtype=np.uint8
     )
 
-    batch_emb, _ = ff._compute_embeddings_batch(batch)
+    batch_results = ff.process_aligned_faces_batch(batch)
+    batch_emb = np.stack([item.embedding for item in batch_results], axis=0)
     single_embs = np.stack(
-        [ff._compute_embeddings(crop)[0] for crop in batch], axis=0
+        [ff.process_aligned_face_image(crop).embedding for crop in batch], axis=0
     )
     np.testing.assert_allclose(batch_emb, single_embs)
 
 
-def test_compute_embeddings_batch_rejects_wrong_shape(monkeypatch):
+def test_process_aligned_faces_batch_rejects_wrong_shape(monkeypatch):
     ff, _ = _make_ff(monkeypatch)
     bad = np.zeros((3, 64, 64, 3), dtype=np.uint8)  # 64 ≠ 112
 
-    with pytest.raises(ValueError, match="Expected shape"):
-        ff._compute_embeddings_batch(bad)
+    with pytest.raises(ValueError, match="rgb_aligned_faces"):
+        ff.process_aligned_faces_batch(bad)
 
 
 # ---------------------------------------------------------------------------
@@ -441,9 +447,9 @@ def test_align_only_includes_aligned_keypoints(monkeypatch):
     assert result["aligned_keypoints"].shape == (5, 2)
 
 
-def test_compute_embeddings_batch_with_kprpe_passes_keypoints(monkeypatch):
+def test_process_aligned_faces_batch_with_kprpe_passes_keypoints(monkeypatch):
     """When a loaded model is in KEYPOINT_RECOGNITION_MODELS (sepaelv6),
-    `_compute_embeddings_batch` must build inputs with both `input_images`
+    `process_aligned_faces_batch` must build inputs with both `input_images`
     and `keypoints` — and keypoints must be normalized to [0, 1] by IMG_SIZE."""
     kprpe = _BatchKPRPESession(dim=4)
     monkeypatch.setattr(
@@ -465,9 +471,10 @@ def test_compute_embeddings_batch_with_kprpe_passes_keypoints(monkeypatch):
         dtype=np.float32,
     )
 
-    embeddings, _ = ff._compute_embeddings_batch(
+    results = ff.process_aligned_faces_batch(
         batch, aligned_keypoints_batch=kps_batch
     )
+    embeddings = np.stack([item.embedding for item in results], axis=0)
     assert embeddings.shape == (3, 4)
     assert kprpe.call_count == 1
     # Both ONNX inputs present with batch dim N=3.
@@ -475,7 +482,7 @@ def test_compute_embeddings_batch_with_kprpe_passes_keypoints(monkeypatch):
     assert kprpe.last_inputs["keypoints"] == (3, 5, 2)
 
 
-def test_compute_embeddings_batch_kprpe_raises_when_keypoints_missing(monkeypatch):
+def test_process_aligned_faces_batch_kprpe_raises_when_keypoints_missing(monkeypatch):
     """sepaelv6 without keypoints must fail explicitly — not silently
     feed only images and produce garbage embeddings."""
     kprpe = _BatchKPRPESession(dim=4)
@@ -490,10 +497,10 @@ def test_compute_embeddings_batch_kprpe_raises_when_keypoints_missing(monkeypatc
 
     batch = np.zeros((2, 112, 112, 3), dtype=np.uint8)
     with pytest.raises(ValueError, match="requires aligned_keypoints_batch"):
-        ff._compute_embeddings_batch(batch)
+        ff.process_aligned_faces_batch(batch)
 
 
-def test_compute_embeddings_batch_keypoints_shape_validation(monkeypatch):
+def test_process_aligned_faces_batch_keypoints_shape_validation(monkeypatch):
     """Wrong shape on keypoints batch must raise before reaching ONNX."""
     kprpe = _BatchKPRPESession(dim=4)
     monkeypatch.setattr(
@@ -509,12 +516,12 @@ def test_compute_embeddings_batch_keypoints_shape_validation(monkeypatch):
     # Wrong shape: (N, 3, 2) instead of (N, 5, 2).
     bad_kps = np.zeros((2, 3, 2), dtype=np.float32)
     with pytest.raises(ValueError, match=r"shape \(N, 5, 2\)"):
-        ff._compute_embeddings_batch(batch, aligned_keypoints_batch=bad_kps)
+        ff.process_aligned_faces_batch(batch, aligned_keypoints_batch=bad_kps)
 
     # Mismatched N between batch and keypoints.
     mismatched_kps = np.zeros((3, 5, 2), dtype=np.float32)
     with pytest.raises(ValueError, match="N=3.*N=2"):
-        ff._compute_embeddings_batch(
+        ff.process_aligned_faces_batch(
             batch, aligned_keypoints_batch=mismatched_kps,
         )
 

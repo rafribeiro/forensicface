@@ -233,7 +233,7 @@ class ForensicFace:
 
         Useful in two scenarios:
         1. Batched extract: run align_only per-image to fill a buffer of
-           aligned crops, then call ``_compute_embeddings_batch`` once
+           aligned crops, then call ``process_aligned_faces_batch`` once
            per chunk. Lets ONNX use real batch parallelism on GPU.
         2. Materialize aligned crops on disk for later re-extraction
            with newer recognition models.
@@ -412,52 +412,6 @@ class ForensicFace:
             image_size=self.IMG_SIZE,
         )
 
-    def _compute_embeddings_batch(
-        self,
-        bgr_aligned_batch: np.ndarray,
-        aligned_keypoints_batch: np.ndarray = None,
-    ):
-        """Computes embeddings + FIQA for ``N`` aligned faces in parallel.
-
-        Batched counterpart of ``_compute_embeddings``. Each ONNX session
-        is invoked once with input shape ``(N, 3, 112, 112)`` instead of
-        ``N`` calls with shape ``(1, 3, 112, 112)``. Speedup scales with
-        ``N`` until GPU memory or Python overhead dominates.
-
-        Args:
-            bgr_aligned_batch: ``ndarray (N, 112, 112, 3)`` BGR uint8 —
-                aligned crops, typically the output of ``align_only``
-                stacked along axis 0.
-            aligned_keypoints_batch: ``ndarray (N, 5, 2)`` float — aligned
-                5-point keypoints in the 112×112 coordinate system, one
-                per face. Required when any loaded recognition model is
-                in ``KEYPOINT_RECOGNITION_MODELS`` (e.g. sepaelv6/KPRPE);
-                ignored otherwise.
-
-        Returns:
-            embeddings:
-                If ``concat_embeddings=True``: ``ndarray (N, total_dim)``
-                with embeddings concatenated across all loaded models.
-                Otherwise: list of ndarrays, one per loaded model, each
-                of shape ``(N, model_dim)``.
-            fiqa_scores:
-                ``ndarray (N,)`` with the FIQA score per face, or ``None``
-                when ``extended=False``.
-
-        Notes:
-            Equivalent to calling ``_compute_embeddings`` N times:
-            ONNX Runtime performs the same matmul ops, only the
-            parallel layout changes. Results are equivalent for
-            practical purposes (e.g. cosine similarity), but on GPU
-            the parallel reductions are not bit-exact deterministic,
-            so embeddings may differ by tiny amounts vs the per-image
-            path.
-        """
-        return self._recognition_runner().compute_batch(
-            bgr_aligned_batch,
-            aligned_keypoints_batch=aligned_keypoints_batch,
-        )
-
     @staticmethod
     def _looks_like_cuda_oom(exc: BaseException) -> bool:
         """Best-effort match for CUDA out-of-memory errors raised by
@@ -469,7 +423,7 @@ class ForensicFace:
     def _try_compute_embeddings_batch(
         self, bgr_aligned_batch, aligned_keypoints_batch=None,
     ):
-        """Calls ``_compute_embeddings_batch`` with CUDA OOM auto-retry.
+        """Calls batched recognition inference with CUDA OOM auto-retry.
 
         On OOM, halves the batch and recurses on each half, concatenating
         results to match the original call signature. Emits a one-line
@@ -482,7 +436,7 @@ class ForensicFace:
         em ``KEYPOINT_RECOGNITION_MODELS`` (sepaelv6/KPRPE).
         """
         return try_compute_embeddings_batch(
-            self._compute_embeddings_batch,
+            self._recognition_runner().compute_batch,
             bgr_aligned_batch,
             aligned_keypoints_batch=aligned_keypoints_batch,
         )
@@ -538,8 +492,8 @@ class ForensicFace:
         Pipeline:
         1. Per-image: ``align_only`` (detect + warp), accumulate aligned
            crops into a buffer.
-        2. Per-chunk of ``batch_size``: ``_compute_embeddings_batch`` in
-           one ONNX call.
+        2. Per-chunk of ``batch_size``: recognition/FIQA inference in one
+           ONNX call per loaded model.
         3. Reassemble into ``process_image``-compatible dicts.
 
         Args:
@@ -934,3 +888,56 @@ class ForensicFace:
         if self.extended:
             ret["fiqa_score"] = fiqa_score
         return ret
+
+    def process_aligned_faces_batch(
+        self,
+        rgb_aligned_faces: np.ndarray,
+        aligned_keypoints_batch: np.ndarray | None = None,
+    ) -> list[FaceResult]:
+        """
+        Process already aligned RGB face images in one recognition batch.
+
+        Args:
+            rgb_aligned_faces: RGB aligned face images with shape
+                ``(N, 112, 112, 3)``.
+            aligned_keypoints_batch: Optional keypoints with shape
+                ``(N, 5, 2)`` in the aligned 112x112 image coordinate system.
+                Required when a keypoint-aware recognition model such as
+                sepaelv6 is loaded.
+
+        Returns:
+            list[FaceResult]: One result per aligned face. Each result includes
+            ``embedding`` when ``concat_embeddings=True`` or one
+            ``embedding_<model_name>`` key per model otherwise. When
+            ``extended=True``, each result also includes ``fiqa_score``.
+        """
+        rgb_aligned_faces = np.asarray(rgb_aligned_faces)
+        if (
+            rgb_aligned_faces.ndim != 4
+            or rgb_aligned_faces.shape[1:] != (*self.IMG_SIZE, 3)
+        ):
+            raise ValueError(
+                f"rgb_aligned_faces must have shape (N, {self.IMG_SIZE[0]}, "
+                f"{self.IMG_SIZE[1]}, 3); got {rgb_aligned_faces.shape}."
+            )
+
+        bgr_aligned_faces = rgb_aligned_faces[..., ::-1].copy()
+        embeddings, fiqa_scores = self._recognition_runner().compute_batch(
+            bgr_aligned_faces,
+            aligned_keypoints_batch=aligned_keypoints_batch,
+        )
+
+        results: list[FaceResult] = []
+        for idx in range(rgb_aligned_faces.shape[0]):
+            ret = FaceResult()
+            if self.concat_embeddings:
+                ret["embedding"] = embeddings[idx]
+            else:
+                for model_name, per_model_embeddings in zip(self.models, embeddings):
+                    ret[f"embedding_{model_name}"] = per_model_embeddings[idx]
+            if self.extended:
+                ret["fiqa_score"] = (
+                    float(fiqa_scores[idx]) if fiqa_scores is not None else None
+                )
+            results.append(ret)
+        return results

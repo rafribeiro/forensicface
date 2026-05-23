@@ -23,8 +23,10 @@ the mosaic and video extraction workflows into `mosaic.py` and `video.py`,
 again keeping `ForensicFace` methods as wrappers. Another pass moved cosine
 score and embedding aggregation math into `utils.py`. The latest pass replaced
 user-facing `assert` validation with explicit `ValueError` exceptions in the
-core facade, utilities, recognition runner, and mosaic workflow. The remaining
-items below still describe the direction for follow-up refactors.
+core facade, utilities, recognition runner, and mosaic workflow. Batch
+embedding extraction now has a public `process_aligned_faces_batch()` method
+instead of the short-lived private `_compute_embeddings_batch()` entry point.
+The remaining items below still describe the direction for follow-up refactors.
 
 Recommended direction:
 
@@ -121,7 +123,7 @@ preprocessing requirements.
 Current locations:
 
 - `ForensicFace._compute_embeddings()`
-- `ForensicFace._compute_embeddings_batch()`
+- `ForensicFace.process_aligned_faces_batch()`
 - `ForensicFace._build_keypoint_model_inputs()`
 - `ForensicFace._try_compute_embeddings_batch()`
 
@@ -320,7 +322,7 @@ Tests for numerical behavior become simpler.
 Current examples:
 
 - `_get_best_face()` checks criterion and non-empty faces.
-- `_compute_embeddings_batch()` checks crop shape.
+- `process_aligned_faces_batch()` checks crop shape.
 - `aggregate_embeddings()` checks shape and method.
 - `process_aligned_face_image()` checks aligned face shape.
 - utility functions validate color and keypoint shape with `assert`.
