@@ -130,3 +130,6 @@ dmypy.json
 
 # CODEX files
 .codex
+
+# mmdc config
+puppeteer-config.json

@@ -6,8 +6,10 @@ import cv2
 from pathlib import Path
 
 import forensicface.app as app_module
+import forensicface.model_store as model_store
 from forensicface.app import ForensicFace
 from forensicface.backends import FaceBackend, FaceData
+from forensicface.results import FaceResult
 
 
 class _DummyInput:
@@ -109,8 +111,11 @@ def test_process_image_single_face_api_shape(monkeypatch):
         result = ff.process_image(img, single_face=True)
 
     assert isinstance(result, dict)
+    assert isinstance(result, FaceResult)
     assert "embedding" in result
     assert result["embedding"].shape == (4,)
+    assert result.embedding.shape == (4,)
+    assert np.array_equal(result.bbox, result["bbox"])
     assert result["aligned_face"].shape == (112, 112, 3)
 
 
@@ -226,7 +231,9 @@ def test_process_aligned_face_image_accepts_keypoints_for_sepaelv6(monkeypatch):
         rgb_aligned_face, keypoints=aligned_keypoints
     )
 
+    assert isinstance(result, FaceResult)
     assert result["embedding"].shape == (4,)
+    assert result.embedding.shape == (4,)
     assert np.allclose(
         rec_session.captured_inputs["keypoints"],
         aligned_keypoints.reshape(1, 5, 2) / 112.0,
@@ -475,7 +482,7 @@ def test_load_model_prefers_new_recognition_layout(monkeypatch):
     class _DummySession:
         pass
 
-    monkeypatch.setattr(app_module, "glob", fake_glob)
+    monkeypatch.setattr(model_store, "glob", fake_glob)
     monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
     ff = object.__new__(ForensicFace)
@@ -503,7 +510,7 @@ def test_load_model_falls_back_to_legacy_layout(monkeypatch):
     class _DummySession:
         pass
 
-    monkeypatch.setattr(app_module, "glob", fake_glob)
+    monkeypatch.setattr(model_store, "glob", fake_glob)
     monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
     ff = object.__new__(ForensicFace)

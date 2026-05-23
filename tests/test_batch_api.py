@@ -7,6 +7,7 @@ import pytest
 import forensicface.app as app_module
 from forensicface.app import ForensicFace
 from forensicface.backends import FaceBackend, FaceData
+from forensicface.results import FaceResult
 
 
 class _DummyInput:
@@ -180,9 +181,11 @@ def test_align_only_single_face_returns_dict(monkeypatch):
     result = ff.align_only(img, single_face=True)
 
     assert isinstance(result, dict)
+    assert isinstance(result, FaceResult)
     assert result["aligned_face"].shape == (112, 112, 3)
     assert result["aligned_face"].dtype == np.uint8
     assert result["bbox"].shape == (4,)
+    assert np.array_equal(result.bbox, result["bbox"])
     assert result["keypoints"].shape == (5, 2)
     assert isinstance(result["det_score"], float)
 
@@ -321,7 +324,9 @@ def test_process_images_batch_single_face_returns_list_of_dicts(monkeypatch):
     assert len(results) == 3
     for item in results:
         assert isinstance(item, dict)
+        assert isinstance(item, FaceResult)
         assert item["embedding"].shape == (4,)
+        assert item.embedding.shape == (4,)
         assert item["aligned_face"].shape == (112, 112, 3)
 
 

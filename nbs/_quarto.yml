@@ -49,7 +49,11 @@ quartodoc:
       contents:
         - app
         - backends
+        - geometry
+        - model_store
         - ort_runtime_setup
+        - preprocessing
+        - results
         - runtime_summary
         - utils
     - title: Insightface Internals

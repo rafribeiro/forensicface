@@ -14,6 +14,7 @@ pip install forensicface
 - Docs: https://rafribeiro.github.io/forensicface/
 - Tutoriais e exemplos: notebooks em `nbs/` (em desenvolvimento)
 - Referência de API: https://rafribeiro.github.io/forensicface/api.html
+- Documentação para contribuidores: [`docs/README.md`](docs/README.md)
 
 ## Como utilizar
 

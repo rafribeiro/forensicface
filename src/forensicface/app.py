@@ -1,10 +1,9 @@
-__all__ = ['custom_formatwarning', 'ForensicFace']
+__all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult']
 import os
 import onnxruntime
 import cv2
 import numpy as np
 import os.path as osp
-from glob import glob
 from imutils import build_montages
 from tqdm import tqdm
 import warnings
@@ -12,6 +11,15 @@ from .backends import FaceData, FaceBackend, create_backend
 from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
 from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
+from .geometry import extend_bbox, select_best_face
+from .model_store import resolve_quality_model, resolve_recognition_model
+from .preprocessing import normalize_aligned_keypoints, to_ada_input
+from .results import (
+    FaceResult,
+    build_align_result,
+    build_face_result,
+    build_face_result_from_align_result,
+)
 
 
 def custom_formatwarning(message, category, filename, lineno, line=None):
@@ -133,27 +141,8 @@ class ForensicFace:
         and falls back to the legacy per-model layout
         (``<models_root>/<model_name>/*/*face*.onnx``).
         """
-        new_pattern = osp.join(models_root, "recognition", model_name, "*face*.onnx")
-        legacy_pattern = osp.join(models_root, model_name, "*", "*face*.onnx")
-
-        model_path = glob(new_pattern)
-        searched_pattern = new_pattern
-        if len(model_path) == 0:
-            model_path = glob(legacy_pattern)
-            searched_pattern = legacy_pattern
-
-        if len(model_path) == 0:
-            raise Exception(
-                f"No face embedding model found for '{model_name}'. "
-                f"Searched: {new_pattern} and {legacy_pattern}"
-            )
-        if len(model_path) > 1:
-            raise Exception(
-                f"Multiple face embedding models found at {searched_pattern}: {model_path}\n"
-                f"Please ensure there is only one ONNX file for face embedding in the model directory."
-            )
         return onnxruntime.InferenceSession(
-            model_path[0],
+            resolve_recognition_model(models_root, model_name),
             providers=providers,
         )
 
@@ -165,17 +154,7 @@ class ForensicFace:
         legacy per-model layout
         (``<models_root>/<model_name>/cr_fiqa/cr_fiqa_l.onnx``).
         """
-        new_path = osp.join(self.models_root, "quality", "cr_fiqa_l.onnx")
-        if osp.isfile(new_path):
-            return new_path
-        legacy_path = osp.join(
-            self.models_root, model_name, "cr_fiqa", "cr_fiqa_l.onnx"
-        )
-        if osp.isfile(legacy_path):
-            return legacy_path
-        raise FileNotFoundError(
-            f"CR-FIQA quality model not found. Searched: {new_path} and {legacy_path}"
-        )
+        return resolve_quality_model(self.models_root, model_name)
 
     def _to_input_ada(self, aligned_bgr_img):
         """
@@ -192,44 +171,11 @@ class ForensicFace:
             a batch input. Same normalization in both cases — single
             source of truth for image preprocessing.
         """
-        arr = aligned_bgr_img.astype(np.float32)
-        arr = ((arr / 255.0) - 0.5) / 0.5
-        if arr.ndim == 3:
-            # Single: (H, W, 3) → (1, 3, H, W)
-            return arr.transpose(2, 0, 1).reshape(1, 3, *self.IMG_SIZE)
-        if arr.ndim == 4:
-            # Batch: (N, H, W, 3) → (N, 3, H, W)
-            return arr.transpose(0, 3, 1, 2).copy()
-        raise ValueError(
-            f"Expected ndim 3 (H, W, 3) or 4 (N, H, W, 3); got {arr.ndim}."
-        )
+        return to_ada_input(aligned_bgr_img, image_size=self.IMG_SIZE)
 
     def _get_best_face(self, img, faces, criterion="size"):
         """Get the best face based on a criterion: 'centrality' or 'size'."""
-        assert criterion in ["centrality", "size"]
-        assert faces is not None and len(faces) > 0
-
-        if criterion == "centrality":
-            img_center = np.array([img.shape[0] // 2, img.shape[1] // 2])
-            scores = [
-                np.linalg.norm(
-                    img_center
-                    - np.array([(box[0] + box[2]) // 2, (box[1] + box[3]) // 2])
-                )
-                for box in [face.bbox.astype("int").flatten() for face in faces]
-            ]
-        elif criterion == "size":
-            scores = [
-                abs((box[2] - box[0]) * (box[3] - box[1]))
-                for box in [face.bbox.astype("int").flatten() for face in faces]
-            ]
-
-        if criterion == "centrality":
-            best_idx = scores.index(min(scores))
-        else:
-            best_idx = scores.index(max(scores))
-
-        return faces[best_idx]
+        return select_best_face(img.shape, faces, criterion=criterion)
 
     def process_image_single_face(
         self, imgpath: str, draw_keypoints=False
@@ -306,22 +252,17 @@ class ForensicFace:
             # precomputed here so `process_images_batch` can stack them
             # without having to run `_align_keypoints` again.
             aligned_kps = self._align_keypoints(face.kps)
-            item = {
-                "aligned_face": aligned_rgb,
-                "bbox": face.bbox.astype("int"),
-                "keypoints": face.kps,
-                "aligned_keypoints": aligned_kps,
-                "det_score": float(face.det_score),
-            }
-            if self.extended:
-                gender = None
-                if face.gender is not None:
-                    gender = "M" if int(face.gender) == 1 else "F"
-                item["gender"] = gender
-                item["age"] = int(face.age) if face.age is not None else None
-                item["pose"] = (
-                    face.pose.copy() if face.pose is not None else None
-                )
+            item = build_align_result(
+                aligned_face=aligned_rgb,
+                bbox=face.bbox,
+                keypoints=face.kps,
+                aligned_keypoints=aligned_kps,
+                det_score=face.det_score,
+                extended=self.extended,
+                gender=face.gender,
+                age=face.age,
+                pose=face.pose,
+            )
             results.append(item)
 
         return results[0] if single_face else results
@@ -478,27 +419,10 @@ class ForensicFace:
         }
 
     def _to_keypoints_input(self, aligned_keypoints, model_name):
-        if aligned_keypoints is None:
-            raise ValueError(
-                f"Model '{model_name}' requires aligned 5-point keypoints in "
-                "the 112x112 face image coordinate system."
-            )
-
-        aligned_keypoints = np.asarray(aligned_keypoints, dtype=np.float32)
-        if aligned_keypoints.shape == (5, 2):
-            normalized_keypoints = aligned_keypoints.copy()
-            normalized_keypoints[:, 0] /= self.IMG_SIZE[1]
-            normalized_keypoints[:, 1] /= self.IMG_SIZE[0]
-            return normalized_keypoints.reshape(1, 5, 2)
-        if aligned_keypoints.ndim == 3 and aligned_keypoints.shape[1:] == (5, 2):
-            normalized_keypoints = aligned_keypoints.copy()
-            normalized_keypoints[:, :, 0] /= self.IMG_SIZE[1]
-            normalized_keypoints[:, :, 1] /= self.IMG_SIZE[0]
-            return normalized_keypoints
-
-        raise ValueError(
-            f"Model '{model_name}' requires keypoints with shape "
-            f"(5, 2) or (N, 5, 2); received {aligned_keypoints.shape}."
+        return normalize_aligned_keypoints(
+            aligned_keypoints,
+            model_name=model_name,
+            image_size=self.IMG_SIZE,
         )
 
     def _compute_embeddings_batch(
@@ -688,47 +612,20 @@ class ForensicFace:
 
     def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""
-        ret = {
-            "ipd": np.linalg.norm(face.kps[0] - face.kps[1]),
-        }
-
-        if self.extended:
-            gender = None
-            if face.gender is not None:
-                gender = "M" if face.gender == 1 else "F"
-
-            yaw, pitch, roll = None, None, None
-            if face.pose is not None:
-                yaw = face.pose[1]
-                pitch = face.pose[0]
-                roll = face.pose[2]
-
-            ret.update(
-                {
-                    "fiqa_score": fiqa_score,
-                    "gender": gender,
-                    "age": face.age,
-                    "yaw": yaw,
-                    "pitch": pitch,
-                    "roll": roll,
-                }
-            )
-
-        ret.update(
-            {
-                "det_score": face.det_score,
-                "keypoints": face.kps,
-                "bbox": face.bbox.astype("int"),
-            }
+        return build_face_result(
+            aligned_face=cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+            bbox=face.bbox,
+            keypoints=face.kps,
+            det_score=face.det_score,
+            embeddings=embeddings,
+            fiqa_score=fiqa_score,
+            models=self.models,
+            extended=self.extended,
+            concat_embeddings=self.concat_embeddings,
+            gender=face.gender,
+            age=face.age,
+            pose=face.pose,
         )
-        if self.concat_embeddings:
-            ret["embedding"] = embeddings
-        else:
-            for model_name, embedding in zip(self.models, embeddings):
-                ret[f"embedding_{model_name}"] = embedding
-
-        ret["aligned_face"] = cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB)
-        return ret
 
     def _assemble_result_from_align_only(
         self, align_item, embeddings, fiqa_score
@@ -742,45 +639,14 @@ class ForensicFace:
         Note: ``align_only`` already returns ``aligned_face`` in RGB
         and ``gender`` as ``"M"``/``"F"`` — no conversion here.
         """
-        kps = align_item["keypoints"]
-
-        ret = {"ipd": np.linalg.norm(kps[0] - kps[1])}
-
-        if self.extended:
-            yaw, pitch, roll = None, None, None
-            pose = align_item.get("pose")
-            if pose is not None:
-                pitch = pose[0]
-                yaw = pose[1]
-                roll = pose[2]
-
-            ret.update(
-                {
-                    "fiqa_score": fiqa_score,
-                    "gender": align_item.get("gender"),
-                    "age": align_item.get("age"),
-                    "yaw": yaw,
-                    "pitch": pitch,
-                    "roll": roll,
-                }
-            )
-
-        ret.update(
-            {
-                "det_score": align_item["det_score"],
-                "keypoints": kps,
-                "bbox": align_item["bbox"],
-            }
+        return build_face_result_from_align_result(
+            align_item=align_item,
+            embeddings=embeddings,
+            fiqa_score=fiqa_score,
+            models=self.models,
+            extended=self.extended,
+            concat_embeddings=self.concat_embeddings,
         )
-
-        if self.concat_embeddings:
-            ret["embedding"] = embeddings
-        else:
-            for model_name, emb in zip(self.models, embeddings):
-                ret[f"embedding_{model_name}"] = emb
-
-        ret["aligned_face"] = align_item["aligned_face"]
-        return ret
 
     def process_images_batch(
         self,
@@ -1165,27 +1031,7 @@ class ForensicFace:
         Returns:
             A list with the coordinates of the extended bounding box (startX_out, startY_out, endX_out, endY_out).
         """
-        # add a margin on the bounding box
-        (startX, startY, endX, endY) = bbox.astype("int")
-        (h, w) = frame_shape[:2]
-        out_width = (endX - startX) * margin_factor
-        out_height = (endY - startY) * margin_factor
-
-        startX_out = int((startX + endX) / 2 - out_width / 2)
-        endX_out = int((startX + endX) / 2 + out_width / 2)
-        startY_out = int((startY + endY) / 2 - out_height / 2)
-        endY_out = int((startY + endY) / 2 + out_height / 2)
-
-        # tests if the output bbox coordinates are out of frame limits
-        if startX_out < 0:
-            startX_out = 0
-        if endX_out > int(w):
-            endX_out = int(w)
-        if startY_out < 0:
-            startY_out = 0
-        if endY_out > int(h):
-            endY_out = int(h)
-        return [startX_out, startY_out, endX_out, endY_out]
+        return extend_bbox(bbox, frame_shape, margin_factor)
 
     def extract_faces(
         self,
@@ -1308,11 +1154,11 @@ class ForensicFace:
         )
 
         if self.concat_embeddings:
-            ret = {"embedding": embeddings}
+            ret = FaceResult({"embedding": embeddings})
         else:
-            ret = {}
+            ret = FaceResult()
             for model_name, embedding in zip(self.models, embeddings):
                 ret["embedding_" + model_name] = embedding
         if self.extended:
-            ret = {**ret, **{"fiqa_score": fiqa_score}}
+            ret["fiqa_score"] = fiqa_score
         return ret

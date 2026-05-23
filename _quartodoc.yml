@@ -6,7 +6,11 @@ sections:
     contents:
       - forensicface.app
       - forensicface.backends
+      - forensicface.geometry
+      - forensicface.model_store
       - forensicface.ort_runtime_setup
+      - forensicface.preprocessing
+      - forensicface.results
       - forensicface.runtime_summary
       - forensicface.utils
 
