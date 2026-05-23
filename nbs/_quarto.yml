@@ -53,6 +53,7 @@ quartodoc:
         - model_store
         - ort_runtime_setup
         - preprocessing
+        - recognition
         - results
         - runtime_summary
         - utils

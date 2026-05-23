@@ -10,6 +10,7 @@ sections:
       - forensicface.model_store
       - forensicface.ort_runtime_setup
       - forensicface.preprocessing
+      - forensicface.recognition
       - forensicface.results
       - forensicface.runtime_summary
       - forensicface.utils

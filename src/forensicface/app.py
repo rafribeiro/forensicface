@@ -14,6 +14,12 @@ from .runtime_summary import print_initialization_summary
 from .geometry import extend_bbox, select_best_face
 from .model_store import resolve_quality_model, resolve_recognition_model
 from .preprocessing import normalize_aligned_keypoints, to_ada_input
+from .recognition import (
+    RecognitionRunner,
+    build_keypoint_model_inputs,
+    looks_like_cuda_oom,
+    try_compute_embeddings_batch,
+)
 from .results import (
     FaceResult,
     build_align_result,
@@ -172,6 +178,19 @@ class ForensicFace:
             source of truth for image preprocessing.
         """
         return to_ada_input(aligned_bgr_img, image_size=self.IMG_SIZE)
+
+    def _recognition_runner(self):
+        return RecognitionRunner(
+            models=self.models,
+            rec_inference_sessions=self.rec_inference_sessions,
+            ort_fiqa=getattr(self, "ort_fiqa", None),
+            extended=self.extended,
+            concat_embeddings=self.concat_embeddings,
+            image_size=self.IMG_SIZE,
+            keypoint_recognition_models=self.KEYPOINT_RECOGNITION_MODELS,
+            image_input_name=self.SEPAELV6_IMAGE_INPUT,
+            keypoints_input_name=self.SEPAELV6_KEYPOINTS_INPUT,
+        )
 
     def _get_best_face(self, img, faces, criterion="size"):
         """Get the best face based on a criterion: 'centrality' or 'size'."""
@@ -363,60 +382,23 @@ class ForensicFace:
 
     def _compute_embeddings(self, bgr_aligned_face, aligned_keypoints=None):
         """Computes embeddings and FIQA score for an aligned face."""
-        img_to_input = self._to_input_ada(bgr_aligned_face)
-        embeddings = []
-        for model_name, rec_ort in zip(self.models, self.rec_inference_sessions):
-            if model_name in self.KEYPOINT_RECOGNITION_MODELS:
-                model_inputs = self._build_keypoint_model_inputs(
-                    model_name=model_name,
-                    rec_ort=rec_ort,
-                    img_to_input=img_to_input,
-                    aligned_keypoints=aligned_keypoints,
-                )
-            else:
-                model_inputs = {rec_ort.get_inputs()[0].name: img_to_input}
-            model_output = rec_ort.run(None, model_inputs)
-            if (
-                len(model_output) == 2
-            ):  # model output in the form of normed_embedding, norm
-                embedding = model_output[0].flatten() * model_output[1].flatten()[0]
-            else:  # model output in the form of embedding
-                embedding = model_output[0].flatten()
-            embeddings.append(embedding)
-
-        fiqa_score = None
-        if self.extended:
-            _, fiqa_score = self.ort_fiqa.run(
-                None, {self.ort_fiqa.get_inputs()[0].name: img_to_input}
-            )
-
-        return (
-            np.concatenate(embeddings) if self.concat_embeddings else embeddings,
-            fiqa_score[0][0] if fiqa_score is not None else None,
+        return self._recognition_runner().compute_one(
+            bgr_aligned_face,
+            aligned_keypoints=aligned_keypoints,
         )
 
     def _build_keypoint_model_inputs(
         self, model_name, rec_ort, img_to_input, aligned_keypoints
     ):
-        input_names = [input_info.name for input_info in rec_ort.get_inputs()]
-        required_input_names = {
-            self.SEPAELV6_IMAGE_INPUT,
-            self.SEPAELV6_KEYPOINTS_INPUT,
-        }
-        missing_input_names = required_input_names.difference(input_names)
-        if missing_input_names:
-            raise ValueError(
-                f"Model '{model_name}' requires ONNX inputs "
-                f"{sorted(required_input_names)}, but the loaded session has "
-                f"{input_names}. Missing: {sorted(missing_input_names)}."
-            )
-
-        return {
-            self.SEPAELV6_IMAGE_INPUT: img_to_input,
-            self.SEPAELV6_KEYPOINTS_INPUT: self._to_keypoints_input(
-                aligned_keypoints, model_name=model_name
-            ),
-        }
+        return build_keypoint_model_inputs(
+            model_name=model_name,
+            rec_ort=rec_ort,
+            img_to_input=img_to_input,
+            aligned_keypoints=aligned_keypoints,
+            image_size=self.IMG_SIZE,
+            image_input_name=self.SEPAELV6_IMAGE_INPUT,
+            keypoints_input_name=self.SEPAELV6_KEYPOINTS_INPUT,
+        )
 
     def _to_keypoints_input(self, aligned_keypoints, model_name):
         return normalize_aligned_keypoints(
@@ -466,77 +448,10 @@ class ForensicFace:
             so embeddings may differ by tiny amounts vs the per-image
             path.
         """
-        assert (
-            bgr_aligned_batch.ndim == 4
-            and bgr_aligned_batch.shape[1:] == (*self.IMG_SIZE, 3)
-        ), (
-            f"Expected shape (N, {self.IMG_SIZE[0]}, {self.IMG_SIZE[1]}, 3); "
-            f"got {bgr_aligned_batch.shape}."
+        return self._recognition_runner().compute_batch(
+            bgr_aligned_batch,
+            aligned_keypoints_batch=aligned_keypoints_batch,
         )
-
-        # Reuse `_to_input_ada` to keep image normalization in a single
-        # place — future recognition models with different normalization
-        # only need to be addressed there.
-        batch_input = self._to_input_ada(bgr_aligned_batch)
-
-        # Validate keypoints once. Normalization is delegated to
-        # `_to_keypoints_input` through `_build_keypoint_model_inputs`,
-        # keeping the single-face and batch paths on the same code path.
-        keypoints_input = None
-        if aligned_keypoints_batch is not None:
-            kp = np.asarray(aligned_keypoints_batch, dtype=np.float32)
-            if kp.ndim != 3 or kp.shape[1:] != (5, 2):
-                raise ValueError(
-                    "aligned_keypoints_batch must have shape (N, 5, 2); "
-                    f"received {kp.shape}."
-                )
-            if kp.shape[0] != bgr_aligned_batch.shape[0]:
-                raise ValueError(
-                    f"aligned_keypoints_batch has N={kp.shape[0]} but "
-                    f"bgr_aligned_batch has N={bgr_aligned_batch.shape[0]}."
-                )
-            keypoints_input = kp
-
-        embeddings_per_model = []
-        for rec_ort, model_name in zip(
-            self.rec_inference_sessions, self.models
-        ):
-            if model_name in self.KEYPOINT_RECOGNITION_MODELS:
-                if keypoints_input is None:
-                    raise ValueError(
-                        f"Model '{model_name}' requires aligned_keypoints_batch "
-                        "(5-point keypoints in the 112x112 coordinate system)."
-                    )
-                model_inputs = self._build_keypoint_model_inputs(
-                    model_name=model_name,
-                    rec_ort=rec_ort,
-                    img_to_input=batch_input,
-                    aligned_keypoints=keypoints_input,
-                )
-            else:
-                model_inputs = {rec_ort.get_inputs()[0].name: batch_input}
-            model_output = rec_ort.run(None, model_inputs)
-            if len(model_output) == 2:
-                # (N, dim) × (N, 1) — broadcasts to (N, dim).
-                emb = model_output[0] * model_output[1]
-            else:
-                emb = model_output[0]
-            embeddings_per_model.append(emb)
-
-        if self.concat_embeddings:
-            embeddings = np.concatenate(embeddings_per_model, axis=1)
-        else:
-            embeddings = embeddings_per_model
-
-        fiqa_scores = None
-        if self.extended and self.ort_fiqa is not None:
-            fiqa_output = self.ort_fiqa.run(
-                None, {self.ort_fiqa.get_inputs()[0].name: batch_input}
-            )
-            # CR-FIQA returns (logits, quality); shape of quality is (N, 1).
-            fiqa_scores = np.asarray(fiqa_output[-1]).reshape(-1)
-
-        return embeddings, fiqa_scores
 
     @staticmethod
     def _looks_like_cuda_oom(exc: BaseException) -> bool:
@@ -544,13 +459,7 @@ class ForensicFace:
         ONNX Runtime. Provider-specific exception types vary by build,
         so we string-match on the message — broad enough to catch
         ORT's CUDA, TRT, and DML provider OOMs."""
-        msg = str(exc).lower()
-        return (
-            "out of memory" in msg
-            or "cudaerrormemoryallocation" in msg
-            or "cuda" in msg and "oom" in msg
-            or "alloc" in msg and "memory" in msg
-        )
+        return looks_like_cuda_oom(exc)
 
     def _try_compute_embeddings_batch(
         self, bgr_aligned_batch, aligned_keypoints_batch=None,
@@ -567,48 +476,11 @@ class ForensicFace:
         ``bgr_aligned_batch`` quando fornecido — necessário pra modelos
         em ``KEYPOINT_RECOGNITION_MODELS`` (sepaelv6/KPRPE).
         """
-        try:
-            return self._compute_embeddings_batch(
-                bgr_aligned_batch,
-                aligned_keypoints_batch=aligned_keypoints_batch,
-            )
-        except Exception as exc:
-            n = bgr_aligned_batch.shape[0]
-            if n <= 1 or not self._looks_like_cuda_oom(exc):
-                raise
-            half = n // 2
-            warnings.warn(
-                f"CUDA OOM with batch_size={n}; falling back to {half}. "
-                f"Pass a smaller `batch_size` to `process_images_batch` "
-                f"to avoid this overhead.",
-                stacklevel=2,
-            )
-            kps_a = (
-                aligned_keypoints_batch[:half]
-                if aligned_keypoints_batch is not None else None
-            )
-            kps_b = (
-                aligned_keypoints_batch[half:]
-                if aligned_keypoints_batch is not None else None
-            )
-            emb_a, fiqa_a = self._try_compute_embeddings_batch(
-                bgr_aligned_batch[:half], aligned_keypoints_batch=kps_a,
-            )
-            emb_b, fiqa_b = self._try_compute_embeddings_batch(
-                bgr_aligned_batch[half:], aligned_keypoints_batch=kps_b,
-            )
-            if isinstance(emb_a, np.ndarray):
-                embeddings = np.concatenate([emb_a, emb_b], axis=0)
-            else:
-                # list[ndarray] when concat_embeddings=False.
-                embeddings = [
-                    np.concatenate([a, b], axis=0)
-                    for a, b in zip(emb_a, emb_b)
-                ]
-            fiqa_scores = None
-            if fiqa_a is not None and fiqa_b is not None:
-                fiqa_scores = np.concatenate([fiqa_a, fiqa_b], axis=0)
-            return embeddings, fiqa_scores
+        return try_compute_embeddings_batch(
+            self._compute_embeddings_batch,
+            bgr_aligned_batch,
+            aligned_keypoints_batch=aligned_keypoints_batch,
+        )
 
     def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
         """Assembles the result dictionary for a face."""

@@ -144,7 +144,8 @@ Important method groups:
   `process_aligned_face_image()`.
 - Embedding inference: `_to_input_ada()`, `_compute_embeddings()`,
   `_compute_embeddings_batch()`, `_try_compute_embeddings_batch()`. Stateless
-  preprocessing lives in `preprocessing.py`.
+  preprocessing lives in `preprocessing.py`; recognition/FIQA ONNX execution
+  lives in `recognition.py`.
 - Keypoint-aware recognition: `_build_keypoint_model_inputs()`,
   `_to_keypoints_input()`.
 - Result assembly: `_assemble_result()`,
