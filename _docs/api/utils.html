@@ -234,24 +234,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="forensicface.utils.compute_ss_ds">compute_ss_ds</h3>
 <div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>utils.compute_ss_ds(X, x_id, x_names<span class="op">=</span><span class="va">None</span>, Z<span class="op">=</span><span class="va">None</span>, z_id<span class="op">=</span><span class="va">None</span>, z_names<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Compute cosine similarities between the cartesian product of two arrays X and Z and return same-source (ss) and different-source (ds) scores. If only the array X and x_id are provided, compute the cosine similarities between all pairwise combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.</p>
-<section id="inputs" class="level4 doc-section doc-section-inputs">
-<h4 class="doc-section doc-section-inputs anchored" data-anchor-id="inputs">Inputs</h4>
-<p>X, Z: 2d numpy arrays with embeddings (1 per line) x_id, z_id: 1d numpy arrays with identity labels x_names, z_names: 1d numpy arrays with names of files associated with the embeddings</p>
+<section id="parameters" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>X</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
+<dd>
+<p>2D numpy array with one embedding per row.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>x_id</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
+<dd>
+<p>1D numpy array with identity labels for <code>X</code>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>x_names</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Optional 1D numpy array with names of files associated with the embeddings in <code>X</code>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>Z</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Optional 2D numpy array with one embedding per row.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>z_id</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Optional 1D numpy array with identity labels for <code>Z</code>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>z_names</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Optional 1D numpy array with names of files associated with the embeddings in <code>Z</code>.</p>
+</dd>
+</dl>
 </section>
 <section id="returns" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>scores</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"></span></code></dt>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
-<p>1d numpy array with scores</p>
+<p>tuple[np.ndarray, np.ndarray, list[tuple] | None]: Scores, same-source</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>y</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"></span></code></dt>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
-<p>1d numpy arrays with ss (1) and ds (0) labels to the scores array</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>names</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"></span></code></dt>
-<dd>
-<p>list of tuples with names of files associated with each score</p>
+<p>and different-source labels, and optional file-name pairs.</p>
 </dd>
 </dl>
 </section>
@@ -260,14 +281,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="forensicface.utils.transform_keypoints">transform_keypoints</h3>
 <div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>utils.transform_keypoints(keypoints, M)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Transforms keypoints from the original image space to the aligned image space.</p>
-<section id="parameters" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h4>
+<section id="parameters-1" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-1">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>keypoints</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">numpy array</span></code></dt>
+<dt><code><span class="parameter-name"><strong>keypoints</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
 <p>A 2D array of shape (5, 2) representing the original keypoints.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>M</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">numpy array</span></code></dt>
+<dt><code><span class="parameter-name"><strong>M</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
 <p>The 2x3 affine transformation matrix.</p>
 </dd>
@@ -276,9 +297,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="returns-1" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-1">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"></span></code></dt>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
-<p>numpy array: A 2D array of shape (5, 2) representing the transformed keypoints.</p>
+<p>np.ndarray: A 2D array of shape (5, 2) representing the transformed keypoints.</p>
 </dd>
 </dl>
 

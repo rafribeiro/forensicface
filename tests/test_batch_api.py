@@ -150,6 +150,11 @@ def _make_ff(
     )
     if extended:
         monkeypatch.setattr(
+            ForensicFace,
+            "_resolve_quality_model",
+            lambda *_args, **_kwargs: "dummy_cr_fiqa_l.onnx",
+        )
+        monkeypatch.setattr(
             app_module.onnxruntime,
             "InferenceSession",
             lambda *_a, **_k: _BatchFIQASession(),

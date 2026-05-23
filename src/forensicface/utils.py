@@ -12,22 +12,33 @@ def cosine_similarity(X, Z):
     # Return the cosine similarity between the embeddings
     return dot_product
 
-def compute_ss_ds(X, x_id, x_names=None, Z=None, z_id=None, z_names=None):
+def compute_ss_ds(
+    X: np.ndarray,
+    x_id: np.ndarray,
+    x_names: np.ndarray | None = None,
+    Z: np.ndarray | None = None,
+    z_id: np.ndarray | None = None,
+    z_names: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray, list[tuple] | None]:
     """
     Compute cosine similarities between the cartesian product of two arrays X and Z and
     return same-source (ss) and different-source (ds) scores.
     If only the array X and x_id are provided, compute the cosine similarities between all pairwise
     combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.
 
-    Inputs:
-        X, Z: 2d numpy arrays with embeddings (1 per line)
-        x_id, z_id: 1d numpy arrays with identity labels
-        x_names, z_names: 1d numpy arrays with names of files associated with the embeddings
+    Args:
+        X: 2D numpy array with one embedding per row.
+        x_id: 1D numpy array with identity labels for ``X``.
+        x_names: Optional 1D numpy array with names of files associated with
+            the embeddings in ``X``.
+        Z: Optional 2D numpy array with one embedding per row.
+        z_id: Optional 1D numpy array with identity labels for ``Z``.
+        z_names: Optional 1D numpy array with names of files associated with
+            the embeddings in ``Z``.
 
     Returns:
-        scores: 1d numpy array with scores
-        y: 1d numpy arrays with ss (1) and ds (0) labels to the scores array
-        names: list of tuples with names of files associated with each score
+        tuple[np.ndarray, np.ndarray, list[tuple] | None]: Scores, same-source
+        and different-source labels, and optional file-name pairs.
     """
     assert X.ndim == 2
     assert X.shape[0] == len(x_id)
@@ -88,16 +99,16 @@ def freeze_env():
         env.update({f"{package}": f"{version}"})
     return env
 
-def transform_keypoints(keypoints, M):
+def transform_keypoints(keypoints: np.ndarray, M: np.ndarray) -> np.ndarray:
     """
     Transforms keypoints from the original image space to the aligned image space.
 
     Args:
-        keypoints (numpy array): A 2D array of shape (5, 2) representing the original keypoints.
-        M (numpy array): The 2x3 affine transformation matrix.
+        keypoints: A 2D array of shape (5, 2) representing the original keypoints.
+        M: The 2x3 affine transformation matrix.
 
     Returns:
-        numpy array: A 2D array of shape (5, 2) representing the transformed keypoints.
+        np.ndarray: A 2D array of shape (5, 2) representing the transformed keypoints.
     """
     # Add a third dimension of ones to keypoints to allow affine transformation
     keypoints_homo = np.hstack([keypoints, np.ones((keypoints.shape[0], 1))])

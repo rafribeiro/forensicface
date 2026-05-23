@@ -36,12 +36,15 @@ Class for processing facial images to extract useful features for forensic analy
 | --- | --- |
 | [aggregate_embeddings](#forensicface.app.ForensicFace.aggregate_embeddings) | Aggregates multiple embeddings into a single embedding. |
 | [aggregate_from_images](#forensicface.app.ForensicFace.aggregate_from_images) | Given a list of image paths, this method returns the average embedding of all faces found in the images. |
+| [align_only](#forensicface.app.ForensicFace.align_only) | Detect + align without extracting embedding/FIQA. |
 | [build_mosaic](#forensicface.app.ForensicFace.build_mosaic) | Build a rectangular mosaic of the aligned faces. |
 | [compare](#forensicface.app.ForensicFace.compare) | Compares the similarity between two face images based on their embeddings. |
 | [extract_faces](#forensicface.app.ForensicFace.extract_faces) | Extracts faces from a video and saves them as individual images. |
+| [process_aligned_face_image](#forensicface.app.ForensicFace.process_aligned_face_image) | Process an already aligned RGB face image. |
 | [process_image](#forensicface.app.ForensicFace.process_image) | Process an image assuming one or multiple faces. |
 | [process_image_multiple_faces](#forensicface.app.ForensicFace.process_image_multiple_faces) | Process an image with one or multiple faces. |
 | [process_image_single_face](#forensicface.app.ForensicFace.process_image_single_face) | Process a an image considering it has a single face and extract useful features for forensic analysis. |
+| [process_images_batch](#forensicface.app.ForensicFace.process_images_batch) | Batched counterpart of ``process_image``. |
 
 ##### aggregate_embeddings { #forensicface.app.ForensicFace.aggregate_embeddings }
 
@@ -53,11 +56,11 @@ Aggregates multiple embeddings into a single embedding.
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**embeddings**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy.ndarray]{.parameter-annotation}</code>
+<code>[**embeddings**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
 :   A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated.
 
-<code>[**weights**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy.ndarray]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**weights**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   A 1D array of shape (num_embeddings,) containing the weights to be assigned to each embedding. If not provided, all embeddings are equally weighted.
 
@@ -67,9 +70,9 @@ Aggregates multiple embeddings into a single embedding.
 
 ###### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
-:   numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
+:   np.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
 
 ##### aggregate_from_images { #forensicface.app.ForensicFace.aggregate_from_images }
 
@@ -85,7 +88,7 @@ Given a list of image paths, this method returns the average embedding of all fa
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**list_of_image_paths**]{.parameter-name} [:]{.parameter-annotation-sep} [List\[str\]]{.parameter-annotation}</code>
+<code>[**list_of_image_paths**]{.parameter-name} [:]{.parameter-annotation-sep} [list\[str\]]{.parameter-annotation}</code>
 
 :   List of paths to images.
 
@@ -93,19 +96,99 @@ Given a list of image paths, this method returns the average embedding of all fa
 
 :   choice of agregating based on the mean or median of the embeddings. Possible values are 'mean' and 'median'.
 
-<code>[**quality_weight**]{.parameter-name} [:]{.parameter-annotation-sep} [boolean]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+<code>[**quality_weight**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   If True, use the FIQA(L) score as a weight for aggregation.
 
 ###### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
 
-:   Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
+:   np.ndarray \| dict[str, np.ndarray] \| list: If one or more faces
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
 
-:   average embedding. Otherwise, returns an empty list.
+:   are found and ``concat_embeddings=True``, returns a 1D numpy array
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
+
+:   representing the average embedding. If ``concat_embeddings=False``,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
+
+:   returns a dictionary with one aggregated embedding per model using
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
+
+:   keys in the form ``embedding_<model_name>``. If no faces are found,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| dict\[str, np.ndarray\] \| list]{.parameter-annotation}</code>
+
+:   returns an empty list.
+
+##### align_only { #forensicface.app.ForensicFace.align_only }
+
+```python
+app.ForensicFace.align_only(
+    imgpath,
+    *,
+    single_face=True,
+    select_single_face_by='size',
+)
+```
+
+Detect + align without extracting embedding/FIQA.
+
+Useful in two scenarios:
+1. Batched extract: run align_only per-image to fill a buffer of
+   aligned crops, then call ``_compute_embeddings_batch`` once
+   per chunk. Lets ONNX use real batch parallelism on GPU.
+2. Materialize aligned crops on disk for later re-extraction
+   with newer recognition models.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**imgpath**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| np.ndarray]{.parameter-annotation}</code>
+
+:   path to the image (str) or a BGR ``np.ndarray``.
+
+<code>[**single_face**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   when True, return only the best detected face.
+
+<code>[**select_single_face_by**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'size\']{.parameter-default}</code>
+
+:   ``"size"`` or ``"centrality"``; applied only when single_face=True and multiple faces are detected.
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   dict \| list[dict] \| None: With ``single_face=True``, returns
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   one aligned-face dictionary or ``None`` when no face is detected.
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   With ``single_face=False``, returns a list of dictionaries,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   possibly empty. Each dictionary includes ``aligned_face`` (RGB
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   ``ndarray``), ``bbox``, ``keypoints``, ``aligned_keypoints``,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   and ``det_score``. When ``extended=True``, it also includes
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict \| list\[dict\] \| None]{.parameter-annotation}</code>
+
+:   ``gender``, ``age``, and ``pose``.
 
 ##### build_mosaic { #forensicface.app.ForensicFace.build_mosaic }
 
@@ -124,23 +207,31 @@ Based on the imutils build_montages function.
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**img_path_list**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[**img_path_list**]{.parameter-name} [:]{.parameter-annotation-sep} [list\[str \| np.ndarray\]]{.parameter-annotation}</code>
 
 :   list of paths to image files or list of bgr_images
 
-<code>[**mosaic_shape**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[**mosaic_shape**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple\[int, int\]]{.parameter-annotation}</code>
 
 :   tuple of integers, (n_cols, n_rows)
 
-<code>[**border**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [0.03]{.parameter-default}</code>
+<code>[**border**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.03]{.parameter-default}</code>
 
 :   float, percent of image to use as white border
 
+<code>[**save_to**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   optional path used to save the mosaic image.
+
+<code>[**draw_keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   if True, draw keypoints on each aligned face.
+
 ###### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
-:   cv2 BGR image with mosaic
+:   np.ndarray: OpenCV BGR image with mosaic.
 
 ##### compare { #forensicface.app.ForensicFace.compare }
 
@@ -152,23 +243,29 @@ Compares the similarity between two face images based on their embeddings.
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**- img1path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
+<code>[**img1path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
 
-:   Path to the first image file
+:   Path to the first image file.
 
-<code>[**- img2path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
+<code>[**img2path**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation}</code>
 
-:   Path to the second image file
+:   Path to the second image file.
 
 ###### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[**float**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
 
-:   A float representing the similarity score between the two faces based on their embeddings.
+:   Similarity score between the two faces based on their embeddings.
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
 
 :   The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+
+###### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [ValueError]{.parameter-annotation}</code>
+
+:   If ``concat_embeddings`` is False, because this method requires a single concatenated embedding for each image.
 
 ##### extract_faces { #forensicface.app.ForensicFace.extract_faces }
 
@@ -197,21 +294,43 @@ Extracts faces from a video and saves them as individual images.
 
 <code>[**every_n_frames**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
-:   Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
+:   Extract faces from every n-th frame.
 
 <code>[**margin**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
 
-:   The factor by which the detected face bounding box should be extended. Default is 2.0.
+:   The factor by which the detected face bounding box should be extended.
 
 <code>[**start_from**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   The time point (in seconds) after which the video frames should be processed. Default is 0.0.
+:   The time point, in seconds, after which the video frames should be processed.
+
+<code>[**export_metadata**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, export facial metadata for each face.
 
 ###### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[**int**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of extracted faces.
+
+##### process_aligned_face_image { #forensicface.app.ForensicFace.process_aligned_face_image }
+
+```python
+app.ForensicFace.process_aligned_face_image(rgb_aligned_face, keypoints=None)
+```
+
+Process an already aligned RGB face image.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rgb_aligned_face**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   RGB face image with shape (112, 112, 3).
+
+<code>[**keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional 5x2 keypoints in the aligned 112x112 image coordinate system. Required when a keypoint-aware recognition model such as sepaelv6 is loaded.
 
 ##### process_image { #forensicface.app.ForensicFace.process_image }
 
@@ -284,3 +403,68 @@ app.ForensicFace.process_image_single_face(imgpath, draw_keypoints=False)
 Process a an image considering it has a single face and extract useful features for forensic analysis.
 If more than one face is detected, the largest face will be returned.
 THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.
+
+##### process_images_batch { #forensicface.app.ForensicFace.process_images_batch }
+
+```python
+app.ForensicFace.process_images_batch(
+    imgpaths,
+    *,
+    single_face=True,
+    select_single_face_by='size',
+    batch_size=16,
+)
+```
+
+Batched counterpart of ``process_image``.
+
+Pipeline:
+1. Per-image: ``align_only`` (detect + warp), accumulate aligned
+   crops into a buffer.
+2. Per-chunk of ``batch_size``: ``_compute_embeddings_batch`` in
+   one ONNX call.
+3. Reassemble into ``process_image``-compatible dicts.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**imgpaths**]{.parameter-name} [:]{.parameter-annotation-sep} [list\[str \| np.ndarray\]]{.parameter-annotation}</code>
+
+:   iterable of image paths (str) or BGR ndarrays.
+
+<code>[**single_face**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   when True, returns one dict per image (the best face) or ``None`` when no face is detected.
+
+<code>[**select_single_face_by**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'size\']{.parameter-default}</code>
+
+:   ``"size"`` or ``"centrality"`` — only used with single_face=True.
+
+<code>[**batch_size**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [16]{.parameter-default}</code>
+
+:   number of faces fed to the recognition ONNX session at once. Default ``16`` is conservative — fits a single recognition model on an 8GB GPU (e.g. RTX 3070) with room for a second model. Raise it on bigger GPUs for more throughput; lower it on CPU. If the batch causes a CUDA OOM, the call auto-halves the batch and may warn while reducing the batch size (see ``_try_compute_embeddings_batch``).
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[**list**]{.parameter-name} [:]{.parameter-annotation-sep} [list]{.parameter-annotation}</code>
+
+:   Results parallel to ``imgpaths``. With ``single_face=True``,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list]{.parameter-annotation}</code>
+
+:   each item is a ``dict`` compatible with ``process_image`` or
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list]{.parameter-annotation}</code>
+
+:   ``None`` when no face is detected. With ``single_face=False``,
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list]{.parameter-annotation}</code>
+
+:   each item is a list of per-image face dictionaries.
+
+###### Notes {.doc-section .doc-section-notes}
+
+Embeddings produced here are equivalent to those from
+``process_image`` (same ONNX ops, just batched). On GPU
+the parallel reductions are not bit-exact deterministic,
+so embeddings may differ from the per-image path by tiny
+amounts — cosine similarity stays essentially the same.

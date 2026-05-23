@@ -1,61 +1,13 @@
 # forensicface
 
+## Instalação
 
-## Install
+A instalação em ambiente virtual Python é altamente recomendada.
+A partir da versão 0.5.1, a versão mínima do Python é 3.13.
 
 ``` sh
 pip install forensicface
 ```
-
-A partir da versão 0.7.0, os arquivos dos modelos pré-treinados são organizados por 
-**tipo** em quatro pastas sob `~/.forensicface/models/`:
-
-| Tipo | Caminho |
-|---|---|
-| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
-| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
-| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
-| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
-| Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
-
-A estrutura de pastas anterior continua funcionando, mas é recomendado que você
-mude para a nova estrutura de pastas. Para auxiliar na migração, a partir da 
-versão 0.7.0 foi incluída uma ferramenta para realizar a migração de forma automática:  
-
-`python -m forensicface.tools.migrate_shared` move arquivos para a nova estrutura e
-remove as cópias desnecessárias, liberando o espaço em disco.  
-``` sh
-# Dry-run (default): mostra o que seria feito, não toca em nada
-python -m forensicface.tools.migrate_shared
-
-# Aplica de fato
-python -m forensicface.tools.migrate_shared --apply --yes
-
-# Modelos em diretório customizado
-python -m forensicface.tools.migrate_shared --models-root /path/to/models
-```
-
-
-
-## Notas de migração
-
-v.0.7.0:
-- Adicionado suporte a extração de embeddings em lote
-- Layout das pastas dos modelos pré-treinados otimizado
-- Incluída ferramenta para migração para novo layout de pastas de modelos
-
-v.0.6.0:
-- Adicionado suporte ao modelo KPRPE ViT / Adaface / Webface12M, sob o alias `sepaelv6`.
-Crédito do modelo: https://github.com/mk-minchul/CVLface
-
-v.0.5.1:
-- A dependência do pacote `insightface` foi removida.  
-- O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
-- É possível especificar outro diretório raiz para os modelos  
-    na inicialização do forensicface (parâmetro `models_root`)
-- CUDA e CuDNN são instalados automaticamente no ambiente virtual  
-    onde o forensicface for instalado.  
-
 
 ## Documentação
 
@@ -125,50 +77,25 @@ agg.shape
 
     (512,)
 
-## API em lote (batch) para performance
+## Extração de embeddings em lote
 
-Em GPU, `process_image` desperdiça paralelismo porque a inferência do
-ONNX é chamada uma vez por imagem. Para lotes, há três métodos novos
-opt-in que separam detect+align (per-image) de extract (batch):
-
-``` python
-# detect+align só, sem rodar reconhecimento — útil pra acumular
-# crops num buffer e extrair depois em batch
-out = ff.align_only("foto.png", single_face=True)
-# out["aligned_face"] é (112, 112, 3) RGB uint8
-
-# extração em batch — uma chamada ONNX por modelo, em vez de N
-# converta RGB -> BGR antes de enviar para _compute_embeddings_batch
-crops = np.stack([item["aligned_face"][:, :, ::-1] for item in items], axis=0)
-embeddings, fiqa_scores = ff._compute_embeddings_batch(crops)
-
-# wrapper que faz o pipeline inteiro em lote
-results = ff.process_images_batch(
-    ["a.png", "b.png", "c.png"],
-    single_face=True,
-    batch_size=32,
-)
-# results[i] tem o mesmo formato que process_image(...) — ou None
-# quando nenhuma face foi detectada na imagem i.
-```
-
-Speedup esperado: **8-15× em GPU**, **2-3× em CPU** com `batch_size=32`.
-Os embeddings produzidos são **equivalentes dentro da tolerância
-numérica** aos de `process_image` — o ONNX Runtime usa as mesmas
-operações, mudando apenas o paralelismo. Em GPU, pequenas diferenças
-numéricas podem ocorrer e não há garantia de identidade bit a bit. A
-API antiga continua exatamente igual.
+Ao utilizar GPU, é possível acelerar o processamento de múltiplas imagens
+passando um lote de imagens simultaneamente para o modelo de extração de
+embeddings. Para isso, a partir da versão 0.7.0 há métodos para:  
+- apenas detectar e alinhar as faces: `ff.align_only()`  
+- extrair embeddings em lote de imagens já alinhadas: `ff._compute_embeddings_batch()`  
+- processamento completo de imagens, com extração das embeddings em lote: `ff.process_images_batch()`  
 
 ## Estimativa de qualidade CR-FIQA
 
 Estimativa de qualidade pelo método
 [CR-FIQA](https://github.com/fdbtrs/CR-FIQA)
 
-Para desabilitar, instancie o forensicface com a opção extended = False:
+Para desabilitar, instancie o forensicface com a opção `extended=False`:
 
 `ff = ForensicFace(extended=False)`
 
-Obs.: a opção `extended = False` também desabilita as estimativas de
+Obs.: a opção `extended=False` também desabilita as estimativas de
 sexo, idade e pose.
 
 ``` python
@@ -179,6 +106,34 @@ good["fiqa_score"], bad["fiqa_score"]
 
     (2.3786173, 1.4386057)
 
+## Novo layout de pastas a partir da versão 0.7.0
+A partir da versão 0.7.0, os arquivos dos modelos pré-treinados são organizados por 
+**tipo** em quatro pastas sob `~/.forensicface/models/`:
+
+| Tipo | Caminho |
+|---|---|
+| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
+| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
+| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
+| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
+| Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
+
+A estrutura de pastas anterior continua funcionando, mas é recomendado que você
+mude para a nova estrutura de pastas. Para auxiliar na migração, foi incluída uma ferramenta para realizar a migração de forma automática:  
+
+`python -m forensicface.tools.migrate_shared` move arquivos para a nova estrutura e
+remove as cópias desnecessárias, liberando espaço em disco.  
+``` sh
+# Dry-run (default): mostra o que seria feito, não toca em nada
+python -m forensicface.tools.migrate_shared
+
+# Aplica de fato
+python -m forensicface.tools.migrate_shared --apply --yes
+
+# Modelos em diretório customizado
+python -m forensicface.tools.migrate_shared --models-root /path/to/models
+```
+
 ## Crédito dos modelos utilizados
 
 - Detecção, sexo (M/F), idade e pose (pitch, yaw, roll):
@@ -187,3 +142,22 @@ good["fiqa_score"], bad["fiqa_score"]
 - Reconhecimento: [adaface](https://github.com/mk-minchul/AdaFace)
 
 - Estimativa de qualidade: [CR-FIQA](https://github.com/fdbtrs/CR-FIQA)
+
+## Notas de versão
+
+v.0.7.0:
+- Adicionado suporte a extração de embeddings em lote
+- Layout das pastas dos modelos pré-treinados otimizado
+- Incluída ferramenta para migração para novo layout de pastas de modelos
+
+v.0.6.0:
+- Adicionado suporte ao modelo KPRPE ViT / Adaface / Webface12M, sob o alias `sepaelv6`.
+Crédito do modelo: https://github.com/mk-minchul/CVLface
+
+v.0.5.1:
+- A dependência do pacote `insightface` foi removida.  
+- O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
+- É possível especificar outro diretório raiz para os modelos  
+    na inicialização do forensicface (parâmetro `models_root`)
+- CUDA e CuDNN são instalados automaticamente no ambiente virtual  
+    onde o forensicface for instalado.  

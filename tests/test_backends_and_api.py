@@ -126,6 +126,50 @@ def test_process_image_multi_face_returns_list(monkeypatch):
     assert all("embedding" in item for item in result)
 
 
+def test_compare_rejects_non_concatenated_embeddings(monkeypatch):
+    ff = ForensicFace.__new__(ForensicFace)
+    ff.concat_embeddings = False
+    ff.models = ["model_a", "model_b"]
+
+    with pytest.raises(ValueError, match="concat_embeddings=False"):
+        ff.compare("img1", "img2")
+
+
+def test_aggregate_from_images_supports_non_concatenated_embeddings(monkeypatch):
+    ff = ForensicFace.__new__(ForensicFace)
+    ff.concat_embeddings = False
+    ff.models = ["model_a", "model_b"]
+    ff.extended = True
+
+    outputs = {
+        "img1": {
+            "embedding_model_a": np.array([1.0, 3.0], dtype=np.float32),
+            "embedding_model_b": np.array([10.0, 30.0], dtype=np.float32),
+            "fiqa_score": 1.0,
+        },
+        "img2": {
+            "embedding_model_a": np.array([3.0, 5.0], dtype=np.float32),
+            "embedding_model_b": np.array([30.0, 50.0], dtype=np.float32),
+            "fiqa_score": 3.0,
+        },
+    }
+
+    def _fake_process_image(imgpath, single_face=True):
+        assert single_face is True
+        return outputs[imgpath]
+
+    monkeypatch.setattr(ff, "process_image", _fake_process_image)
+
+    aggregated = ff.aggregate_from_images(
+        ["img1", "img2"],
+        quality_weight=True,
+    )
+
+    assert set(aggregated) == {"embedding_model_a", "embedding_model_b"}
+    np.testing.assert_allclose(aggregated["embedding_model_a"], [2.5, 4.5])
+    np.testing.assert_allclose(aggregated["embedding_model_b"], [25.0, 45.0])
+
+
 def test_sepaelv6_receives_aligned_normalized_keypoints(monkeypatch):
     rec_session = _CapturingRecSession(["input_images", "keypoints"])
     monkeypatch.setattr(

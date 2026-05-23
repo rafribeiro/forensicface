@@ -254,11 +254,11 @@ class ForensicFace:
 
     def align_only(
         self,
-        imgpath,
+        imgpath: str | np.ndarray,
         *,
         single_face: bool = True,
         select_single_face_by: str = "size",
-    ):
+    ) -> dict | list[dict] | None:
         """Detect + align without extracting embedding/FIQA.
 
         Useful in two scenarios:
@@ -276,28 +276,13 @@ class ForensicFace:
                 are detected.
 
         Returns:
-            If single_face=True: a dict, or ``None`` when no face is
-                detected.
-            If single_face=False: a list of dicts (possibly empty).
-
-            Each dict has:
-                - ``aligned_face``: ``ndarray (112, 112, 3)`` RGB uint8
-                  — same color order as ``process_image`` returns. To
-                  feed ``_compute_embeddings_batch`` (which expects BGR),
-                  convert with ``cv2.cvtColor(..., cv2.COLOR_RGB2BGR)``
-                  before stacking.
-                - ``bbox``: ``ndarray (4,)`` int — (xmin, ymin, xmax, ymax).
-                - ``keypoints``: ``ndarray (5, 2)`` — facial landmarks.
-                - ``aligned_keypoints``: ``ndarray (5, 2)`` — facial
-                  landmarks in the aligned 112×112 coordinate system,
-                  suitable for sepaelv6 batching and other keypoint-aware
-                  recognition models.
-                - ``det_score``: float.
-
-            When ``extended=True``, also:
-                - ``gender``: ``str | None`` — ``"M"``, ``"F"`` or ``None``.
-                - ``age``: ``int | None``.
-                - ``pose``: ``ndarray (3,) | None`` — (pitch, yaw, roll).
+            dict | list[dict] | None: With ``single_face=True``, returns
+            one aligned-face dictionary or ``None`` when no face is detected.
+            With ``single_face=False``, returns a list of dictionaries,
+            possibly empty. Each dictionary includes ``aligned_face`` (RGB
+            ``ndarray``), ``bbox``, ``keypoints``, ``aligned_keypoints``,
+            and ``det_score``. When ``extended=True``, it also includes
+            ``gender``, ``age``, and ``pose``.
         """
         bgr_img = self._load_image(imgpath)
         faces = self.backend.detect_faces(bgr_img)
@@ -500,16 +485,21 @@ class ForensicFace:
             )
 
         aligned_keypoints = np.asarray(aligned_keypoints, dtype=np.float32)
-        if aligned_keypoints.shape != (5, 2):
-            raise ValueError(
-                f"Model '{model_name}' requires keypoints with shape (5, 2); "
-                f"received {aligned_keypoints.shape}."
-            )
+        if aligned_keypoints.shape == (5, 2):
+            normalized_keypoints = aligned_keypoints.copy()
+            normalized_keypoints[:, 0] /= self.IMG_SIZE[1]
+            normalized_keypoints[:, 1] /= self.IMG_SIZE[0]
+            return normalized_keypoints.reshape(1, 5, 2)
+        if aligned_keypoints.ndim == 3 and aligned_keypoints.shape[1:] == (5, 2):
+            normalized_keypoints = aligned_keypoints.copy()
+            normalized_keypoints[:, :, 0] /= self.IMG_SIZE[1]
+            normalized_keypoints[:, :, 1] /= self.IMG_SIZE[0]
+            return normalized_keypoints
 
-        normalized_keypoints = aligned_keypoints.copy()
-        normalized_keypoints[:, 0] /= self.IMG_SIZE[1]
-        normalized_keypoints[:, 1] /= self.IMG_SIZE[0]
-        return normalized_keypoints.reshape(1, 5, 2)
+        raise ValueError(
+            f"Model '{model_name}' requires keypoints with shape "
+            f"(5, 2) or (N, 5, 2); received {aligned_keypoints.shape}."
+        )
 
     def _compute_embeddings_batch(
         self,
@@ -565,9 +555,9 @@ class ForensicFace:
         # only need to be addressed there.
         batch_input = self._to_input_ada(bgr_aligned_batch)
 
-        # Pre-normalize keypoints once (shared across
-        # KEYPOINT_RECOGNITION_MODELS, if there is more than one). Same
-        # transformation that `_to_keypoints_input` performs in the single path.
+        # Validate keypoints once. Normalization is delegated to
+        # `_to_keypoints_input` through `_build_keypoint_model_inputs`,
+        # keeping the single-face and batch paths on the same code path.
         keypoints_input = None
         if aligned_keypoints_batch is not None:
             kp = np.asarray(aligned_keypoints_batch, dtype=np.float32)
@@ -581,10 +571,7 @@ class ForensicFace:
                     f"aligned_keypoints_batch has N={kp.shape[0]} but "
                     f"bgr_aligned_batch has N={bgr_aligned_batch.shape[0]}."
                 )
-            kp_normed = kp.copy()
-            kp_normed[:, :, 0] /= self.IMG_SIZE[1]
-            kp_normed[:, :, 1] /= self.IMG_SIZE[0]
-            keypoints_input = kp_normed
+            keypoints_input = kp
 
         embeddings_per_model = []
         for rec_ort, model_name in zip(
@@ -596,10 +583,12 @@ class ForensicFace:
                         f"Model '{model_name}' requires aligned_keypoints_batch "
                         "(5-point keypoints in the 112x112 coordinate system)."
                     )
-                model_inputs = {
-                    self.SEPAELV6_IMAGE_INPUT: batch_input,
-                    self.SEPAELV6_KEYPOINTS_INPUT: keypoints_input,
-                }
+                model_inputs = self._build_keypoint_model_inputs(
+                    model_name=model_name,
+                    rec_ort=rec_ort,
+                    img_to_input=batch_input,
+                    aligned_keypoints=keypoints_input,
+                )
             else:
                 model_inputs = {rec_ort.get_inputs()[0].name: batch_input}
             model_output = rec_ort.run(None, model_inputs)
@@ -795,12 +784,12 @@ class ForensicFace:
 
     def process_images_batch(
         self,
-        imgpaths,
+        imgpaths: list[str | np.ndarray],
         *,
         single_face: bool = True,
         select_single_face_by: str = "size",
         batch_size: int = 16,
-    ):
+    ) -> list:
         """Batched counterpart of ``process_image``.
 
         Pipeline:
@@ -822,16 +811,13 @@ class ForensicFace:
                 with room for a second model. Raise it on bigger GPUs
                 for more throughput; lower it on CPU. If the batch
                 causes a CUDA OOM, the call auto-halves the batch and
-                warns once (see ``_try_compute_embeddings_batch``).
+                may warn while reducing the batch size (see ``_try_compute_embeddings_batch``).
 
         Returns:
-            Parallel to ``imgpaths``:
-                - single_face=True:  ``list[dict | None]``. Each dict
-                  has the same shape as ``process_image(single_face=True)``;
-                  ``None`` for images with no detected face.
-                - single_face=False: ``list[list[dict]]`` — outer list
-                  parallel to imgpaths; inner list is the per-image
-                  face list, possibly empty.
+            list: Results parallel to ``imgpaths``. With ``single_face=True``,
+            each item is a ``dict`` compatible with ``process_image`` or
+            ``None`` when no face is detected. With ``single_face=False``,
+            each item is a list of per-image face dictionaries.
 
         Notes:
             Embeddings produced here are equivalent to those from
@@ -982,23 +968,25 @@ class ForensicFace:
 
     def build_mosaic(
         self,
-        img_path_list,
-        mosaic_shape,
-        border=0.03,
-        save_to=None,
-        draw_keypoints=False,
-    ):
+        img_path_list: list[str | np.ndarray],
+        mosaic_shape: tuple[int, int],
+        border: float = 0.03,
+        save_to: str | None = None,
+        draw_keypoints: bool = False,
+    ) -> np.ndarray:
         """
         Build a rectangular mosaic of the aligned faces.
         Based on the imutils build_montages function.
 
-        Parameters:
+        Args:
             img_path_list: list of paths to image files or list of bgr_images
             mosaic_shape: tuple of integers, (n_cols, n_rows)
             border: float, percent of image to use as white border
+            save_to: optional path used to save the mosaic image.
+            draw_keypoints: if True, draw keypoints on each aligned face.
 
         Returns:
-            cv2 BGR image with mosaic
+            np.ndarray: OpenCV BGR image with mosaic.
         """
         assert mosaic_shape is not None
         top = int(border * self.IMG_SIZE[0])  # shape[0] = rows
@@ -1043,43 +1031,58 @@ class ForensicFace:
             cv2.imwrite(save_to, mosaic)
         return mosaic
 
-    def compare(self, img1path: str, img2path: str):
+    def compare(self, img1path: str, img2path: str) -> float:
         """
         Compares the similarity between two face images based on their embeddings.
 
-        Parameters:
-            - img1path (str): Path to the first image file
-            - img2path (str): Path to the second image file
+        Args:
+            img1path: Path to the first image file.
+            img2path: Path to the second image file.
 
         Returns:
-            A float representing the similarity score between the two faces based on their embeddings.
+            float: Similarity score between the two faces based on their embeddings.
             The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+
+        Raises:
+            ValueError: If ``concat_embeddings`` is False, because this method
+                requires a single concatenated embedding for each image.
         """
+        if not self.concat_embeddings:
+            raise ValueError(
+                "compare() is not compatible with concat_embeddings=False. "
+                "Instantiate ForensicFace with concat_embeddings=True, or "
+                "compare the model-specific embedding_<model_name> arrays manually."
+            )
+
         img1data = self.process_image(img1path, single_face=True)
         assert len(img1data) > 0, f"No face detected in {img1path}"
         img2data = self.process_image(img2path, single_face=True)
         assert len(img2data) > 0, f"No face detected in {img2path}"
-        assert self.concat_embeddings == True
 
         return np.dot(img1data["embedding"], img2data["embedding"]) / (
             np.linalg.norm(img1data["embedding"]) * np.linalg.norm(img2data["embedding"])
         )
 
-    def aggregate_embeddings(self, embeddings, weights=None, method="mean"):
+    def aggregate_embeddings(
+        self,
+        embeddings: np.ndarray,
+        weights: np.ndarray | None = None,
+        method: str = "mean",
+    ) -> np.ndarray:
         """
         Aggregates multiple embeddings into a single embedding.
 
         Args:
-            embeddings (numpy.ndarray): A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be
+            embeddings: A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be
                 aggregated.
-            weights (numpy.ndarray, optional): A 1D array of shape (num_embeddings,) containing the weights to be assigned
+            weights: A 1D array of shape (num_embeddings,) containing the weights to be assigned
                 to each embedding. If not provided, all embeddings are equally weighted.
 
-            method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+            method: choice of agregating based on the mean or median of the embeddings. Possible values are
                 'mean' and 'median'.
 
         Returns:
-            numpy.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
+            np.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
         """
         if weights is None:
             weights = np.ones(embeddings.shape[0], dtype="int")
@@ -1092,36 +1095,60 @@ class ForensicFace:
             return np.median(weighted_embeddings, axis=0)
 
     def aggregate_from_images(
-        self, list_of_image_paths, method="mean", quality_weight=False
-    ):
+        self,
+        list_of_image_paths: list[str],
+        method: str = "mean",
+        quality_weight: bool = False,
+    ) -> np.ndarray | dict[str, np.ndarray] | list:
         """
         Given a list of image paths, this method returns the average embedding of all faces found in the images.
 
         Args:
-            list_of_image_paths (List[str]): List of paths to images.
-            method (str, optional): choice of agregating based on the mean or median of the embeddings. Possible values are
+            list_of_image_paths: List of paths to images.
+            method: choice of agregating based on the mean or median of the embeddings. Possible values are
                 'mean' and 'median'.
-            quality_weight (boolean, optional): If True, use the FIQA(L) score as a weight for aggregation.
+            quality_weight: If True, use the FIQA(L) score as a weight for aggregation.
 
         Returns:
-            Union[np.ndarray, List]: If one or more faces are found, returns a 1D numpy array of shape (512,) representing the
-            average embedding. Otherwise, returns an empty list.
+            np.ndarray | dict[str, np.ndarray] | list: If one or more faces
+            are found and ``concat_embeddings=True``, returns a 1D numpy array
+            representing the average embedding. If ``concat_embeddings=False``,
+            returns a dictionary with one aggregated embedding per model using
+            keys in the form ``embedding_<model_name>``. If no faces are found,
+            returns an empty list.
         """
         if quality_weight:
             assert (
                 self.extended == True
             ), "You must initialize ForensicFace with extended = True"
-        assert self.concat_embeddings == True
-        embeddings = []
+
+        if self.concat_embeddings:
+            embeddings = []
+        else:
+            embeddings = {model_name: [] for model_name in self.models}
         weights = []
         for imgpath in list_of_image_paths:
             d = self.process_image(imgpath, single_face=True)
             if len(d) > 0:
-                embeddings.append(d["embedding"])
+                if self.concat_embeddings:
+                    embeddings.append(d["embedding"])
+                else:
+                    for model_name in self.models:
+                        embeddings[model_name].append(d[f"embedding_{model_name}"])
                 weights.append(d["fiqa_score"] if quality_weight == True else 1.0)
-        if len(embeddings) > 0:
+        if len(weights) > 0:
+            weights_array = np.array(weights)
+            if not self.concat_embeddings:
+                return {
+                    f"embedding_{model_name}": self.aggregate_embeddings(
+                        np.array(model_embeddings),
+                        method=method,
+                        weights=weights_array,
+                    )
+                    for model_name, model_embeddings in embeddings.items()
+                }
             return self.aggregate_embeddings(
-                np.array(embeddings), method=method, weights=np.array(weights)
+                np.array(embeddings), method=method, weights=weights_array
             )
         else:
             return []
@@ -1168,19 +1195,23 @@ class ForensicFace:
         margin: float = 2.0,  # margin to add to each face, w.r.t. detected bounding box
         start_from: float = 0.0,  # seconds after video start to begin processing
         export_metadata: bool = False,  # if True, export facial keypoints, bounding box, ipd, fiqa_score, pitch, yaw, roll, and embedding
-    ):
+    ) -> int:
         """
         Extracts faces from a video and saves them as individual images.
 
-        Parameters:
-            video_path (str): The path to the input video file.
-            dest_folder (str, optional): The path to the output folder. If not provided, a new folder with the same name as the input video file is created.
-            every_n_frames (int, optional): Extract faces from every n-th frame. Default is 1 (extract faces from all frames).
-            margin (float, optional): The factor by which the detected face bounding box should be extended. Default is 2.0.
-            start_from (float, optional): The time point (in seconds) after which the video frames should be processed. Default is 0.0.
+        Args:
+            video_path: The path to the input video file.
+            dest_folder: The path to the output folder. If not provided, a
+                new folder with the same name as the input video file is created.
+            every_n_frames: Extract faces from every n-th frame.
+            margin: The factor by which the detected face bounding box should
+                be extended.
+            start_from: The time point, in seconds, after which the video
+                frames should be processed.
+            export_metadata: If True, export facial metadata for each face.
 
         Returns:
-            The number of extracted faces.
+            int: The number of extracted faces.
         """
         import pandas as pd
 

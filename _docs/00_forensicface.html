@@ -178,7 +178,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#comparação-entre-duas-imagens" id="toc-comparação-entre-duas-imagens" class="nav-link active" data-scroll-target="#comparação-entre-duas-imagens">Comparação entre duas imagens</a></li>
+  <li><a href="#processamento-básico-de-imagens" id="toc-processamento-básico-de-imagens" class="nav-link active" data-scroll-target="#processamento-básico-de-imagens">Processamento básico de imagens</a></li>
+  <li><a href="#mosaico-com-as-imagens-faciais-detectadas-e-alinhadas" id="toc-mosaico-com-as-imagens-faciais-detectadas-e-alinhadas" class="nav-link" data-scroll-target="#mosaico-com-as-imagens-faciais-detectadas-e-alinhadas">Mosaico com as imagens faciais detectadas e alinhadas</a></li>
+  <li><a href="#processamento-em-lote-de-imagens" id="toc-processamento-em-lote-de-imagens" class="nav-link" data-scroll-target="#processamento-em-lote-de-imagens">Processamento em lote de imagens</a>
+  <ul class="collapse">
+  <li><a href="#pipeline-completo" id="toc-pipeline-completo" class="nav-link" data-scroll-target="#pipeline-completo">Pipeline completo</a></li>
+  <li><a href="#detecção-e-alinhamento-sem-extração-de-embeddings" id="toc-detecção-e-alinhamento-sem-extração-de-embeddings" class="nav-link" data-scroll-target="#detecção-e-alinhamento-sem-extração-de-embeddings">Detecção e alinhamento (sem extração de embeddings)</a></li>
+  </ul></li>
+  <li><a href="#comparação-entre-duas-imagens" id="toc-comparação-entre-duas-imagens" class="nav-link" data-scroll-target="#comparação-entre-duas-imagens">Comparação entre duas imagens</a></li>
   <li><a href="#agregação-de-embeddings" id="toc-agregação-de-embeddings" class="nav-link" data-scroll-target="#agregação-de-embeddings">Agregação de embeddings</a></li>
   <li><a href="#extração-de-faces-de-vídeos-com-margem" id="toc-extração-de-faces-de-vídeos-com-margem" class="nav-link" data-scroll-target="#extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</a></li>
   <li><a href="#processing-aligned-images" id="toc-processing-aligned-images" class="nav-link" data-scroll-target="#processing-aligned-images">Processing aligned images</a></li>
@@ -208,23 +215,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<blockquote class="blockquote">
-<p>An integrated tool to compare faces using state-of-the-art face recognition models and compute Likelihood Ratios</p>
-</blockquote>
 <div id="cell-2" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> forensicface.app <span class="im">import</span> ForensicFace</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> forensicface.app <span class="im">import</span> ForensicFace</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> forensicface</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>forensicface.__version__</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>'0.7.0'</code></pre>
+</div>
 </div>
 <div id="cell-3" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    use_gpu<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    extended<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    det_thresh<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv4"</span>],</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    concat_embeddings<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    use_gpu<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    extended<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    det_thresh<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv6"</span>],</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    concat_embeddings<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2026-05-22 23:51:24.877780838 [W:onnxruntime:, session_state.cc:1359 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.
+2026-05-22 23:51:24.877843593 [W:onnxruntime:, session_state.cc:1361 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.</code></pre>
+</div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[ForensicFace] Initialized with configuration:
-                  loaded_models=['sepaelv2', 'sepaelv4']
+                  loaded_models=['sepaelv2', 'sepaelv6']
                   modules=['detection', 'headpose', 'genderage', 'cr_fiqa']
                   det_size=(320, 320)
                   session_providers=all models use CUDAExecutionProvider
@@ -232,68 +246,56 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div id="cell-4" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ff.rec_inference_sessions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ff.rec_inference_sessions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>[&lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession at 0x733e7c3c2120&gt;,
- &lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession at 0x733e7c39c050&gt;]</code></pre>
+<pre><code>[&lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession at 0x75d130183230&gt;,
+ &lt;onnxruntime.capi.onnxruntime_inference_collection.InferenceSession at 0x75d130168a50&gt;]</code></pre>
 </div>
 </div>
-<div id="cell-5" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>ret.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="processamento-básico-de-imagens" class="level2">
+<h2 class="anchored" data-anchor-id="processamento-básico-de-imagens">Processamento básico de imagens</h2>
+<div id="cell-6" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ret.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
 Instead of returning a dict, it will return a list (with one dict). </code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face'])</code></pre>
+<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face'])</code></pre>
 </div>
 </div>
-<div id="cell-6" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"tela.png"</span>, single_face<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(ret), ret[<span class="dv">0</span>].keys(), ret[<span class="dv">1</span>].keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-7" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"tela.png"</span>, single_face<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(ret), ret[<span class="dv">0</span>].keys(), ret[<span class="dv">1</span>].keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>(8,
- dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face']),
- dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv4', 'aligned_face']))</code></pre>
+ dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face']),
+ dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face']))</code></pre>
 </div>
 </div>
-<div id="cell-7" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    use_gpu<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    extended<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    det_thresh<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[<span class="st">"sepaelv2"</span>],</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[ForensicFace] Initialized with configuration:
-                  loaded_models=['sepaelv2']
-                  modules=['detection', 'headpose', 'genderage', 'cr_fiqa']
-                  det_size=(320, 320)
-                  session_providers=all models use CUDAExecutionProvider
-</code></pre>
-</div>
-</div>
-<div id="cell-8" class="cell" data-execution_count="7">
+<div id="cell-8" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image_single_face(<span class="st">"obama.png"</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ret.keys()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
 Instead of returning a dict, it will return a list (with one dict). </code></pre>
 </div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face'])</code></pre>
+</div>
+</div>
+<div id="cell-9" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"embedding_sepaelv2"</span>].shape, ret[<span class="st">"embedding_sepaelv6"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face'])</code></pre>
+<pre><code>((512,), (512,))</code></pre>
 </div>
 </div>
-<div id="cell-9" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"embedding"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-10" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># output Python interpreter and packages information</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># useful for reproducing results</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>ff.environment</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>(512,)</code></pre>
-</div>
-</div>
-<div id="cell-10" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>ff.environment</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>{'Python version': '3.13.13 (main, Apr 14 2026, 14:28:56) [Clang 22.1.3 ]',
  'annotated-types': '0.7.0',
  'anyio': '4.13.0',
@@ -323,7 +325,7 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
  'fastjsonschema': '2.21.2',
  'flatbuffers': '25.12.19',
  'fonttools': '4.62.1',
- 'forensicface': '0.5.1',
+ 'forensicface': '0.7.0',
  'fqdn': '1.5.1',
  'griffe': '2.0.2',
  'griffecli': '2.0.2',
@@ -453,13 +455,13 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
  'zipp': '3.23.1'}</code></pre>
 </div>
 </div>
-<div id="cell-11" class="cell" data-execution_count="10">
+<div id="cell-11" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> ff.process_image(<span class="st">"obama2.png"</span>, single_face<span class="op">=</span><span class="va">True</span>, draw_keypoints<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>result.keys(), result[<span class="st">"keypoints"</span>], result[<span class="st">"ipd"</span>], result[<span class="st">"embedding"</span>].shape, result[</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"det_score"</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
-<pre><code>(dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face']),
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>result.keys(), result[<span class="st">"keypoints"</span>], result[<span class="st">"ipd"</span>], result[</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"embedding_sepaelv2"</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>].shape, result[<span class="st">"embedding_sepaelv6"</span>].shape, result[<span class="st">"det_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>(dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face']),
  array([[ 61.43039 ,  87.56812 ],
         [103.14895 ,  97.624146],
         [ 61.40738 , 114.31132 ],
@@ -467,27 +469,84 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
         [ 82.59716 , 152.3282  ]], dtype=float32),
  np.float32(42.91342),
  (512,),
+ (512,),
  0.8312392234802246)</code></pre>
 </div>
 </div>
-<div id="cell-12" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span>
+<div id="cell-12" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>imgs <span class="op">=</span> [cv2.imread(x) <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"001_cam1_1.jpg"</span>, <span class="st">"001_frontal.jpg"</span>]]</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>mosaic <span class="op">=</span> ff.build_mosaic(imgs, mosaic_shape<span class="op">=</span>(<span class="dv">2</span>, <span class="dv">1</span>))</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>mosaic.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>plt.imshow(result[<span class="st">"aligned_face"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="00_forensicface_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="mosaico-com-as-imagens-faciais-detectadas-e-alinhadas" class="level2">
+<h2 class="anchored" data-anchor-id="mosaico-com-as-imagens-faciais-detectadas-e-alinhadas">Mosaico com as imagens faciais detectadas e alinhadas</h2>
+<div id="cell-14" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>imgs <span class="op">=</span> [cv2.imread(x) <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"obama2.png"</span>, <span class="st">"obama.png"</span>]]</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>mosaic <span class="op">=</span> ff.build_mosaic(imgs, mosaic_shape<span class="op">=</span>(<span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>plt.imshow(mosaic[:, :, ::<span class="op">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: A list of arrays was passed as argument. Make sure image arrays are in BGR format.</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>(118, 236, 3)</code></pre>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="00_forensicface_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></p>
+</figure>
 </div>
 </div>
-<div id="cell-13" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image(<span class="st">"tela.png"</span>, single_face<span class="op">=</span><span class="va">False</span>, draw_keypoints<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">"bbox"</span>], results[<span class="dv">0</span>][<span class="st">"det_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="processamento-em-lote-de-imagens" class="level2">
+<h2 class="anchored" data-anchor-id="processamento-em-lote-de-imagens">Processamento em lote de imagens</h2>
+<section id="pipeline-completo" class="level3">
+<h3 class="anchored" data-anchor-id="pipeline-completo">Pipeline completo</h3>
+<div id="cell-17" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_images_batch(imgs, single_face<span class="op">=</span><span class="va">True</span>, batch_size<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(ret), ret[<span class="dv">0</span>].keys(), ret[<span class="dv">0</span>][<span class="st">"keypoints"</span>].shape, ret[<span class="dv">0</span>][<span class="st">"ipd"</span>], ret[<span class="dv">0</span>][</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"embedding_sepaelv6"</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>].shape, ret[<span class="dv">0</span>][<span class="st">"det_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>(dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face']),
+<pre><code>(2,
+ dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face']),
+ (5, 2),
+ np.float32(42.91342),
+ (512,),
+ 0.8312392234802246)</code></pre>
+</div>
+</div>
+</section>
+<section id="detecção-e-alinhamento-sem-extração-de-embeddings" class="level3">
+<h3 class="anchored" data-anchor-id="detecção-e-alinhamento-sem-extração-de-embeddings">Detecção e alinhamento (sem extração de embeddings)</h3>
+<div id="cell-19" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> [ff.align_only(x) <span class="cf">for</span> x <span class="kw">in</span> imgs]</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(ret):</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Image </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">:"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Aligned keypoints shape:"</span>, r[<span class="st">"aligned_keypoints"</span>].shape)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Aligned face shape:"</span>, r[<span class="st">"aligned_face"</span>].shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Image 0:
+   Aligned keypoints shape: (5, 2)
+   Aligned face shape: (112, 112, 3)
+Image 1:
+   Aligned keypoints shape: (5, 2)
+   Aligned face shape: (112, 112, 3)</code></pre>
+</div>
+</div>
+<div id="cell-20" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ff.process_image(<span class="st">"tela.png"</span>, single_face<span class="op">=</span><span class="va">False</span>, draw_keypoints<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>results[<span class="dv">0</span>].keys(), results[<span class="dv">0</span>][<span class="st">"keypoints"</span>], results[<span class="dv">0</span>][<span class="st">"bbox"</span>], results[<span class="dv">0</span>][<span class="st">"det_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>(dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding_sepaelv2', 'embedding_sepaelv6', 'aligned_face']),
  array([[471.4288 , 418.60376],
         [522.69116, 418.0571 ],
         [498.821  , 449.0871 ],
@@ -497,50 +556,67 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
  0.8962146043777466)</code></pre>
 </div>
 </div>
+</section>
+</section>
 <section id="comparação-entre-duas-imagens" class="level2">
 <h2 class="anchored" data-anchor-id="comparação-entre-duas-imagens">Comparação entre duas imagens</h2>
-<p>Calcula a similaridade cosseno entre as embeddings extraídas de cada imagem. Assume que cada imagem só possui uma face.</p>
-<div id="cell-16" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="13">
-<pre><code>np.float32(0.85561067)</code></pre>
+<p>Calcula a similaridade cosseno entre as embeddings extraídas de cada imagem. Assume que cada imagem só possui uma face. Não compatível com <code>concat_embeddings=False</code>.</p>
+<div id="cell-23" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv6"</span>], concat_embeddings<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2026-05-22 23:51:31.466805224 [W:onnxruntime:, session_state.cc:1359 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.
+2026-05-22 23:51:31.466848050 [W:onnxruntime:, session_state.cc:1361 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[ForensicFace] Initialized with configuration:
+                  loaded_models=['sepaelv2', 'sepaelv6']
+                  modules=['detection', 'headpose', 'genderage', 'cr_fiqa']
+                  det_size=(320, 320)
+                  session_providers=all models use CUDAExecutionProvider
+</code></pre>
+</div>
+</div>
+<div id="cell-24" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ff.compare(<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>np.float32(0.8094356)</code></pre>
 </div>
 </div>
 </section>
 <section id="agregação-de-embeddings" class="level2">
 <h2 class="anchored" data-anchor-id="agregação-de-embeddings">Agregação de embeddings</h2>
 <p>Calcula a média das embeddings com ponderação por qualidade de cada imagem facial.</p>
-<div id="cell-19" class="cell" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>], quality_weight<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
-<pre><code>(512,)</code></pre>
+<div id="cell-27" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>aggregated <span class="op">=</span> ff.aggregate_from_images([<span class="st">"obama.png"</span>, <span class="st">"obama2.png"</span>], quality_weight<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>aggregated.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<pre><code>(1024,)</code></pre>
 </div>
 </div>
 </section>
 <section id="extração-de-faces-de-vídeos-com-margem" class="level2">
 <h2 class="anchored" data-anchor-id="extração-de-faces-de-vídeos-com-margem">Extração de faces de vídeos com margem</h2>
 <p>Detecta faces em quadros de vídeo e exporta cada face para um arquivo PNG. É possível exportar um arquivo jsonl com metadados das faces detectadas, incluindo as embeddings.</p>
-<div id="cell-22" class="cell" data-execution_count="15">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>ff.extract_faces(</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    video_path<span class="op">=</span><span class="st">"/home/rafael/video/video.mp4"</span>,</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">600</span>,</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="st">"/home/rafael/video_faces"</span>,</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-30" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>ff.extract_faces(</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    video_path<span class="op">=</span><span class="st">"/home/rafael/video/video.mp4"</span>,</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">600</span>,</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="st">"/home/rafael/video_faces"</span>,</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Frames processed: 0/14 | Time elapsed: 00:00Frames processed: 1/14 | Time elapsed: 00:00Frames processed: 2/14 | Time elapsed: 00:00Frames processed: 3/14 | Time elapsed: 00:01Frames processed: 4/14 | Time elapsed: 00:01Frames processed: 5/14 | Time elapsed: 00:01Frames processed: 6/14 | Time elapsed: 00:02Frames processed: 7/14 | Time elapsed: 00:02Frames processed: 8/14 | Time elapsed: 00:02Frames processed: 9/14 | Time elapsed: 00:03Frames processed: 10/14 | Time elapsed: 00:03Frames processed: 11/14 | Time elapsed: 00:04Frames processed: 12/14 | Time elapsed: 00:04Frames processed: 13/14 | Time elapsed: 00:05Frames processed: 14/14 | Time elapsed: 00:05Frames processed: 14/14 | Time elapsed: 00:05</code></pre>
+<pre><code>Frames processed: 0/14 | Time elapsed: 00:00Frames processed: 1/14 | Time elapsed: 00:00Frames processed: 2/14 | Time elapsed: 00:00Frames processed: 3/14 | Time elapsed: 00:00Frames processed: 4/14 | Time elapsed: 00:01Frames processed: 5/14 | Time elapsed: 00:01Frames processed: 6/14 | Time elapsed: 00:01Frames processed: 7/14 | Time elapsed: 00:02Frames processed: 8/14 | Time elapsed: 00:02Frames processed: 9/14 | Time elapsed: 00:03Frames processed: 10/14 | Time elapsed: 00:03Frames processed: 11/14 | Time elapsed: 00:03Frames processed: 12/14 | Time elapsed: 00:04Frames processed: 13/14 | Time elapsed: 00:04Frames processed: 14/14 | Time elapsed: 00:04Frames processed: 14/14 | Time elapsed: 00:05</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="15">
+<div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>12</code></pre>
 </div>
 </div>
 </section>
 <section id="processing-aligned-images" class="level2">
 <h2 class="anchored" data-anchor-id="processing-aligned-images">Processing aligned images</h2>
-<div id="cell-24" class="cell" data-execution_count="16">
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(extended<span class="op">=</span><span class="va">True</span>, models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv4"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-32" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(extended<span class="op">=</span><span class="va">True</span>, models<span class="op">=</span>[<span class="st">"sepaelv2"</span>, <span class="st">"sepaelv4"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[ForensicFace] Initialized with configuration:
                   loaded_models=['sepaelv2', 'sepaelv4']
@@ -550,29 +626,29 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
 </code></pre>
 </div>
 </div>
-<div id="cell-25" class="cell" data-execution_count="17">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>, single_face<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>ret2 <span class="op">=</span> ff.process_aligned_face_image(ret[<span class="st">"aligned_face"</span>])</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>np.allclose(ret[<span class="st">"embedding"</span>], ret2[<span class="st">"embedding"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-33" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> ff.process_image(<span class="st">"obama.png"</span>, single_face<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>ret2 <span class="op">=</span> ff.process_aligned_face_image(ret[<span class="st">"aligned_face"</span>])</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>np.allclose(ret[<span class="st">"embedding"</span>], ret2[<span class="st">"embedding"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>FutureWarning: process_image: The return of this function when 'single_face = True' will change in a future release.
 Instead of returning a dict, it will return a list (with one dict). </code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="20">
 <pre><code>True</code></pre>
 </div>
 </div>
-<div id="cell-26" class="cell" data-execution_count="18">
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>ret2[<span class="st">"embedding"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="18">
+<div id="cell-34" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>ret2[<span class="st">"embedding"</span>].shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
 <pre><code>(1024,)</code></pre>
 </div>
 </div>
-<div id="cell-27" class="cell" data-execution_count="19">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"fiqa_score"</span>], ret2[<span class="st">"fiqa_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="19">
+<div id="cell-35" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>ret[<span class="st">"fiqa_score"</span>], ret2[<span class="st">"fiqa_score"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="22">
 <pre><code>(np.float32(2.1981096), np.float32(2.1981096))</code></pre>
 </div>
 </div>

@@ -216,10 +216,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>(array([0.74897761, 0.75348665, 0.7746813 , 0.7476807 , 0.75427125,
-        0.7612412 , 0.74093543, 0.69641632, 0.79051704, 0.75934837,
-        0.75419815, 0.76641602, 0.78709193, 0.72118283, 0.75966526,
-        0.7605714 ]),
+<pre><code>(array([0.77821365, 0.76154152, 0.79203444, 0.774279  , 0.81820838,
+        0.73081355, 0.78260878, 0.73802514, 0.78400235, 0.78942536,
+        0.78867134, 0.79725088, 0.76086625, 0.77850179, 0.75141005,
+        0.73858156]),
  array([1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]),
  [(np.str_('0_a.jpg'), np.str_('0_c.jpg')),
   (np.str_('0_b.jpg'), np.str_('0_c.jpg')),
@@ -243,10 +243,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id, Z<span class="op">=</span>Z, z_id<span class="op">=</span>z_id)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
-<pre><code>(array([0.74897761, 0.75348665, 0.7746813 , 0.7476807 , 0.75427125,
-        0.7612412 , 0.74093543, 0.69641632, 0.79051704, 0.75934837,
-        0.75419815, 0.76641602, 0.78709193, 0.72118283, 0.75966526,
-        0.7605714 ]),
+<pre><code>(array([0.77821365, 0.76154152, 0.79203444, 0.774279  , 0.81820838,
+        0.73081355, 0.78260878, 0.73802514, 0.78400235, 0.78942536,
+        0.78867134, 0.79725088, 0.76086625, 0.77850179, 0.75141005,
+        0.73858156]),
  array([1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]),
  None)</code></pre>
 </div>
@@ -255,8 +255,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id, x_names<span class="op">=</span>x_names)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>(array([0.76977981, 0.74947804, 0.72975574, 0.7696751 , 0.77814901,
-        0.7889754 ]),
+<pre><code>(array([0.80009342, 0.81475279, 0.80630909, 0.78488611, 0.77815013,
+        0.72229874]),
  array([1., 1., 0., 0., 0., 0.]),
  [(np.str_('0_a.jpg'), np.str_('0_b.jpg')),
   (np.str_('1_a.jpg'), np.str_('1_b.jpg')),
@@ -270,8 +270,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>scores, y, names <span class="op">=</span> compute_ss_ds(X<span class="op">=</span>X, x_id<span class="op">=</span>x_id)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>scores, y, names</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>(array([0.76977981, 0.74947804, 0.72975574, 0.7696751 , 0.77814901,
-        0.7889754 ]),
+<pre><code>(array([0.80009342, 0.81475279, 0.80630909, 0.78488611, 0.77815013,
+        0.72229874]),
  array([1., 1., 0., 0., 0., 0.]),
  None)</code></pre>
 </div>
@@ -313,7 +313,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  'fastjsonschema': '2.21.2',
  'flatbuffers': '25.12.19',
  'fonttools': '4.62.1',
- 'forensicface': '0.5.1',
+ 'forensicface': '0.7.0',
  'fqdn': '1.5.1',
  'griffe': '2.0.2',
  'griffecli': '2.0.2',

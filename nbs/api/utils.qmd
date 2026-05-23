@@ -41,25 +41,41 @@ return same-source (ss) and different-source (ds) scores.
 If only the array X and x_id are provided, compute the cosine similarities between all pairwise
 combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.
 
-#### Inputs {.doc-section .doc-section-inputs}
+#### Parameters {.doc-section .doc-section-parameters}
 
-X, Z: 2d numpy arrays with embeddings (1 per line)
-x_id, z_id: 1d numpy arrays with identity labels
-x_names, z_names: 1d numpy arrays with names of files associated with the embeddings
+<code>[**X**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   2D numpy array with one embedding per row.
+
+<code>[**x_id**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   1D numpy array with identity labels for ``X``.
+
+<code>[**x_names**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional 1D numpy array with names of files associated with the embeddings in ``X``.
+
+<code>[**Z**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional 2D numpy array with one embedding per row.
+
+<code>[**z_id**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional 1D numpy array with identity labels for ``Z``.
+
+<code>[**z_names**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional 1D numpy array with names of files associated with the embeddings in ``Z``.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[**scores**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
-:   1d numpy array with scores
+:   tuple[np.ndarray, np.ndarray, list[tuple] \| None]: Scores, same-source
 
-<code>[**y**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
-:   1d numpy arrays with ss (1) and ds (0) labels to the scores array
-
-<code>[**names**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
-
-:   list of tuples with names of files associated with each score
+:   and different-source labels, and optional file-name pairs.
 
 ### transform_keypoints { #forensicface.utils.transform_keypoints }
 
@@ -71,16 +87,16 @@ Transforms keypoints from the original image space to the aligned image space.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy array]{.parameter-annotation}</code>
+<code>[**keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
 :   A 2D array of shape (5, 2) representing the original keypoints.
 
-<code>[**M**]{.parameter-name} [:]{.parameter-annotation-sep} [numpy array]{.parameter-annotation}</code>
+<code>[**M**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
 :   The 2x3 affine transformation matrix.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
-:   numpy array: A 2D array of shape (5, 2) representing the transformed keypoints.
+:   np.ndarray: A 2D array of shape (5, 2) representing the transformed keypoints.
