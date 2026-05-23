@@ -125,10 +125,11 @@ opt-in que separam detect+align (per-image) de extract (batch):
 # detect+align só, sem rodar reconhecimento — útil pra acumular
 # crops num buffer e extrair depois em batch
 out = ff.align_only("foto.png", single_face=True)
-# out["aligned_bgr"] é (112, 112, 3) BGR uint8
+# out["aligned_face"] é (112, 112, 3) RGB uint8
 
 # extração em batch — uma chamada ONNX por modelo, em vez de N
-crops = np.stack([item["aligned_bgr"] for item in items], axis=0)
+# converta RGB -> BGR antes de enviar para _compute_embeddings_batch
+crops = np.stack([item["aligned_face"][:, :, ::-1] for item in items], axis=0)
 embeddings, fiqa_scores = ff._compute_embeddings_batch(crops)
 
 # wrapper que faz o pipeline inteiro em lote
@@ -142,9 +143,11 @@ results = ff.process_images_batch(
 ```
 
 Speedup esperado: **8-15× em GPU**, **2-3× em CPU** com `batch_size=32`.
-Os embeddings produzidos são **numericamente idênticos** aos de
-`process_image` — o ONNX Runtime usa as mesmas operações, só muda o
-paralelismo. A API antiga continua exatamente igual.
+Os embeddings produzidos são **equivalentes dentro da tolerância
+numérica** aos de `process_image` — o ONNX Runtime usa as mesmas
+operações, mudando apenas o paralelismo. Em GPU, pequenas diferenças
+numéricas podem ocorrer e não há garantia de identidade bit a bit. A
+API antiga continua exatamente igual.
 
 ## Estimativa de qualidade CR-FIQA
 

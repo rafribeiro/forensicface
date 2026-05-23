@@ -284,11 +284,11 @@ class ForensicFace:
         for face in faces:
             aligned_bgr = self.backend.norm_crop(bgr_img, face.kps)
             aligned_rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB)
-            # `aligned_keypoints` está no sistema 112×112 da face alinhada
-            # — é o que modelos KEYPOINT_RECOGNITION_MODELS (sepaelv6/KPRPE)
-            # consomem como segundo input. Pre-computado aqui pra que
-            # `process_images_batch` possa empilhá-los sem ter que rodar
-            # `_align_keypoints` outra vez.
+            # `aligned_keypoints` are in the 112×112 coordinate system of
+            # the aligned face — this is what KEYPOINT_RECOGNITION_MODELS
+            # (sepaelv6/KPRPE) consume as a second input. They are
+            # precomputed here so `process_images_batch` can stack them
+            # without having to run `_align_keypoints` again.
             aligned_kps = self._align_keypoints(face.kps)
             item = {
                 "aligned_face": aligned_rgb,
@@ -534,9 +534,9 @@ class ForensicFace:
         # only need to be addressed there.
         batch_input = self._to_input_ada(bgr_aligned_batch)
 
-        # Pré-normaliza keypoints uma vez (compartilhado entre modelos
-        # KEYPOINT_RECOGNITION_MODELS, se houver mais que um). Mesma
-        # transformação que `_to_keypoints_input` faz no path single.
+        # Pre-normalize keypoints once (shared across
+        # KEYPOINT_RECOGNITION_MODELS, if there is more than one). Same
+        # transformation that `_to_keypoints_input` performs in the single path.
         keypoints_input = None
         if aligned_keypoints_batch is not None:
             kp = np.asarray(aligned_keypoints_batch, dtype=np.float32)
@@ -545,10 +545,10 @@ class ForensicFace:
                     "aligned_keypoints_batch must have shape (N, 5, 2); "
                     f"received {kp.shape}."
                 )
-            if kp.shape[0] != batch.shape[0]:
+            if kp.shape[0] != bgr_aligned_batch.shape[0]:
                 raise ValueError(
                     f"aligned_keypoints_batch has N={kp.shape[0]} but "
-                    f"bgr_aligned_batch has N={batch.shape[0]}."
+                    f"bgr_aligned_batch has N={bgr_aligned_batch.shape[0]}."
                 )
             kp_normed = kp.copy()
             kp_normed[:, :, 0] /= self.IMG_SIZE[1]
