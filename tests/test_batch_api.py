@@ -307,7 +307,7 @@ def test_compute_embeddings_batch_rejects_wrong_shape(monkeypatch):
     ff, _ = _make_ff(monkeypatch)
     bad = np.zeros((3, 64, 64, 3), dtype=np.uint8)  # 64 ≠ 112
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="Expected shape"):
         ff._compute_embeddings_batch(bad)
 
 

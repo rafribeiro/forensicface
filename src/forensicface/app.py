@@ -764,9 +764,11 @@ class ForensicFace:
             )
 
         img1data = self.process_image(img1path, single_face=True)
-        assert len(img1data) > 0, f"No face detected in {img1path}"
+        if len(img1data) == 0:
+            raise ValueError(f"No face detected in {img1path}")
         img2data = self.process_image(img2path, single_face=True)
-        assert len(img2data) > 0, f"No face detected in {img2path}"
+        if len(img2data) == 0:
+            raise ValueError(f"No face detected in {img2path}")
 
         return cosine_score(img1data["embedding"], img2data["embedding"])
 
@@ -817,9 +819,8 @@ class ForensicFace:
             returns an empty list.
         """
         if quality_weight:
-            assert (
-                self.extended == True
-            ), "You must initialize ForensicFace with extended = True"
+            if self.extended is not True:
+                raise ValueError("You must initialize ForensicFace with extended = True")
 
         if self.concat_embeddings:
             embeddings = []
@@ -914,7 +915,11 @@ class ForensicFace:
                 coordinate system. Required when a keypoint-aware recognition
                 model such as sepaelv6 is loaded.
         """
-        assert rgb_aligned_face.shape == (*self.IMG_SIZE, 3)
+        if rgb_aligned_face.shape != (*self.IMG_SIZE, 3):
+            raise ValueError(
+                f"rgb_aligned_face must have shape {(*self.IMG_SIZE, 3)}; "
+                f"got {rgb_aligned_face.shape}."
+            )
         bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
         embeddings, fiqa_score = self._compute_embeddings(
             bgr_aligned_face, aligned_keypoints=keypoints

@@ -21,7 +21,8 @@ def build_aligned_face_mosaic(
     draw_keypoints: bool = False,
 ) -> np.ndarray:
     """Build a rectangular mosaic of aligned faces using a processor object."""
-    assert mosaic_shape is not None
+    if mosaic_shape is None:
+        raise ValueError("mosaic_shape is required.")
     top = int(border * processor.IMG_SIZE[0])
     bottom = top
     left = int(border * processor.IMG_SIZE[1])

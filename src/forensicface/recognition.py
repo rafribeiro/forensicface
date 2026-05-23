@@ -200,13 +200,14 @@ class RecognitionRunner:
         aligned_keypoints_batch: np.ndarray = None,
     ):
         """Compute embeddings and optional FIQA scores for aligned face crops."""
-        assert (
-            bgr_aligned_batch.ndim == 4
-            and bgr_aligned_batch.shape[1:] == (*self.image_size, 3)
-        ), (
-            f"Expected shape (N, {self.image_size[0]}, {self.image_size[1]}, 3); "
-            f"got {bgr_aligned_batch.shape}."
-        )
+        if (
+            bgr_aligned_batch.ndim != 4
+            or bgr_aligned_batch.shape[1:] != (*self.image_size, 3)
+        ):
+            raise ValueError(
+                f"Expected shape (N, {self.image_size[0]}, {self.image_size[1]}, 3); "
+                f"got {bgr_aligned_batch.shape}."
+            )
 
         batch_input = self.to_input(bgr_aligned_batch)
 

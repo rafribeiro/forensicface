@@ -140,6 +140,24 @@ def test_compare_rejects_non_concatenated_embeddings(monkeypatch):
         ff.compare("img1", "img2")
 
 
+def test_compare_rejects_missing_faces(monkeypatch):
+    ff = ForensicFace.__new__(ForensicFace)
+    ff.concat_embeddings = True
+
+    monkeypatch.setattr(ff, "process_image", lambda *_args, **_kwargs: [])
+
+    with pytest.raises(ValueError, match="No face detected"):
+        ff.compare("img1", "img2")
+
+
+def test_aggregate_from_images_rejects_quality_weight_without_extended():
+    ff = ForensicFace.__new__(ForensicFace)
+    ff.extended = False
+
+    with pytest.raises(ValueError, match="extended = True"):
+        ff.aggregate_from_images(["img1"], quality_weight=True)
+
+
 def test_aggregate_from_images_supports_non_concatenated_embeddings(monkeypatch):
     ff = ForensicFace.__new__(ForensicFace)
     ff.concat_embeddings = False
@@ -250,6 +268,16 @@ def test_process_aligned_face_image_requires_keypoints_for_sepaelv6(monkeypatch)
     rgb_aligned_face = np.zeros((112, 112, 3), dtype=np.uint8)
 
     with pytest.raises(ValueError, match="requires aligned 5-point keypoints"):
+        ff.process_aligned_face_image(rgb_aligned_face)
+
+
+def test_process_aligned_face_image_rejects_wrong_shape(monkeypatch):
+    _patch_model_loading(monkeypatch)
+
+    ff = ForensicFace(models=["dummy"], extended=False, backend=DummyBackend(n_faces=1))
+    rgb_aligned_face = np.zeros((64, 64, 3), dtype=np.uint8)
+
+    with pytest.raises(ValueError, match="rgb_aligned_face"):
         ff.process_aligned_face_image(rgb_aligned_face)
 
 

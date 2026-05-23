@@ -47,8 +47,13 @@ def aggregate_embeddings(
     """
     if weights is None:
         weights = np.ones(embeddings.shape[0], dtype="int")
-    assert embeddings.shape[0] == weights.shape[0]
-    assert method in ["mean", "median"]
+    if embeddings.shape[0] != weights.shape[0]:
+        raise ValueError(
+            "weights must have one value per embedding; "
+            f"got {weights.shape[0]} weights for {embeddings.shape[0]} embeddings."
+        )
+    if method not in ["mean", "median"]:
+        raise ValueError("method must be either 'mean' or 'median'.")
     if method == "mean":
         return np.average(embeddings, axis=0, weights=weights)
     weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
@@ -82,8 +87,12 @@ def compute_ss_ds(
         tuple[np.ndarray, np.ndarray, list[tuple] | None]: Scores, same-source
         and different-source labels, and optional file-name pairs.
     """
-    assert X.ndim == 2
-    assert X.shape[0] == len(x_id)
+    if X.ndim != 2:
+        raise ValueError(f"X must be a 2D array; got ndim={X.ndim}.")
+    if X.shape[0] != len(x_id):
+        raise ValueError(
+            f"x_id length must match X rows; got {len(x_id)} labels for {X.shape[0]} rows."
+        )
     ss_names = None
     ds_names = None
     if Z is None:  # compute scores of X vs X
@@ -93,7 +102,11 @@ def compute_ss_ds(
         ss = similarities[(ss_mask & upper_triangle_mask)]
         ds = similarities[(~ss_mask & upper_triangle_mask)]
         if x_names is not None:  # compute names of X vs X
-            assert X.shape[0] == len(x_id) == len(x_names)
+            if len(x_names) != X.shape[0]:
+                raise ValueError(
+                    "x_names length must match X rows; "
+                    f"got {len(x_names)} names for {X.shape[0]} rows."
+                )
             ss_names = [
                 (x_names[i], x_names[j])
                 for i, j in np.argwhere(upper_triangle_mask)
@@ -105,14 +118,26 @@ def compute_ss_ds(
                 if x_id[i] != x_id[j]
             ]
     if Z is not None:  # compute scores of X vs Z
-        assert Z.ndim == 2
-        assert Z.shape[0] == len(z_id)
+        if Z.ndim != 2:
+            raise ValueError(f"Z must be a 2D array; got ndim={Z.ndim}.")
+        if z_id is None:
+            raise ValueError("z_id is required when Z is provided.")
+        if Z.shape[0] != len(z_id):
+            raise ValueError(
+                f"z_id length must match Z rows; got {len(z_id)} labels for {Z.shape[0]} rows."
+            )
         similarities = cosine_similarity(X, Z)
         ss_mask = x_id[:, np.newaxis] == z_id
         ss = similarities[ss_mask]
         ds = similarities[~ss_mask]
         if z_names is not None:  # compute names of X vs Z
-            assert Z.shape[0] == len(z_id) == len(z_names)
+            if x_names is None:
+                raise ValueError("x_names is required when z_names is provided.")
+            if len(z_names) != Z.shape[0]:
+                raise ValueError(
+                    "z_names length must match Z rows; "
+                    f"got {len(z_names)} names for {Z.shape[0]} rows."
+                )
             ss_names = [(x_names[i], z_names[j]) for i, j in np.argwhere(ss_mask)]
             ds_names = [(x_names[i], z_names[j]) for i, j in np.argwhere(~ss_mask)]
 
@@ -183,8 +208,12 @@ def annotate_img_with_kps(
         "black": (0, 0, 0),
     }
 
-    assert color in colors.keys()
-    assert kps.shape == (5, 2)
+    if color not in colors:
+        raise ValueError(
+            f"color must be one of {sorted(colors)}; got {color!r}."
+        )
+    if kps.shape != (5, 2):
+        raise ValueError(f"kps must have shape (5, 2); got {kps.shape}.")
 
     bgr_img_with_kps = bgr_img.copy()
 
