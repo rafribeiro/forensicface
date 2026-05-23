@@ -5,7 +5,13 @@ import numpy as np
 import os.path as osp
 import warnings
 from .backends import FaceData, FaceBackend, create_backend
-from .utils import freeze_env, transform_keypoints, annotate_img_with_kps
+from .utils import (
+    aggregate_embeddings,
+    cosine_score,
+    freeze_env,
+    transform_keypoints,
+    annotate_img_with_kps,
+)
 from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
 from .geometry import extend_bbox, select_best_face
@@ -762,9 +768,7 @@ class ForensicFace:
         img2data = self.process_image(img2path, single_face=True)
         assert len(img2data) > 0, f"No face detected in {img2path}"
 
-        return np.dot(img1data["embedding"], img2data["embedding"]) / (
-            np.linalg.norm(img1data["embedding"]) * np.linalg.norm(img2data["embedding"])
-        )
+        return cosine_score(img1data["embedding"], img2data["embedding"])
 
     def aggregate_embeddings(
         self,
@@ -787,15 +791,7 @@ class ForensicFace:
         Returns:
             np.ndarray: A 1D array of shape (embedding_dim,) containing the aggregated embedding.
         """
-        if weights is None:
-            weights = np.ones(embeddings.shape[0], dtype="int")
-        assert embeddings.shape[0] == weights.shape[0]
-        assert method in ["mean", "median"]
-        if method == "mean":
-            return np.average(embeddings, axis=0, weights=weights)
-        else:
-            weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
-            return np.median(weighted_embeddings, axis=0)
+        return aggregate_embeddings(embeddings, weights=weights, method=method)
 
     def aggregate_from_images(
         self,

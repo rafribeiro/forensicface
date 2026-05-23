@@ -20,8 +20,9 @@ preprocessing, geometry, and model-store path resolution. A follow-up pass
 extracted recognition/FIQA inference into `recognition.py` while keeping
 `ForensicFace` private wrapper methods for compatibility. A later pass moved
 the mosaic and video extraction workflows into `mosaic.py` and `video.py`,
-again keeping `ForensicFace` methods as wrappers. The remaining items below
-still describe the direction for follow-up refactors.
+again keeping `ForensicFace` methods as wrappers. Another pass moved cosine
+score and embedding aggregation math into `utils.py`. The remaining items
+below still describe the direction for follow-up refactors.
 
 Recommended direction:
 

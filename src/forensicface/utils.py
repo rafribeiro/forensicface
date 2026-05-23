@@ -1,4 +1,12 @@
-__all__ = ['cosine_similarity', 'compute_ss_ds', 'freeze_env', 'transform_keypoints', 'annotate_img_with_kps']
+__all__ = [
+    'aggregate_embeddings',
+    'cosine_score',
+    'cosine_similarity',
+    'compute_ss_ds',
+    'freeze_env',
+    'transform_keypoints',
+    'annotate_img_with_kps',
+]
 import numpy as np
 
 def cosine_similarity(X, Z):
@@ -11,6 +19,40 @@ def cosine_similarity(X, Z):
 
     # Return the cosine similarity between the embeddings
     return dot_product
+
+def cosine_score(x: np.ndarray, z: np.ndarray) -> float:
+    """Compute cosine similarity between two 1D embeddings."""
+    return np.dot(x, z) / (np.linalg.norm(x) * np.linalg.norm(z))
+
+def aggregate_embeddings(
+    embeddings: np.ndarray,
+    weights: np.ndarray | None = None,
+    method: str = "mean",
+) -> np.ndarray:
+    """
+    Aggregates multiple embeddings into a single embedding.
+
+    Args:
+        embeddings: A 2D array of shape (num_embeddings, embedding_dim)
+            containing the embeddings to be aggregated.
+        weights: A 1D array of shape (num_embeddings,) containing the weights
+            to assign to each embedding. If not provided, all embeddings are
+            equally weighted.
+        method: Aggregation method. Possible values are ``"mean"`` and
+            ``"median"``.
+
+    Returns:
+        np.ndarray: A 1D array of shape (embedding_dim,) containing the
+        aggregated embedding.
+    """
+    if weights is None:
+        weights = np.ones(embeddings.shape[0], dtype="int")
+    assert embeddings.shape[0] == weights.shape[0]
+    assert method in ["mean", "median"]
+    if method == "mean":
+        return np.average(embeddings, axis=0, weights=weights)
+    weighted_embeddings = np.array([w * e for w, e in zip(weights, embeddings)])
+    return np.median(weighted_embeddings, axis=0)
 
 def compute_ss_ds(
     X: np.ndarray,

@@ -235,6 +235,8 @@ provider or whether sessions differ.
 `utils.py` contains stateless helpers:
 
 - `cosine_similarity()`
+- `cosine_score()`
+- `aggregate_embeddings()`
 - `compute_ss_ds()`
 - `freeze_env()`
 - `transform_keypoints()`
