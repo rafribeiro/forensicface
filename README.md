@@ -82,10 +82,11 @@ agg.shape
 
 Ao utilizar GPU, é possível acelerar o processamento de múltiplas imagens
 passando um lote de imagens simultaneamente para o modelo de extração de
-embeddings. Para isso, a partir da versão 0.7.0 há métodos para:  
-- apenas detectar e alinhar as faces: `ff.align_only()`  
-- extrair embeddings em lote de faces RGB já alinhadas: `ff.process_aligned_faces_batch()`  
-- processamento completo de imagens, com extração das embeddings em lote: `ff.process_images_batch()`  
+embeddings. Para isso, a partir da versão 0.7.0 há métodos para:
+
+- apenas detectar e alinhar as faces: `ff.detect_and_align()`
+- extrair embeddings em lote de faces RGB já alinhadas: `ff.process_aligned_faces_batch()`
+- processamento completo de imagens, com extração das embeddings em lote: `ff.process_images_batch()`
 
 ## Estimativa de qualidade CR-FIQA
 

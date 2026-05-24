@@ -1,175 +1,243 @@
 # ForensicFace Architecture and Contributor Guide
 
 This document explains the logical blocks of `forensicface`, how they map to
-end-user tasks, and where a contributor should look before changing the code.
-It intentionally stays one level above API reference docs: the goal is to build
-a mental model of the library.
+end-user tasks, and where a contributor should start before changing the code.
+It is intentionally higher level than API reference documentation.
 
 ## Big Picture
 
 `forensicface` is a Python library for face-image processing in forensic face
 examination workflows. The central public object is `ForensicFace` in
-`src/forensicface/app.py`. It coordinates model loading, face detection,
-alignment, recognition embeddings, image-quality estimation, attributes, image
-comparison, batch processing, mosaics, and video face extraction.
+`src/forensicface/app.py`. It remains the end-user facade, while most
+stateless work and larger task workflows live in focused modules.
 
-The implementation has three main layers:
+The implementation has four main layers:
 
-1. Public orchestration: `ForensicFace` exposes user tasks and coordinates the
-   pipeline.
-2. Backend/model adapters: `backends.py` and the vendored `insightface/`
-   modules hide detector, alignment, landmark, and attribute model details.
-3. Utilities and operations: runtime provider setup, environment summaries,
-   metrics, annotations, scripts, tests, and model-layout migration tooling.
+1. Public facade: `ForensicFace` exposes stable user-facing methods.
+2. Task workflows: `batch.py`, `comparison.py`, `mosaic.py`, and `video.py`
+   implement multi-step operations behind facade methods.
+3. Model and data helpers: `recognition.py`, `preprocessing.py`, `results.py`,
+   `geometry.py`, and `model_store.py` own reusable logic.
+4. Backend/model adapters: `backends.py` and `insightface/` hide detector,
+   alignment, landmark, and attribute model details.
 
 ```mermaid
 flowchart LR
-    User[End user code] --> FF[ForensicFace]
-    FF --> Runtime[ONNX Runtime provider setup]
-    FF --> Backend[FaceBackend interface]
-    Backend --> ONNX[ONNXOnlyBackend]
-    ONNX --> SCRFD[SCRFD detector]
-    ONNX --> Align[face_align]
-    ONNX --> Landmark[LandmarkONNX head pose]
-    ONNX --> Attribute[AttributeONNX gender/age]
-    FF --> Rec[Recognition ONNX sessions]
-    FF --> FIQA[CR-FIQA session]
-    FF --> Utils[utils.py]
-    FF --> Results[Result dictionaries]
+    User[End user code] --> FF[ForensicFace facade]
+    FF --> Batch[batch.py]
+    FF --> Compare[comparison.py]
+    FF --> Mosaic[mosaic.py]
+    FF --> Video[video.py]
+    FF --> Backend[FaceBackend]
+    FF --> Runner[RecognitionRunner]
+    FF --> Store[model_store.py]
+    Backend --> Insight[insightface adapters]
+    Runner --> Pre[preprocessing.py]
+    Batch --> Results[results.py]
+    Compare --> Utils[utils.py]
+    Video --> Geometry[geometry.py]
 ```
 
 ## End-User Tasks
 
-The library's user-facing methods are organized around tasks rather than model
-internals.
-
-| Task | Public entry point | Output shape |
+| Task | Public entry point | Main implementation |
 | --- | --- | --- |
-| Process one image | `ForensicFace.process_image()` | One result dict by default; a list when `single_face=False` |
-| Detect and align only | `ForensicFace.align_only()` | Aligned face data without embeddings/FIQA |
-| Process aligned crops in batch | `ForensicFace.process_aligned_faces_batch()` | List of embedding/FIQA result objects |
-| Process many images efficiently | `ForensicFace.process_images_batch()` | List parallel to input images |
-| Process an already aligned crop | `ForensicFace.process_aligned_face_image()` | Embedding dict and optional FIQA |
-| Compare two images | `ForensicFace.compare()` | Cosine similarity float |
-| Aggregate several images | `ForensicFace.aggregate_from_images()` | One embedding or per-model embedding dict |
-| Build an aligned-face mosaic | `ForensicFace.build_mosaic()` | BGR mosaic image, optionally saved |
-| Extract faces from video | `ForensicFace.extract_faces()` | Saved crops and optional JSONL metadata |
-| Compute score labels for evaluation | `utils.compute_ss_ds()` | Scores, labels, optional file-name pairs |
-| Migrate model files | `python -m forensicface.tools.migrate_shared` | Dry-run/apply migration plan |
+| Process one image | `ForensicFace.process_image()` | `app.py`, `RecognitionRunner`, `results.py` |
+| Detect and align without recognition/FIQA | `ForensicFace.detect_and_align()` | `app.py`, `geometry.py`, `results.py` |
+| Process aligned crops in batch | `ForensicFace.process_aligned_faces_batch()` | `app.py`, `RecognitionRunner`, `results.py` |
+| Process many images efficiently | `ForensicFace.process_images_batch()` | `batch.py` |
+| Process one aligned crop | `ForensicFace.process_aligned_face_image()` | `app.py`, `RecognitionRunner`, `results.py` |
+| Compare two images | `ForensicFace.compare()` | `comparison.py`, `utils.py` |
+| Aggregate several images | `ForensicFace.aggregate_from_images()` | `comparison.py`, `utils.py` |
+| Build an aligned-face mosaic | `ForensicFace.build_mosaic()` | `mosaic.py` |
+| Extract faces from video | `ForensicFace.extract_faces()` | `video.py`, `geometry.py` |
+| Compute evaluation scores | `utils.compute_ss_ds()` | `utils.py` |
+| Migrate model files | `python -m forensicface.tools.migrate_shared` | `tools/migrate_shared.py` |
 
-## Main Image Pipeline
+Public face outputs are `FaceResult` objects. `FaceResult` is a `dict`
+subclass, so existing code can use `ret["bbox"]`, while newer code can also use
+attribute access such as `ret.bbox`.
+
+## Single-Image Pipeline
 
 `process_image()` is the reference path for one image. It loads the image,
-detects faces through the backend, optionally selects one face, aligns each
-face, extracts embeddings, optionally computes FIQA, and assembles a result
-object. Public face results are `FaceResult` objects: true `dict` subclasses
-that preserve `ret["bbox"]` access while also allowing `ret.bbox`.
+detects faces, optionally chooses the best face, aligns each face, runs
+recognition/FIQA, and builds a `FaceResult`.
 
 ```mermaid
 flowchart TD
-    A[Path or BGR ndarray] --> B[_load_image]
+    A[Path or BGR ndarray] --> B[ForensicFace._load_image]
     B --> C[backend.detect_faces]
     C --> D{Any faces?}
     D -- no --> E[Return empty list]
     D -- yes --> F{single_face?}
-    F -- yes --> G[_get_best_face by size or centrality]
+    F -- yes --> G[geometry.select_best_face]
     F -- no --> H[Use all faces]
     G --> I[backend.norm_crop]
     H --> I
-    I --> J[_align_keypoints]
-    J --> K[_compute_embeddings]
+    I --> J[backend.estimate_norm + transform_keypoints]
+    J --> K[RecognitionRunner.compute_one]
     K --> L{draw_keypoints?}
-    L -- yes --> M[_draw_keypoints_on_aligned_face]
-    L -- no --> N[_assemble_result]
+    L -- yes --> M[annotate aligned face]
+    L -- no --> N[results.build_face_result]
     M --> N
-    N --> O[Result dicts]
+    N --> O[FaceResult]
 ```
 
-Result dictionaries use RGB for `aligned_face`, even though OpenCV input and
-most intermediate processing use BGR. Contributors should be careful at every
-OpenCV boundary:
+Color order is an important convention:
 
-- Inputs to `ForensicFace` methods are paths or BGR `ndarray` values.
+- Inputs to public image methods are paths or BGR `ndarray` values.
 - `backend.norm_crop()` returns BGR.
-- Public result dictionaries expose `aligned_face` as RGB.
-- Batched recognition converts RGB aligned crops back to BGR before ONNX input.
+- Recognition ONNX sessions receive BGR crops after AdaFace-style
+  preprocessing.
+- Public result dictionaries expose `aligned_face` in RGB order.
 
-## Batch Image Pipeline
+## Batch Pipelines
 
-`process_images_batch()` reuses the same logical steps but separates alignment
-from recognition. Detection/alignment still runs per image. Recognition and
-FIQA run in chunks, using one ONNX call per batch.
+There are two batch-oriented APIs.
+
+`process_aligned_faces_batch()` accepts already aligned RGB crops with shape
+`(N, 112, 112, 3)`. It converts them to BGR at the recognition boundary, calls
+`RecognitionRunner.compute_batch()`, and uses `results.build_embedding_result()`
+to build one `FaceResult` per crop.
+
+`process_images_batch()` accepts paths or BGR arrays. It runs
+`detect_and_align()` per image, stacks the aligned faces, performs batched
+recognition/FIQA, and scatters the results back to the input order.
 
 ```mermaid
 flowchart TD
-    A[List of image paths or BGR arrays] --> B[align_only per image]
-    B --> C[Collect valid aligned faces]
+    A[List of paths or BGR arrays] --> B[detect_and_align per image]
+    B --> C[Collect detected aligned faces]
     C --> D[Chunk by batch_size]
-    D --> E[Stack aligned crops]
-    E --> F{Any keypoint-aware model?}
+    D --> E[RGB aligned_face -> BGR batch]
+    E --> F{Keypoint-aware model?}
     F -- yes --> G[Stack aligned_keypoints]
-    F -- no --> H[Skip keypoint batch]
-    G --> I[_try_compute_embeddings_batch]
+    F -- no --> H[No keypoint input]
+    G --> I[RecognitionRunner.try_compute_batch]
     H --> I
-    I --> J{CUDA OOM?}
-    J -- yes --> K[Halve chunk recursively]
-    J -- no --> L[_assemble_result_from_align_only]
-    K --> L
-    L --> M[Scatter results back to input order]
+    I --> J[results.build_face_result_from_align_result]
+    J --> K[Scatter to input order]
 ```
 
-Key detail: `sepaelv6` is listed in `KEYPOINT_RECOGNITION_MODELS`, so its ONNX
-session expects both `input_images` and normalized `keypoints`. `align_only()`
-therefore precomputes `aligned_keypoints` for batch processing.
+`sepaelv6` is currently listed in `KEYPOINT_RECOGNITION_MODELS`. For that
+model, ONNX inputs must include both `input_images` and normalized `keypoints`.
+`detect_and_align()` therefore includes `aligned_keypoints` in the 112x112
+aligned face coordinate system.
 
 ## Functional Blocks
 
-### Public Orchestrator: `app.py`
+### `app.py`
 
-`ForensicFace` owns long-lived runtime state:
+`ForensicFace` owns runtime state and public method signatures:
 
-- selected recognition model names;
-- ONNX Runtime providers;
-- recognition inference sessions;
-- optional CR-FIQA session;
-- the configured `FaceBackend`;
+- model names and ONNX Runtime providers;
+- recognition sessions and optional CR-FIQA session;
+- backend instance;
 - options such as `extended`, `det_size`, `det_thresh`, and
   `concat_embeddings`.
 
-Important method groups:
+Keep end-user convenience methods here. Move stateless logic or large task
+workflows out to helper modules.
 
-- Initialization and model lookup: `__init__()`, `_load_model()`,
-  `_resolve_quality_model()`, `_get_loaded_modules()`. Path-resolution rules
-  live in `model_store.py`.
-- Image processing: `_load_image()`, `process_image()`, `align_only()`,
-  `process_aligned_face_image()`, `process_aligned_faces_batch()`.
-- Embedding inference: `_to_input_ada()`, `_compute_embeddings()`,
-  `_try_compute_embeddings_batch()`, and `RecognitionRunner.compute_batch()`.
-  Stateless preprocessing lives in `preprocessing.py`; recognition/FIQA ONNX
-  execution lives in `recognition.py`.
-- Keypoint-aware recognition: `_build_keypoint_model_inputs()`,
-  `_to_keypoints_input()`.
-- Result assembly: `_assemble_result()`,
-  `_assemble_result_from_align_only()`. Shared result construction and
-  `FaceResult` live in `results.py`.
-- Convenience workflows: `compare()`, `aggregate_embeddings()`,
-  `aggregate_from_images()`, `build_mosaic()`, `extract_faces()`. Mosaic
-  construction lives in `mosaic.py`, and video crop export lives in `video.py`.
-- Deprecated compatibility wrappers: `process_image_single_face()` and
-  `process_image_multiple_faces()`.
+Intentional private helpers still present:
 
-### Backend Abstraction: `backends.py`
+- `_load_model()`: creates an ONNX Runtime recognition session from a resolved
+  model path. It remains useful as an initialization and test seam.
+- `_recognition_runner()`: builds the small runner object around current
+  sessions/configuration.
+- `_align_keypoints()`, `_draw_keypoints_on_aligned_face()`, and
+  `_load_image()`: small facade-local helpers used by public workflows.
 
-`FaceBackend` is the narrow internal contract that keeps the high-level
-pipeline independent from the specific detector/alignment implementation:
+Deprecated public compatibility methods:
+
+- `process_image_single_face()`
+- `process_image_multiple_faces()`
+
+### `recognition.py`
+
+`RecognitionRunner` owns recognition/FIQA inference for aligned BGR crops.
+
+It handles:
+
+- single-crop inference through `compute_one()`;
+- batch inference through `compute_batch()`;
+- keypoint-aware model input dictionaries;
+- two-output recognition models where embedding is scaled by norm;
+- optional CR-FIQA inference;
+- CUDA OOM fallback through `try_compute_batch()`.
+
+Small pure helpers in this module include `build_keypoint_model_inputs()`,
+`looks_like_cuda_oom()`, and `try_compute_embeddings_batch()`.
+
+### `preprocessing.py`
+
+Preprocessing is stateless:
+
+- `to_ada_input()` converts BGR crop(s) to normalized NCHW tensors.
+- `normalize_aligned_keypoints()` converts aligned 5-point keypoints into the
+  normalized ONNX input frame.
+
+### `results.py`
+
+Result creation is centralized here.
+
+- `FaceResult(dict)` gives public results both dict and dot access.
+- `AlignedFace` is the internal normalized representation used for full face
+  results.
+- `build_align_result()` builds detection/alignment outputs.
+- `assemble_face_result()` and `build_face_result()` build full
+  process-image outputs.
+- `build_face_result_from_align_result()` bridges `detect_and_align()` results to
+  batched recognition results.
+- `build_embedding_result()` builds recognition-only outputs for aligned-face
+  APIs.
+
+### `batch.py`
+
+`process_images_batch()` orchestration lives here. The function accepts a
+`ForensicFace`-like processor object and uses its public `detect_and_align()` method
+and recognition runner. This keeps the public API on `ForensicFace` while
+moving chunking, scatter/gather, and result stitching out of `app.py`.
+
+### `comparison.py`
+
+Image comparison and image-set aggregation live here:
+
+- `compare_faces()` calls the processor facade and computes cosine similarity.
+- `aggregate_from_images()` calls the processor facade and aggregates
+  embeddings with optional FIQA weighting.
+
+The math itself lives in `utils.py`.
+
+### `geometry.py`
+
+Geometry helpers are pure:
+
+- `select_best_face()` chooses by bbox size or centrality.
+- `extend_bbox()` expands and clips a bbox for video crop export.
+
+### `model_store.py`
+
+All model layout resolution rules live here:
+
+- `resolve_recognition_model()`
+- `resolve_quality_model()`
+- `collect_backend_model_files()`
+
+This module understands both the preferred shared layout and the legacy
+per-model layout.
+
+### `backends.py`
+
+`FaceBackend` is the internal backend contract:
 
 - `detect_faces(bgr_img) -> list[FaceData]`
 - `norm_crop(bgr_img, keypoints) -> ndarray`
 - `estimate_norm(keypoints) -> ndarray`
 
-`ONNXOnlyBackend` is currently the only concrete backend. It discovers ONNX
-files, loads detector/landmark/gender-age models, prepares them, and converts
-their outputs into the `FaceData` dataclass.
+`ONNXOnlyBackend` is currently the concrete backend. It loads detector,
+landmark, and gender-age models and returns `FaceData` objects.
 
 ```mermaid
 classDiagram
@@ -199,69 +267,24 @@ classDiagram
     ONNXOnlyBackend --> FaceData
 ```
 
-### Vendored InsightFace Components
+### Task Modules
 
-The `src/forensicface/insightface/` package contains small adapted pieces from
-InsightFace:
+- `mosaic.py`: builds aligned-face mosaics.
+- `video.py`: exports detected face crops and optional metadata from video.
+- `tools/migrate_shared.py`: migrates legacy model directories into the shared
+  layout using a plan/apply/report structure.
 
-- `scrfd.py`: SCRFD detector, anchor/grid decoding, NMS.
-- `face_align.py`: affine estimation and normalized 112x112 crop.
-- `landmark.py`: 2D/3D landmark inference and pose estimation.
-- `attribute.py`: gender/age inference.
-- `transform.py` and `meanshape68.py`: math and reference shape data used by
-  the landmark model.
+### Runtime and Utilities
 
-These files are closer to model-adapter code than application logic. Changes
-here need extra care because they are adapted from an external implementation
-and influence low-level numeric behavior.
-
-### Runtime Setup
-
-`ort_runtime_setup.py` configures ONNX Runtime providers and dynamic library
-loading. It handles:
-
-- CUDA provider preference on Linux and Windows;
-- NVIDIA wheel library discovery;
-- `PATH`/`LD_LIBRARY_PATH` updates;
-- Linux shared-library preloading;
-- CoreML fallback on macOS;
-- CPU fallback.
-
-`runtime_summary.py` builds the user-visible initialization message. It probes
-providers from loaded sessions and reports whether all models use the same
-provider or whether sessions differ.
-
-### General Utilities
-
-`utils.py` contains stateless helpers:
-
-- `cosine_similarity()`
-- `cosine_score()`
-- `aggregate_embeddings()`
-- `compute_ss_ds()`
-- `freeze_env()`
-- `transform_keypoints()`
-- `annotate_img_with_kps()`
-
-These are good examples of code that does not need the `ForensicFace` instance
-and can stay as pure or nearly pure functions.
-
-### Model Layout Migration
-
-`tools/migrate_shared.py` is a command-line utility for migrating model files
-from the legacy per-model layout to the newer shared layout. Its design is
-already split into:
-
-- read-only planning: `build_plan()`;
-- effectful application: `apply_plan()`;
-- presentation: `format_plan()`;
-- CLI parsing: `main()`.
-
-That separation makes the tool easier to test and safer to run.
+- `ort_runtime_setup.py`: configures ONNX Runtime providers and dynamic library
+  loading.
+- `runtime_summary.py`: prints the initialization summary.
+- `utils.py`: contains cosine scores, embedding aggregation, evaluation pair
+  generation, environment capture, keypoint transforms, and annotation helpers.
 
 ## Model Directory Layout
 
-Current preferred layout:
+Preferred layout:
 
 ```text
 ~/.forensicface/models/
@@ -279,7 +302,7 @@ Current preferred layout:
       *face*.onnx
 ```
 
-Legacy fallback layout is still supported:
+Legacy fallback layout:
 
 ```text
 ~/.forensicface/models/
@@ -293,41 +316,37 @@ Legacy fallback layout is still supported:
       *face*.onnx
 ```
 
-Model lookup is split between:
-
-- `ForensicFace._load_model()`: recognition model sessions;
-- `ForensicFace._resolve_quality_model()`: CR-FIQA model;
-- `ONNXOnlyBackend._collect_onnx_files()`: detection and attribute candidates.
+The model-store helpers are the source of truth for lookup behavior.
 
 ## Contribution Map
 
-Use this table when deciding where to start.
-
 | Change type | Start here | Watch for |
 | --- | --- | --- |
-| New public face-processing option | `ForensicFace.process_image()` and `process_images_batch()` | Keep single and batch outputs compatible |
-| New recognition model | `RecognitionRunner`, `_compute_embeddings()`, model lookup | ONNX input names, preprocessing, embedding output format |
-| New keypoint-aware model | `KEYPOINT_RECOGNITION_MODELS`, `_build_keypoint_model_inputs()` | Batch and single-face keypoint normalization |
-| New backend | `FaceBackend` and `create_backend()` | Return `FaceData` with 5-point keypoints for alignment |
+| Public image-processing behavior | `ForensicFace.process_image()` | Return-shape compatibility and warnings |
+| Batched image workflow | `batch.py` | Result order, no-face slots, chunking, keypoint-aware models |
+| Aligned-crop recognition | `process_aligned_face_image()`, `process_aligned_faces_batch()` | RGB input, BGR recognition boundary, `build_embedding_result()` |
+| New recognition model | `RecognitionRunner`, `model_store.py` | ONNX input names, output format, preprocessing |
+| New keypoint-aware model | `KEYPOINT_RECOGNITION_MODELS`, `recognition.py` | Single and batch keypoint normalization |
+| Result keys or public return objects | `results.py` | Preserve dict access and `FaceResult` compatibility |
+| New backend | `FaceBackend`, `create_backend()` | Return `FaceData` with 5-point keypoints |
 | Runtime/provider issue | `ort_runtime_setup.py`, `runtime_summary.py` | Platform-specific provider behavior |
-| Model folder changes | `app.py`, `backends.py`, `tools/migrate_shared.py` | Backward compatibility with legacy layout |
-| Video export behavior | `extract_faces()` | Metadata serialization and crop coordinate bounds |
-| Evaluation metrics | `utils.compute_ss_ds()` | Pair generation and identity label alignment |
+| Model folder changes | `model_store.py`, `tools/migrate_shared.py` | Backward compatibility with legacy layout |
+| Video export behavior | `video.py` | Metadata serialization and crop bounds |
+| Evaluation metrics | `utils.compute_ss_ds()` | Identity label alignment and pair generation |
 
 ## Testing Strategy
 
 The tests use small fake sessions and fake backends so most behavior can be
-validated without real ONNX models. That is the right pattern for new
-orchestration behavior.
+validated without real ONNX models.
 
-Recommended coverage for common changes:
+Recommended coverage:
 
-- Public API shape changes: add tests in `tests/test_backends_and_api.py`.
-- Batch behavior: add tests in `tests/test_batch_api.py`.
-- Model layout migration: add tests in `tests/test_migrate_shared.py`.
-- Runtime setup changes: prefer focused unit tests that monkeypatch platform,
-  provider, and filesystem probes.
+- Facade return shapes and compatibility: `tests/test_backends_and_api.py`.
+- Batch behavior and keypoint-aware paths: `tests/test_batch_api.py`.
+- Pure helper modules and extracted workflows: `tests/test_helper_modules.py`
+  and `tests/test_utils.py`.
+- Model layout migration: `tests/test_migrate_shared.py`.
 
-For changes that touch actual model math or the vendored InsightFace adapters,
-also run at least one manual smoke test with a sample image and real models,
-because fake sessions cannot detect numeric regressions.
+For changes that touch real model math or vendored InsightFace adapters, also
+run at least one manual smoke test with a sample image and real models. Fake
+sessions cannot detect numeric regressions inside model adapters.

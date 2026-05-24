@@ -528,7 +528,7 @@ Instead of returning a dict, it will return a list (with one dict). </code></pre
 <section id="detecção-e-alinhamento-sem-extração-de-embeddings" class="level3">
 <h3 class="anchored" data-anchor-id="detecção-e-alinhamento-sem-extração-de-embeddings">Detecção e alinhamento (sem extração de embeddings)</h3>
 <div id="cell-19" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> [ff.align_only(x) <span class="cf">for</span> x <span class="kw">in</span> imgs]</span>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> [ff.detect_and_align(x) <span class="cf">for</span> x <span class="kw">in</span> imgs]</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(ret):</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Image </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">:"</span>)</span>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Aligned keypoints shape:"</span>, r[<span class="st">"aligned_keypoints"</span>].shape)</span>

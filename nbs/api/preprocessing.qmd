@@ -1,0 +1,33 @@
+# preprocessing { #forensicface.preprocessing }
+
+`preprocessing`
+
+Preprocessing helpers for recognition ONNX inputs.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [normalize_aligned_keypoints](#forensicface.preprocessing.normalize_aligned_keypoints) | Normalize aligned 5-point keypoints to the [0, 1] ONNX input frame. |
+| [to_ada_input](#forensicface.preprocessing.to_ada_input) | Convert aligned BGR face crop(s) to AdaFace-style NCHW input. |
+
+### normalize_aligned_keypoints { #forensicface.preprocessing.normalize_aligned_keypoints }
+
+```python
+preprocessing.normalize_aligned_keypoints(
+    aligned_keypoints,
+    *,
+    model_name,
+    image_size=(112, 112),
+)
+```
+
+Normalize aligned 5-point keypoints to the [0, 1] ONNX input frame.
+
+### to_ada_input { #forensicface.preprocessing.to_ada_input }
+
+```python
+preprocessing.to_ada_input(aligned_bgr_img, *, image_size=(112, 112))
+```
+
+Convert aligned BGR face crop(s) to AdaFace-style NCHW input.

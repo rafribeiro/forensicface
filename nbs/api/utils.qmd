@@ -8,9 +8,43 @@
 
 | Name | Description |
 | --- | --- |
+| [aggregate_embeddings](#forensicface.utils.aggregate_embeddings) | Aggregates multiple embeddings into a single embedding. |
 | [annotate_img_with_kps](#forensicface.utils.annotate_img_with_kps) | Annotate an image with keypoints. |
 | [compute_ss_ds](#forensicface.utils.compute_ss_ds) | Compute cosine similarities between the cartesian product of two arrays X and Z and |
+| [cosine_score](#forensicface.utils.cosine_score) | Compute cosine similarity between two 1D embeddings. |
 | [transform_keypoints](#forensicface.utils.transform_keypoints) | Transforms keypoints from the original image space to the aligned image space. |
+
+### aggregate_embeddings { #forensicface.utils.aggregate_embeddings }
+
+```python
+utils.aggregate_embeddings(embeddings, weights=None, method='mean')
+```
+
+Aggregates multiple embeddings into a single embedding.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**embeddings**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   A 2D array of shape (num_embeddings, embedding_dim) containing the embeddings to be aggregated.
+
+<code>[**weights**]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A 1D array of shape (num_embeddings,) containing the weights to assign to each embedding. If not provided, all embeddings are equally weighted.
+
+<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'mean\']{.parameter-default}</code>
+
+:   Aggregation method. Possible values are ``"mean"`` and ``"median"``.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   np.ndarray: A 1D array of shape (embedding_dim,) containing the
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   aggregated embedding.
 
 ### annotate_img_with_kps { #forensicface.utils.annotate_img_with_kps }
 
@@ -76,6 +110,14 @@ combination in X. Also return the names of the files associated with each score,
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
 
 :   and different-source labels, and optional file-name pairs.
+
+### cosine_score { #forensicface.utils.cosine_score }
+
+```python
+utils.cosine_score(x, z)
+```
+
+Compute cosine similarity between two 1D embeddings.
 
 ### transform_keypoints { #forensicface.utils.transform_keypoints }
 

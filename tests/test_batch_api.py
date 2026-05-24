@@ -172,14 +172,18 @@ def _make_ff(
 
 
 # ---------------------------------------------------------------------------
-# align_only
+# detect_and_align
 # ---------------------------------------------------------------------------
 
-def test_align_only_single_face_returns_dict(monkeypatch):
+def test_old_detect_and_align_alias_is_not_kept():
+    assert "align" + "_only" not in dir(ForensicFace)
+
+
+def test_detect_and_align_single_face_returns_dict(monkeypatch):
     ff, _ = _make_ff(monkeypatch, n_faces=1)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    result = ff.align_only(img, single_face=True)
+    result = ff.detect_and_align(img, single_face=True)
 
     assert isinstance(result, dict)
     assert isinstance(result, FaceResult)
@@ -191,11 +195,11 @@ def test_align_only_single_face_returns_dict(monkeypatch):
     assert isinstance(result["det_score"], float)
 
 
-def test_align_only_multi_face_returns_list(monkeypatch):
+def test_detect_and_align_multi_face_returns_list(monkeypatch):
     ff, _ = _make_ff(monkeypatch, n_faces=3)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    result = ff.align_only(img, single_face=False)
+    result = ff.detect_and_align(img, single_face=False)
 
     assert isinstance(result, list)
     assert len(result) == 3
@@ -203,37 +207,37 @@ def test_align_only_multi_face_returns_list(monkeypatch):
         assert item["aligned_face"].shape == (112, 112, 3)
 
 
-def test_align_only_single_face_returns_none_when_no_face(monkeypatch):
+def test_detect_and_align_single_face_returns_none_when_no_face(monkeypatch):
     ff, _ = _make_ff(monkeypatch, n_faces=0)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    assert ff.align_only(img, single_face=True) is None
+    assert ff.detect_and_align(img, single_face=True) is None
 
 
-def test_align_only_multi_face_returns_empty_list_when_no_face(monkeypatch):
+def test_detect_and_align_multi_face_returns_empty_list_when_no_face(monkeypatch):
     ff, _ = _make_ff(monkeypatch, n_faces=0)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    assert ff.align_only(img, single_face=False) == []
+    assert ff.detect_and_align(img, single_face=False) == []
 
 
-def test_align_only_extended_includes_attribute_fields(monkeypatch):
+def test_detect_and_align_extended_includes_attribute_fields(monkeypatch):
     ff, _ = _make_ff(monkeypatch, n_faces=1, with_attributes=True, extended=True)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    result = ff.align_only(img, single_face=True)
+    result = ff.detect_and_align(img, single_face=True)
     assert "gender" in result and result["gender"] in ("M", "F")
     assert "age" in result and isinstance(result["age"], int)
     assert result["pose"].shape == (3,)
 
 
-def test_align_only_non_extended_omits_attribute_fields(monkeypatch):
+def test_detect_and_align_non_extended_omits_attribute_fields(monkeypatch):
     ff, _ = _make_ff(
         monkeypatch, n_faces=1, with_attributes=True, extended=False
     )
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    result = ff.align_only(img, single_face=True)
+    result = ff.detect_and_align(img, single_face=True)
     assert "gender" not in result
     assert "age" not in result
     assert "pose" not in result
@@ -436,13 +440,13 @@ def test_process_images_batch_without_concat_returns_per_model_embeddings(monkey
 # sepaelv6 / KPRPE keypoint-aware batched API
 # ---------------------------------------------------------------------------
 
-def test_align_only_includes_aligned_keypoints(monkeypatch):
-    """`align_only` must emit `aligned_keypoints` in the 112×112 frame so
+def test_detect_and_align_includes_aligned_keypoints(monkeypatch):
+    """`detect_and_align` must emit `aligned_keypoints` in the 112×112 frame so
     `process_images_batch` can stack them and feed KPRPE models."""
     ff, _ = _make_ff(monkeypatch, n_faces=1)
     img = np.zeros((128, 128, 3), dtype=np.uint8)
 
-    result = ff.align_only(img, single_face=True)
+    result = ff.detect_and_align(img, single_face=True)
     assert "aligned_keypoints" in result
     assert result["aligned_keypoints"].shape == (5, 2)
 
@@ -528,7 +532,7 @@ def test_process_aligned_faces_batch_keypoints_shape_validation(monkeypatch):
 
 def test_process_images_batch_with_kprpe_end_to_end(monkeypatch):
     """End-to-end: process_images_batch collects aligned_keypoints from
-    each align_only result and feeds them to the KPRPE ONNX session."""
+    each detect_and_align result and feeds them to the KPRPE ONNX session."""
     kprpe = _BatchKPRPESession(dim=4)
     monkeypatch.setattr(
         ForensicFace, "_load_model", lambda *_a, **_k: kprpe

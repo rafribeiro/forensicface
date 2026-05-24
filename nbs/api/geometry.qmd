@@ -1,0 +1,28 @@
+# geometry { #forensicface.geometry }
+
+`geometry`
+
+Geometry helpers used by image and video workflows.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [extend_bbox](#forensicface.geometry.extend_bbox) | Return bbox coordinates expanded by a margin and clipped to the frame. |
+| [select_best_face](#forensicface.geometry.select_best_face) | Select one face by bbox size or centrality. |
+
+### extend_bbox { #forensicface.geometry.extend_bbox }
+
+```python
+geometry.extend_bbox(bbox, frame_shape, margin_factor)
+```
+
+Return bbox coordinates expanded by a margin and clipped to the frame.
+
+### select_best_face { #forensicface.geometry.select_best_face }
+
+```python
+geometry.select_best_face(img_shape, faces, criterion='size')
+```
+
+Select one face by bbox size or centrality.

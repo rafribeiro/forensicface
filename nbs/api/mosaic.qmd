@@ -1,0 +1,26 @@
+# mosaic { #forensicface.mosaic }
+
+`mosaic`
+
+Mosaic-building workflow for aligned faces.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [build_aligned_face_mosaic](#forensicface.mosaic.build_aligned_face_mosaic) | Build a rectangular mosaic of aligned faces using a processor object. |
+
+### build_aligned_face_mosaic { #forensicface.mosaic.build_aligned_face_mosaic }
+
+```python
+mosaic.build_aligned_face_mosaic(
+    processor,
+    img_path_list,
+    mosaic_shape,
+    border=0.03,
+    save_to=None,
+    draw_keypoints=False,
+)
+```
+
+Build a rectangular mosaic of aligned faces using a processor object.

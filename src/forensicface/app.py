@@ -189,19 +189,19 @@ class ForensicFace:
             select_single_face_by="size",
         )
 
-    def align_only(
+    def detect_and_align(
         self,
         imgpath: str | np.ndarray,
         *,
         single_face: bool = True,
         select_single_face_by: str = "size",
     ) -> dict | list[dict] | None:
-        """Detect + align without extracting embedding/FIQA.
+        """Detect faces and return aligned crops without embedding/FIQA.
 
         Useful in two scenarios:
-        1. Batched extract: run align_only per-image to fill a buffer of
-           aligned crops, then call ``process_aligned_faces_batch`` once
-           per chunk. Lets ONNX use real batch parallelism on GPU.
+        1. Batched extraction: run ``detect_and_align`` per image to fill a
+           buffer of aligned crops, then call ``process_aligned_faces_batch``
+           once per chunk. Lets ONNX use real batch parallelism on GPU.
         2. Materialize aligned crops on disk for later re-extraction
            with newer recognition models.
 
@@ -381,7 +381,7 @@ class ForensicFace:
         """Batched counterpart of ``process_image``.
 
         Pipeline:
-        1. Per-image: ``align_only`` (detect + warp), accumulate aligned
+        1. Per-image: ``detect_and_align`` (detect + warp), accumulate aligned
            crops into a buffer.
         2. Per-chunk of ``batch_size``: recognition/FIQA inference in one
            ONNX call per loaded model.

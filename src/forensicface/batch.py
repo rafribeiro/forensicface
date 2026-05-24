@@ -52,7 +52,7 @@ def process_images_batch(
     select_single_face_by: str = "size",
     batch_size: int = 16,
 ) -> list:
-    """Run detect/align per image, then batch recognition/FIQA by face crop."""
+    """Run detection/alignment per image, then batch recognition/FIQA by crop."""
     imgpaths = list(imgpaths)
     if not imgpaths:
         return []
@@ -81,7 +81,7 @@ def _process_single_face_images_batch(
     batch_size: int,
 ):
     aligned_items = [
-        processor.align_only(
+        processor.detect_and_align(
             img,
             single_face=True,
             select_single_face_by=select_single_face_by,
@@ -120,7 +120,7 @@ def _process_multi_face_images_batch(
     batch_size: int,
 ):
     aligned_per_image = [
-        processor.align_only(
+        processor.detect_and_align(
             img,
             single_face=False,
             select_single_face_by=select_single_face_by,
@@ -159,7 +159,7 @@ def _process_multi_face_images_batch(
 
 
 def _compute_batch_for_aligned_items(processor, aligned_items, *, needs_kps: bool):
-    # `align_only` returns RGB to match `process_image`, while recognition
+    # `detect_and_align` returns RGB to match `process_image`, while recognition
     # sessions are fed BGR crops.
     crops = _aligned_rgb_items_to_bgr_batch(aligned_items)
     keypoints_batch = _aligned_keypoints_batch(aligned_items) if needs_kps else None

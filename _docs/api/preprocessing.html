@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>index – forensicface</title>
+<title>preprocessing – forensicface</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,6 +19,40 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -70,8 +104,10 @@ ul.task-list li input[type="checkbox"] {
 
 <link rel="stylesheet" href="../styles.css">
 <meta property="og:title" content="forensicface">
+<meta property="og:description" content="A package for forensic face examination">
 <meta property="og:site_name" content="forensicface">
 <meta name="twitter:title" content="forensicface">
+<meta name="twitter:description" content="A package for forensic face examination">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -142,10 +178,13 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#function-reference" id="toc-function-reference" class="nav-link active" data-scroll-target="#function-reference">Function reference</a>
+  <li><a href="#forensicface.preprocessing" id="toc-forensicface.preprocessing" class="nav-link active" data-scroll-target="#forensicface.preprocessing">preprocessing</a>
   <ul class="collapse">
-  <li><a href="#core" id="toc-core" class="nav-link" data-scroll-target="#core">Core</a></li>
-  <li><a href="#insightface-internals" id="toc-insightface-internals" class="nav-link" data-scroll-target="#insightface-internals">Insightface Internals</a></li>
+  <li><a href="#functions" id="toc-functions" class="nav-link" data-scroll-target="#functions">Functions</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.preprocessing.normalize_aligned_keypoints" id="toc-forensicface.preprocessing.normalize_aligned_keypoints" class="nav-link" data-scroll-target="#forensicface.preprocessing.normalize_aligned_keypoints">normalize_aligned_keypoints</a></li>
+  <li><a href="#forensicface.preprocessing.to_ada_input" id="toc-forensicface.preprocessing.to_ada_input" class="nav-link" data-scroll-target="#forensicface.preprocessing.to_ada_input">to_ada_input</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
@@ -156,97 +195,47 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<section id="function-reference" class="level1 doc doc-index">
-<h1 class="doc doc-index">Function reference</h1>
-<section id="core" class="level2">
-<h2 class="anchored" data-anchor-id="core">Core</h2>
-<p>Public API for forensicface.</p>
+<section id="forensicface.preprocessing" class="level1">
+<h1>preprocessing</h1>
+<p><code>preprocessing</code></p>
+<p>Preprocessing helpers for recognition ONNX inputs.</p>
+<section id="functions" class="level2">
+<h2 class="anchored" data-anchor-id="functions">Functions</h2>
 <table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
 <tbody>
 <tr class="odd">
-<td><a href="../api/app.html#forensicface.app">app</a></td>
-<td></td>
+<td><a href="#forensicface.preprocessing.normalize_aligned_keypoints">normalize_aligned_keypoints</a></td>
+<td>Normalize aligned 5-point keypoints to the [0, 1] ONNX input frame.</td>
 </tr>
 <tr class="even">
-<td><a href="../api/backends.html#forensicface.backends">backends</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/geometry.html#forensicface.geometry">geometry</a></td>
-<td>Geometry helpers used by image and video workflows.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/model_store.html#forensicface.model_store">model_store</a></td>
-<td>Model layout resolution helpers.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/mosaic.html#forensicface.mosaic">mosaic</a></td>
-<td>Mosaic-building workflow for aligned faces.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/ort_runtime_setup.html#forensicface.ort_runtime_setup">ort_runtime_setup</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/preprocessing.html#forensicface.preprocessing">preprocessing</a></td>
-<td>Preprocessing helpers for recognition ONNX inputs.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/recognition.html#forensicface.recognition">recognition</a></td>
-<td>Recognition and FIQA inference helpers.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/results.html#forensicface.results">results</a></td>
-<td>Result containers and assembly helpers.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/runtime_summary.html#forensicface.runtime_summary">runtime_summary</a></td>
-<td>Initialization summary helpers for ForensicFace.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/utils.html#forensicface.utils">utils</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/video.html#forensicface.video">video</a></td>
-<td>Video face extraction workflow.</td>
+<td><a href="#forensicface.preprocessing.to_ada_input">to_ada_input</a></td>
+<td>Convert aligned BGR face crop(s) to AdaFace-style NCHW input.</td>
 </tr>
 </tbody>
 </table>
+<section id="forensicface.preprocessing.normalize_aligned_keypoints" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.preprocessing.normalize_aligned_keypoints">normalize_aligned_keypoints</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>preprocessing.normalize_aligned_keypoints(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    aligned_keypoints,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    model_name,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    image_size<span class="op">=</span>(<span class="dv">112</span>, <span class="dv">112</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Normalize aligned 5-point keypoints to the [0, 1] ONNX input frame.</p>
 </section>
-<section id="insightface-internals" class="level2">
-<h2 class="anchored" data-anchor-id="insightface-internals">Insightface Internals</h2>
-<p>Internal components vendored from insightface.</p>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td><a href="../api/insightface.attribute.html#forensicface.insightface.attribute">insightface.attribute</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.face_align.html#forensicface.insightface.face_align">insightface.face_align</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/insightface.landmark.html#forensicface.insightface.landmark">insightface.landmark</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.meanshape68.html#forensicface.insightface.meanshape68">insightface.meanshape68</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/insightface.scrfd.html#forensicface.insightface.scrfd">insightface.scrfd</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.transform.html#forensicface.insightface.transform">insightface.transform</a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
+<section id="forensicface.preprocessing.to_ada_input" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.preprocessing.to_ada_input">to_ada_input</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>preprocessing.to_ada_input(aligned_bgr_img, <span class="op">*</span>, image_size<span class="op">=</span>(<span class="dv">112</span>, <span class="dv">112</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Convert aligned BGR face crop(s) to AdaFace-style NCHW input.</p>
 
 
+</section>
 </section>
 </section>
 
