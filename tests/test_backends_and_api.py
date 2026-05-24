@@ -479,8 +479,8 @@ def test_onnx_backend_loads_landmark_3d68_when_requested(monkeypatch):
         "/fake/model/genderage.onnx",
     ]
 
-    monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(backends_module.glob, "glob", lambda *_args, **_kwargs: fake_files)
+    monkeypatch.setattr(model_store.osp, "isdir", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(model_store, "glob", lambda *_args, **_kwargs: fake_files)
     monkeypatch.setattr(backends_module, "SCRFD", _fake_scrfd)
     monkeypatch.setattr(backends_module, "LandmarkONNX", _DummyLandmarkModel)
     monkeypatch.setattr(backends_module, "AttributeONNX", _DummyGenderAgeModel)
@@ -637,8 +637,8 @@ def test_backend_prefers_new_shared_structure_over_legacy(monkeypatch):
     def fake_scrfd(model_file=None, **_kwargs):
         return _DummyDetModel(model_file)
 
-    monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(backends_module.glob, "glob", fake_glob)
+    monkeypatch.setattr(model_store.osp, "isdir", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(model_store, "glob", fake_glob)
     monkeypatch.setattr(backends_module, "SCRFD", fake_scrfd)
 
     backend = backends_module.ONNXOnlyBackend(
@@ -680,8 +680,8 @@ def test_backend_falls_back_to_legacy_when_new_layout_missing(monkeypatch):
     def fake_scrfd(model_file=None, **_kwargs):
         return _DummyDetModel(model_file)
 
-    monkeypatch.setattr(backends_module.osp, "isdir", fake_isdir)
-    monkeypatch.setattr(backends_module.glob, "glob", fake_glob)
+    monkeypatch.setattr(model_store.osp, "isdir", fake_isdir)
+    monkeypatch.setattr(model_store, "glob", fake_glob)
     monkeypatch.setattr(backends_module, "SCRFD", fake_scrfd)
 
     backend = backends_module.ONNXOnlyBackend(
@@ -698,14 +698,10 @@ def test_backend_falls_back_to_legacy_when_new_layout_missing(monkeypatch):
 
 
 def test_collect_onnx_files_dedupes_across_sources(monkeypatch):
-    import forensicface.backends as backends_module
-
     duplicate = "/fake/model/detection/det_10g.onnx"
 
-    monkeypatch.setattr(backends_module.osp, "isdir", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(backends_module.glob, "glob", lambda *_args, **_kwargs: [duplicate])
+    monkeypatch.setattr(model_store.osp, "isdir", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(model_store, "glob", lambda *_args, **_kwargs: [duplicate])
 
-    files = backends_module.ONNXOnlyBackend._collect_onnx_files(
-        "/fake/model", "sepaelv2"
-    )
+    files = model_store.collect_backend_model_files("/fake/model", "sepaelv2")
     assert files == [duplicate]

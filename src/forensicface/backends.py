@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import glob
 import os.path as osp
 
 import numpy as np
@@ -9,6 +8,7 @@ from .insightface import face_align
 from .insightface.attribute import AttributeONNX
 from .insightface.landmark import LandmarkONNX
 from .insightface.scrfd import SCRFD
+from .model_store import collect_backend_model_files
 
 
 @dataclass
@@ -145,35 +145,7 @@ class ONNXOnlyBackend(FaceBackend):
 
     @staticmethod
     def _collect_onnx_files(models_root: str, model_name: str) -> list[str]:
-        """Collects candidate ONNX files for backend probing.
-
-        Prefers the new shared layout (``detection/`` and ``attributes/``
-        directories under ``models_root``) and falls back to the legacy
-        per-model layout (``<models_root>/<model_name>/``). Files from the
-        new layout appear first so backward-compatible detection picks them
-        up before any duplicates in the legacy folder.
-        """
-        sources = [
-            osp.join(models_root, "detection"),
-            osp.join(models_root, "attributes"),
-            osp.join(models_root, model_name),
-        ]
-        files: list[str] = []
-        seen: set[str] = set()
-        for source in sources:
-            if not osp.isdir(source):
-                continue
-            for path in sorted(glob.glob(osp.join(source, "*.onnx"))):
-                # Dedup by filename, not by full path: o mesmo arquivo
-                # onnx pode estar em `models_root/detection/` E em
-                # `models_root/<model_name>/` (estrutura legada
-                # convivendo com a nova) — só queremos uma entrada.
-                filename = osp.basename(path)
-                if filename in seen:
-                    continue
-                seen.add(filename)
-                files.append(path)
-        return files
+        return collect_backend_model_files(models_root, model_name)
 
     def detect_faces(self, bgr_img: np.ndarray) -> list[FaceData]:
         bboxes, kpss = self.det_model.detect(bgr_img, max_num=0, metric="default")
