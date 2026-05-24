@@ -25,6 +25,7 @@ from .recognition import RecognitionRunner
 from .results import (
     FaceResult,
     build_align_result,
+    build_embedding_result,
     build_face_result,
 )
 from .video import extract_faces_from_video
@@ -602,15 +603,13 @@ class ForensicFace:
             bgr_aligned_face, aligned_keypoints=keypoints
         )
 
-        if self.concat_embeddings:
-            ret = FaceResult({"embedding": embeddings})
-        else:
-            ret = FaceResult()
-            for model_name, embedding in zip(self.models, embeddings):
-                ret["embedding_" + model_name] = embedding
-        if self.extended:
-            ret["fiqa_score"] = fiqa_score
-        return ret
+        return build_embedding_result(
+            embeddings=embeddings,
+            fiqa_score=fiqa_score,
+            models=self.models,
+            extended=self.extended,
+            concat_embeddings=self.concat_embeddings,
+        )
 
     def process_aligned_faces_batch(
         self,
@@ -650,17 +649,14 @@ class ForensicFace:
             aligned_keypoints_batch=aligned_keypoints_batch,
         )
 
-        results: list[FaceResult] = []
-        for idx in range(rgb_aligned_faces.shape[0]):
-            ret = FaceResult()
-            if self.concat_embeddings:
-                ret["embedding"] = embeddings[idx]
-            else:
-                for model_name, per_model_embeddings in zip(self.models, embeddings):
-                    ret[f"embedding_{model_name}"] = per_model_embeddings[idx]
-            if self.extended:
-                ret["fiqa_score"] = (
-                    float(fiqa_scores[idx]) if fiqa_scores is not None else None
-                )
-            results.append(ret)
-        return results
+        return [
+            build_embedding_result(
+                embeddings=embeddings,
+                fiqa_score=fiqa_scores,
+                models=self.models,
+                extended=self.extended,
+                concat_embeddings=self.concat_embeddings,
+                index=idx,
+            )
+            for idx in range(rgb_aligned_faces.shape[0])
+        ]

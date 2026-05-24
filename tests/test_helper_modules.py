@@ -17,6 +17,7 @@ from forensicface.results import (
     FaceResult,
     assemble_face_result,
     build_align_result,
+    build_embedding_result,
     build_face_result,
 )
 
@@ -178,6 +179,30 @@ def test_build_face_result_maps_pose_and_per_model_embeddings():
     np.testing.assert_array_equal(result.embedding_a, embeddings[0])
     np.testing.assert_array_equal(result.embedding_b, embeddings[1])
     assert "embedding" not in result
+
+
+def test_build_embedding_result_handles_single_and_batch_rows():
+    single = build_embedding_result(
+        embeddings=[np.array([1.0, 2.0]), np.array([3.0, 4.0])],
+        fiqa_score=0.6,
+        models=["a", "b"],
+        extended=True,
+        concat_embeddings=False,
+    )
+    batch = build_embedding_result(
+        embeddings=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+        fiqa_score=np.array([0.6, 0.8], dtype=np.float32),
+        models=["a"],
+        extended=True,
+        concat_embeddings=True,
+        index=1,
+    )
+
+    np.testing.assert_array_equal(single.embedding_a, [1.0, 2.0])
+    np.testing.assert_array_equal(single.embedding_b, [3.0, 4.0])
+    assert single.fiqa_score == 0.6
+    np.testing.assert_array_equal(batch.embedding, [3.0, 4.0])
+    assert batch.fiqa_score == pytest.approx(0.8)
 
 
 def test_assemble_face_result_accepts_aligned_face_dataclass():
@@ -413,6 +438,17 @@ def test_compare_faces_rejects_non_concatenated_processor():
         concat_embeddings = False
 
     with pytest.raises(ValueError, match="concat_embeddings=False"):
+        compare_faces(_Processor(), "a", "b")
+
+
+def test_compare_faces_rejects_missing_faces():
+    class _Processor:
+        concat_embeddings = True
+
+        def process_image(self, *_args, **_kwargs):
+            return []
+
+    with pytest.raises(ValueError, match="No face detected"):
         compare_faces(_Processor(), "a", "b")
 
 

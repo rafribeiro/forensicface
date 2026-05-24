@@ -20,6 +20,7 @@ class _BatchRecSession:
         self.dim = dim
         self.two_outputs = two_outputs
         self.last_input_shape: tuple | None = None
+        self.last_input_keys: tuple[str, ...] | None = None
         self.call_count = 0
 
     def get_inputs(self):
@@ -30,6 +31,7 @@ class _BatchRecSession:
 
     def run(self, _output_names, inputs):
         self.call_count += 1
+        self.last_input_keys = tuple(inputs.keys())
         batch = next(iter(inputs.values()))
         self.last_input_shape = tuple(batch.shape)
         n = batch.shape[0]
@@ -292,9 +294,8 @@ def test_process_aligned_faces_batch_fiqa_shape_when_extended(monkeypatch):
     assert fiqa.shape == (7,)
 
 
-def test_process_aligned_faces_batch_matches_single_numerically(monkeypatch):
-    """The batch version must produce bit-identical embeddings to the
-    single-face recognition path, since ONNX ops are the same."""
+def test_process_aligned_faces_batch_matches_single_path_with_fake_session(monkeypatch):
+    """The batch and single aligned-face APIs expose matching fake-session outputs."""
     ff, _ = _make_ff(monkeypatch, dim=4, two_outputs=True, n_models=1)
     batch = np.random.RandomState(0).randint(
         0, 256, size=(3, 112, 112, 3), dtype=np.uint8
@@ -558,5 +559,5 @@ def test_process_images_batch_without_kprpe_skips_keypoint_stacking(monkeypatch)
     imgs = [np.zeros((128, 128, 3), dtype=np.uint8) for _ in range(2)]
 
     ff.process_images_batch(imgs, single_face=True)
-    # Single-input session was called with only one input key.
+    assert rec_sessions[0].last_input_keys == ("input",)
     assert rec_sessions[0].last_input_shape == (2, 3, 112, 112)

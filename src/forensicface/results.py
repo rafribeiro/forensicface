@@ -12,6 +12,7 @@ __all__ = [
     "FaceResult",
     "assemble_face_result",
     "build_align_result",
+    "build_embedding_result",
     "build_face_result",
     "build_face_result_from_align_result",
 ]
@@ -106,29 +107,47 @@ def build_align_result(
     age=None,
     pose=None,
 ) -> FaceResult:
-    aligned = AlignedFace(
-        aligned_face=aligned_face,
-        bbox=bbox,
-        keypoints=keypoints,
-        aligned_keypoints=aligned_keypoints,
-        det_score=det_score,
-        gender=gender,
-        age=age,
-        pose=pose,
-    )
     result = FaceResult(
         {
-            "aligned_face": aligned.aligned_face,
-            "bbox": aligned.bbox.astype("int"),
-            "keypoints": aligned.keypoints,
-            "aligned_keypoints": aligned.aligned_keypoints,
-            "det_score": float(aligned.det_score),
+            "aligned_face": aligned_face,
+            "bbox": bbox.astype("int"),
+            "keypoints": keypoints,
+            "aligned_keypoints": aligned_keypoints,
+            "det_score": float(det_score),
         }
     )
     if extended:
-        result["gender"] = gender_label(aligned.gender)
-        result["age"] = int(aligned.age) if aligned.age is not None else None
-        result["pose"] = aligned.pose.copy() if aligned.pose is not None else None
+        result["gender"] = gender_label(gender)
+        result["age"] = int(age) if age is not None else None
+        result["pose"] = pose.copy() if pose is not None else None
+    return result
+
+
+def build_embedding_result(
+    *,
+    embeddings,
+    fiqa_score,
+    models: list[str],
+    extended: bool,
+    concat_embeddings: bool,
+    index: int | None = None,
+) -> FaceResult:
+    """Build a result for recognition-only APIs that receive aligned faces."""
+    result = FaceResult()
+    if concat_embeddings:
+        result["embedding"] = embeddings if index is None else embeddings[index]
+    else:
+        for model_name, embedding in zip(models, embeddings):
+            result[f"embedding_{model_name}"] = (
+                embedding if index is None else embedding[index]
+            )
+    if extended:
+        if index is None:
+            result["fiqa_score"] = fiqa_score
+        else:
+            result["fiqa_score"] = (
+                float(fiqa_score[index]) if fiqa_score is not None else None
+            )
     return result
 
 

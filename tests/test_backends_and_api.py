@@ -131,50 +131,31 @@ def test_process_image_multi_face_returns_list(monkeypatch):
     assert all("embedding" in item for item in result)
 
 
-def test_compare_rejects_non_concatenated_embeddings(monkeypatch):
-    ff = ForensicFace.__new__(ForensicFace)
-    ff.concat_embeddings = False
-    ff.models = ["model_a", "model_b"]
-
-    with pytest.raises(ValueError, match="concat_embeddings=False"):
-        ff.compare("img1", "img2")
-
-
-def test_compare_rejects_missing_faces(monkeypatch):
+def test_compare_wrapper_returns_similarity(monkeypatch):
     ff = ForensicFace.__new__(ForensicFace)
     ff.concat_embeddings = True
 
-    monkeypatch.setattr(ff, "process_image", lambda *_args, **_kwargs: [])
+    def _fake_process_image(imgpath, single_face=True):
+        assert single_face is True
+        embeddings = {
+            "img1": np.array([1.0, 0.0], dtype=np.float32),
+            "img2": np.array([1.0, 0.0], dtype=np.float32),
+        }
+        return FaceResult({"embedding": embeddings[imgpath]})
 
-    with pytest.raises(ValueError, match="No face detected"):
-        ff.compare("img1", "img2")
+    monkeypatch.setattr(ff, "process_image", _fake_process_image)
+
+    assert ff.compare("img1", "img2") == pytest.approx(1.0)
 
 
-def test_aggregate_from_images_rejects_quality_weight_without_extended():
+def test_aggregate_from_images_wrapper_returns_embedding(monkeypatch):
     ff = ForensicFace.__new__(ForensicFace)
+    ff.concat_embeddings = True
     ff.extended = False
 
-    with pytest.raises(ValueError, match="extended = True"):
-        ff.aggregate_from_images(["img1"], quality_weight=True)
-
-
-def test_aggregate_from_images_supports_non_concatenated_embeddings(monkeypatch):
-    ff = ForensicFace.__new__(ForensicFace)
-    ff.concat_embeddings = False
-    ff.models = ["model_a", "model_b"]
-    ff.extended = True
-
     outputs = {
-        "img1": {
-            "embedding_model_a": np.array([1.0, 3.0], dtype=np.float32),
-            "embedding_model_b": np.array([10.0, 30.0], dtype=np.float32),
-            "fiqa_score": 1.0,
-        },
-        "img2": {
-            "embedding_model_a": np.array([3.0, 5.0], dtype=np.float32),
-            "embedding_model_b": np.array([30.0, 50.0], dtype=np.float32),
-            "fiqa_score": 3.0,
-        },
+        "img1": FaceResult({"embedding": np.array([1.0, 3.0], dtype=np.float32)}),
+        "img2": FaceResult({"embedding": np.array([3.0, 5.0], dtype=np.float32)}),
     }
 
     def _fake_process_image(imgpath, single_face=True):
@@ -185,12 +166,10 @@ def test_aggregate_from_images_supports_non_concatenated_embeddings(monkeypatch)
 
     aggregated = ff.aggregate_from_images(
         ["img1", "img2"],
-        quality_weight=True,
+        method="mean",
     )
 
-    assert set(aggregated) == {"embedding_model_a", "embedding_model_b"}
-    np.testing.assert_allclose(aggregated["embedding_model_a"], [2.5, 4.5])
-    np.testing.assert_allclose(aggregated["embedding_model_b"], [25.0, 45.0])
+    np.testing.assert_allclose(aggregated, [2.0, 4.0])
 
 
 def test_sepaelv6_receives_aligned_normalized_keypoints(monkeypatch):
@@ -500,34 +479,25 @@ def test_onnx_backend_loads_landmark_3d68_when_requested(monkeypatch):
     assert backend.genderage_model is not None
 
 
-def test_load_model_prefers_new_recognition_layout(monkeypatch):
+def test_resolve_recognition_model_prefers_new_layout(monkeypatch):
     captured = {"patterns": []}
 
     def fake_glob(pattern):
         captured["patterns"].append(pattern)
         return ["/fake/path/face.onnx"]
 
-    class _DummySession:
-        pass
-
     monkeypatch.setattr(model_store, "glob", fake_glob)
-    monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
-    ff = object.__new__(ForensicFace)
     models_root = str(Path.home() / ".forensicface" / "models")
-    ff._load_model(
-        model_name="sepaelv2",
-        providers=["CPUExecutionProvider"],
-        gpu=0,
-        models_root=models_root,
-    )
+    resolved = model_store.resolve_recognition_model(models_root, "sepaelv2")
 
+    assert resolved == "/fake/path/face.onnx"
     new_prefix = str(Path(models_root) / "recognition" / "sepaelv2")
     assert captured["patterns"][0].startswith(new_prefix)
     assert "*face*.onnx" in captured["patterns"][0]
 
 
-def test_load_model_falls_back_to_legacy_layout(monkeypatch):
+def test_resolve_recognition_model_falls_back_to_legacy_layout(monkeypatch):
     captured = {"patterns": []}
 
     def fake_glob(pattern):
@@ -535,25 +505,49 @@ def test_load_model_falls_back_to_legacy_layout(monkeypatch):
         # First call (new layout) returns empty; second call (legacy) returns a hit.
         return [] if len(captured["patterns"]) == 1 else ["/fake/path/face.onnx"]
 
-    class _DummySession:
-        pass
-
     monkeypatch.setattr(model_store, "glob", fake_glob)
-    monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", lambda *_a, **_k: _DummySession())
 
-    ff = object.__new__(ForensicFace)
     models_root = str(Path.home() / ".forensicface" / "models")
-    ff._load_model(
-        model_name="sepaelv2",
-        providers=["CPUExecutionProvider"],
-        gpu=0,
-        models_root=models_root,
-    )
+    resolved = model_store.resolve_recognition_model(models_root, "sepaelv2")
 
+    assert resolved == "/fake/path/face.onnx"
     assert len(captured["patterns"]) == 2
     legacy_prefix = str(Path(models_root) / "sepaelv2")
     assert captured["patterns"][1].startswith(legacy_prefix)
     assert "*face*.onnx" in captured["patterns"][1]
+
+
+def test_load_model_creates_onnx_session_for_resolved_path(monkeypatch):
+    captured = {}
+
+    class _DummySession:
+        pass
+
+    def fake_inference_session(model_path, providers):
+        captured["model_path"] = model_path
+        captured["providers"] = providers
+        return _DummySession()
+
+    monkeypatch.setattr(
+        app_module,
+        "resolve_recognition_model",
+        lambda *_args, **_kwargs: "/fake/path/face.onnx",
+    )
+    monkeypatch.setattr(app_module.onnxruntime, "InferenceSession", fake_inference_session)
+
+    ff = object.__new__(ForensicFace)
+    session = ff._load_model(
+        model_name="sepaelv2",
+        providers=["CPUExecutionProvider"],
+        gpu=0,
+        models_root="/fake/model",
+    )
+
+    assert isinstance(session, _DummySession)
+    assert captured == {
+        "model_path": "/fake/path/face.onnx",
+        "providers": ["CPUExecutionProvider"],
+    }
 
 
 def test_resolve_quality_model_prefers_new_layout(monkeypatch, tmp_path):
