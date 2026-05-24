@@ -271,11 +271,11 @@ class ForensicFace:
         Args:
             - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR.
             - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face.
-            - single_face (bool): If set to True, assume the image may contain more than one face.
+            - single_face (bool): If set to True, process only one face in the image.
             - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected.
                 Only applicable when single_face == True. Must be either 'size' or 'centrality'.
         Returns:
-            A dictionary containing the following keys:
+            If single_face==True, return a dictionary containing the following keys:
                 - 'keypoints': A 2D numpy array of shape (5, 2) containing the facial keypoints
                         for each face in the image. The keypoints are ordered as follows:
                        left eye, right eye, nose tip, left mouth corner, and right mouth corner.
@@ -295,9 +295,8 @@ class ForensicFace:
 
                 - 'det_score': A float representing the face detection score.
 
-                If the 'extended' is set to True, the dictionary will also contain the following keys:
-                - 'gender': A string representing the gender for each face in the image.
-                               Possible values are 'M' for male and 'F' for female.
+                If 'extended' is set to True, the dictionary will also contain the following keys:
+                - 'gender': Estimated sex for each face in the image. Possible values: 'M' (male) and 'F' (female).
 
                 - 'age': An integer representing the estimated age for each face in the image.
 
@@ -307,7 +306,9 @@ class ForensicFace:
 
                 - 'roll': A float representing the roll angle for each face in the image.
 
-                - fiqa_score: A float indicating facial image quality.
+                - 'fiqa_score': A float indicating facial image quality.
+            
+            If single_face==False, return a list of dictionaries, each containing the same keys as described above for each detected face in the image.
         """
         if single_face == True:
             warnings.warn(
@@ -381,7 +382,7 @@ class ForensicFace:
         """Batched counterpart of ``process_image``.
 
         Pipeline:
-        1. Per-image: ``detect_and_align`` (detect + warp), accumulate aligned
+        1. Per-image: ``detect_and_align``, accumulate aligned
            crops into a buffer.
         2. Per-chunk of ``batch_size``: recognition/FIQA inference in one
            ONNX call per loaded model.
@@ -406,13 +407,6 @@ class ForensicFace:
             each item is a ``dict`` compatible with ``process_image`` or
             ``None`` when no face is detected. With ``single_face=False``,
             each item is a list of per-image face dictionaries.
-
-        Notes:
-            Embeddings produced here are equivalent to those from
-            ``process_image`` (same ONNX ops, just batched). On GPU
-            the parallel reductions are not bit-exact deterministic,
-            so embeddings may differ from the per-image path by tiny
-            amounts — cosine similarity stays essentially the same.
         """
         return process_images_batch_workflow(
             self,
@@ -430,7 +424,7 @@ class ForensicFace:
         self, imgpath: str, draw_keypoints=False  # Path to image to be processed
     ):
         """
-        Process an image with one or multiple faces.
+        Process an image assuming multiple faces.
         THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.
         """
         warnings.warn(
@@ -476,15 +470,15 @@ class ForensicFace:
 
     def compare(self, img1path: str, img2path: str) -> float:
         """
-        Compares the similarity between two face images based on their embeddings.
+        Compute the similarity cosine between the embeddings of two face images.
 
         Args:
             img1path: Path to the first image file.
             img2path: Path to the second image file.
 
         Returns:
-            float: Similarity score between the two faces based on their embeddings.
-            The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+            float: Cosine similarity.
+            The score ranges from -1.0 (most dissimilar) to 1.0 (most similar).
 
         Raises:
             ValueError: If ``concat_embeddings`` is False, because this method
