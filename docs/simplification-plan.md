@@ -26,6 +26,8 @@ user-facing `assert` validation with explicit `ValueError` exceptions in the
 core facade, utilities, recognition runner, and mosaic workflow. Batch
 embedding extraction now has a public `process_aligned_faces_batch()` method
 instead of the short-lived private `_compute_embeddings_batch()` entry point.
+Batch image orchestration has also moved into `batch.py`, with
+`ForensicFace.process_images_batch()` preserved as the public wrapper.
 The remaining items below still describe the direction for follow-up refactors.
 
 Recommended direction:
@@ -384,6 +386,7 @@ src/forensicface/
   model_store.py         # model path resolution and layout rules
   preprocessing.py       # image/keypoint input normalization
   recognition.py         # recognition/FIQA session runner
+  batch.py               # batch image processing task
   results.py             # AlignedFace/result assembly helpers
   geometry.py            # bbox, face selection, keypoint geometry
   video.py               # video extraction task
@@ -451,7 +454,5 @@ Keep as methods or wrappers for end-user convenience:
 
 Consider later:
 
-- Move `process_images_batch()` orchestration into a batch task function if it
-  remains large after recognition/result extraction.
 - Add typed result dataclasses internally, but continue returning dictionaries
   publicly unless the public API is intentionally versioned.

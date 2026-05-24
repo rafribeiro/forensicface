@@ -5,6 +5,7 @@ import numpy as np
 import os.path as osp
 import warnings
 from .backends import FaceData, FaceBackend, create_backend
+from .batch import process_images_batch as process_images_batch_workflow
 from .utils import (
     aggregate_embeddings,
     cosine_score,
@@ -523,124 +524,13 @@ class ForensicFace:
             so embeddings may differ from the per-image path by tiny
             amounts — cosine similarity stays essentially the same.
         """
-        imgpaths = list(imgpaths)
-        if not imgpaths:
-            return []
-
-        if single_face:
-            aligned_items = [
-                self.align_only(
-                    p,
-                    single_face=True,
-                    select_single_face_by=select_single_face_by,
-                )
-                for p in imgpaths
-            ]
-            results: list = [None] * len(imgpaths)
-
-            valid_indices = [
-                i for i, item in enumerate(aligned_items) if item is not None
-            ]
-            needs_kps = bool(
-                set(self.models) & self.KEYPOINT_RECOGNITION_MODELS
-            )
-            for chunk_start in range(0, len(valid_indices), batch_size):
-                chunk_idx = valid_indices[chunk_start : chunk_start + batch_size]
-                # `align_only` returns RGB (consistent with `process_image`)
-                # but the recognition ONNX session was trained on BGR — flip
-                # color order at the boundary instead of inside the alignment.
-                crops = np.stack(
-                    [
-                        cv2.cvtColor(
-                            aligned_items[i]["aligned_face"],
-                            cv2.COLOR_RGB2BGR,
-                        )
-                        for i in chunk_idx
-                    ],
-                    axis=0,
-                )
-                # Keypoints alinhados só são empilhados quando algum modelo
-                # carregado é KEYPOINT_RECOGNITION_MODELS (ex: sepaelv6).
-                # Caso contrário, evita custo de stack desnecessário.
-                kps_batch = None
-                if needs_kps:
-                    kps_batch = np.stack(
-                        [aligned_items[i]["aligned_keypoints"] for i in chunk_idx],
-                        axis=0,
-                    )
-                embeddings, fiqa_scores = self._try_compute_embeddings_batch(
-                    crops, aligned_keypoints_batch=kps_batch,
-                )
-
-                for k, idx in enumerate(chunk_idx):
-                    if self.concat_embeddings:
-                        emb = embeddings[k]
-                    else:
-                        emb = [per_model[k] for per_model in embeddings]
-                    fiqa = (
-                        float(fiqa_scores[k])
-                        if fiqa_scores is not None
-                        else None
-                    )
-                    results[idx] = self._assemble_result_from_align_only(
-                        aligned_items[idx], emb, fiqa
-                    )
-            return results
-
-        # multi-face: flatten all detected faces, batch over the flat
-        # list, scatter the dicts back into per-image bins.
-        aligned_per_image = [
-            self.align_only(
-                p,
-                single_face=False,
-                select_single_face_by=select_single_face_by,
-            )
-            for p in imgpaths
-        ]
-        results_multi: list = [[] for _ in imgpaths]
-        flat: list = []
-        for img_idx, faces in enumerate(aligned_per_image):
-            for face_item in faces:
-                flat.append((img_idx, face_item))
-        if not flat:
-            return results_multi
-
-        needs_kps = bool(
-            set(self.models) & self.KEYPOINT_RECOGNITION_MODELS
+        return process_images_batch_workflow(
+            self,
+            imgpaths,
+            single_face=single_face,
+            select_single_face_by=select_single_face_by,
+            batch_size=batch_size,
         )
-        for chunk_start in range(0, len(flat), batch_size):
-            chunk = flat[chunk_start : chunk_start + batch_size]
-            # RGB → BGR for ONNX (see corresponding comment in single_face path).
-            crops = np.stack(
-                [
-                    cv2.cvtColor(face_item["aligned_face"], cv2.COLOR_RGB2BGR)
-                    for _, face_item in chunk
-                ],
-                axis=0,
-            )
-            kps_batch = None
-            if needs_kps:
-                kps_batch = np.stack(
-                    [face_item["aligned_keypoints"] for _, face_item in chunk],
-                    axis=0,
-                )
-            embeddings, fiqa_scores = self._try_compute_embeddings_batch(
-                crops, aligned_keypoints_batch=kps_batch,
-            )
-
-            for k, (img_idx, face_item) in enumerate(chunk):
-                if self.concat_embeddings:
-                    emb = embeddings[k]
-                else:
-                    emb = [per_model[k] for per_model in embeddings]
-                fiqa = (
-                    float(fiqa_scores[k]) if fiqa_scores is not None else None
-                )
-                results_multi[img_idx].append(
-                    self._assemble_result_from_align_only(face_item, emb, fiqa)
-                )
-
-        return results_multi
 
     def _load_image(self, imgpath):
         """Load image from file path or return the array if already loaded."""
