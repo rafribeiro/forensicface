@@ -28,6 +28,8 @@ embedding extraction now has a public `process_aligned_faces_batch()` method
 instead of the short-lived private `_compute_embeddings_batch()` entry point.
 Batch image orchestration has also moved into `batch.py`, with
 `ForensicFace.process_images_batch()` preserved as the public wrapper.
+Result assembly now uses an internal `AlignedFace` dataclass, and comparison
+plus image-set aggregation workflows live in `comparison.py`.
 The remaining items below still describe the direction for follow-up refactors.
 
 Recommended direction:
@@ -300,7 +302,8 @@ Problem:
 
 The math itself is not tied to model sessions. `compare()` and
 `aggregate_from_images()` need the facade to process images, but cosine and
-aggregation functions do not.
+aggregation functions do not. The math now lives in `utils.py`, while the
+workflow orchestration lives in `comparison.py`.
 
 Proposal:
 
@@ -387,6 +390,7 @@ src/forensicface/
   preprocessing.py       # image/keypoint input normalization
   recognition.py         # recognition/FIQA session runner
   batch.py               # batch image processing task
+  comparison.py          # comparison and image-set aggregation tasks
   results.py             # AlignedFace/result assembly helpers
   geometry.py            # bbox, face selection, keypoint geometry
   video.py               # video extraction task
@@ -454,5 +458,4 @@ Keep as methods or wrappers for end-user convenience:
 
 Consider later:
 
-- Add typed result dataclasses internally, but continue returning dictionaries
-  publicly unless the public API is intentionally versioned.
+- Revisit public return types only through an intentional versioned migration.

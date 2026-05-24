@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from forensicface.comparison import aggregate_from_images, compare_faces
 from forensicface.geometry import extend_bbox, select_best_face
 from forensicface.preprocessing import normalize_aligned_keypoints, to_ada_input
 from forensicface.recognition import (
@@ -12,7 +13,9 @@ from forensicface.recognition import (
     try_compute_embeddings_batch,
 )
 from forensicface.results import (
+    AlignedFace,
     FaceResult,
+    assemble_face_result,
     build_align_result,
     build_face_result,
 )
@@ -177,6 +180,56 @@ def test_build_face_result_maps_pose_and_per_model_embeddings():
     assert "embedding" not in result
 
 
+def test_assemble_face_result_accepts_aligned_face_dataclass():
+    aligned = AlignedFace(
+        aligned_face=np.zeros((112, 112, 3), dtype=np.uint8),
+        bbox=np.array([1.2, 2.2, 3.2, 4.2]),
+        keypoints=np.array([[0.0, 0.0], [6.0, 8.0], [0, 0], [0, 0], [0, 0]]),
+        aligned_keypoints=np.ones((5, 2), dtype=np.float32),
+        det_score=0.95,
+        gender=1,
+        age=44,
+        pose=np.array([1.0, 2.0, 3.0]),
+    )
+
+    result = assemble_face_result(
+        aligned_face=aligned,
+        embeddings=np.array([1.0, 2.0], dtype=np.float32),
+        fiqa_score=0.7,
+        models=["dummy"],
+        extended=True,
+        concat_embeddings=True,
+    )
+
+    assert result.ipd == 10.0
+    assert result.gender == "M"
+    assert result.age == 44
+    assert result.yaw == 2.0
+    np.testing.assert_array_equal(result.bbox, [1, 2, 3, 4])
+    np.testing.assert_array_equal(result.embedding, [1.0, 2.0])
+
+
+def test_aligned_face_can_be_built_from_align_result_mapping():
+    align_result = FaceResult(
+        {
+            "aligned_face": np.zeros((112, 112, 3), dtype=np.uint8),
+            "bbox": np.array([1, 2, 3, 4]),
+            "keypoints": np.zeros((5, 2), dtype=np.float32),
+            "aligned_keypoints": np.ones((5, 2), dtype=np.float32),
+            "det_score": 0.8,
+            "gender": "F",
+            "age": 36,
+        }
+    )
+
+    aligned = AlignedFace.from_align_result(align_result)
+
+    assert aligned.aligned_face is align_result.aligned_face
+    assert aligned.gender == "F"
+    assert aligned.age == 36
+    np.testing.assert_array_equal(aligned.aligned_keypoints, np.ones((5, 2)))
+
+
 def test_build_keypoint_model_inputs_validates_and_normalizes_keypoints():
     session = _Session(["input_images", "keypoints"], [np.zeros((1, 2))])
     img_to_input = np.zeros((1, 3, 112, 112), dtype=np.float32)
@@ -337,3 +390,67 @@ def test_try_compute_embeddings_batch_splits_cuda_oom_and_merges_results():
     np.testing.assert_array_equal(seen_keypoints[4], keypoints[2:])
     assert embeddings.shape == (3, 2)
     np.testing.assert_allclose(fiqa_scores, batch[:, 0, 0, 0])
+
+
+def test_compare_faces_uses_concatenated_embeddings():
+    class _Processor:
+        concat_embeddings = True
+
+        def process_image(self, imgpath, single_face=True):
+            assert single_face is True
+            embeddings = {
+                "a": np.array([1.0, 0.0], dtype=np.float32),
+                "b": np.array([0.0, 1.0], dtype=np.float32),
+            }
+            return FaceResult({"embedding": embeddings[imgpath]})
+
+    assert compare_faces(_Processor(), "a", "a") == pytest.approx(1.0)
+    assert compare_faces(_Processor(), "a", "b") == pytest.approx(0.0)
+
+
+def test_compare_faces_rejects_non_concatenated_processor():
+    class _Processor:
+        concat_embeddings = False
+
+    with pytest.raises(ValueError, match="concat_embeddings=False"):
+        compare_faces(_Processor(), "a", "b")
+
+
+def test_aggregate_from_images_handles_per_model_embeddings_with_quality_weights():
+    class _Processor:
+        concat_embeddings = False
+        extended = True
+        models = ["a", "b"]
+
+        def process_image(self, imgpath, single_face=True):
+            assert single_face is True
+            if imgpath == "missing":
+                return []
+            return FaceResult(
+                {
+                    "embedding_a": np.array([1.0, 3.0], dtype=np.float32)
+                    if imgpath == "low"
+                    else np.array([3.0, 5.0], dtype=np.float32),
+                    "embedding_b": np.array([10.0, 30.0], dtype=np.float32)
+                    if imgpath == "low"
+                    else np.array([30.0, 50.0], dtype=np.float32),
+                    "fiqa_score": 1.0 if imgpath == "low" else 3.0,
+                }
+            )
+
+    result = aggregate_from_images(
+        _Processor(),
+        ["low", "missing", "high"],
+        quality_weight=True,
+    )
+
+    np.testing.assert_allclose(result["embedding_a"], [2.5, 4.5])
+    np.testing.assert_allclose(result["embedding_b"], [25.0, 45.0])
+
+
+def test_aggregate_from_images_rejects_quality_weights_without_extended():
+    class _Processor:
+        extended = False
+
+    with pytest.raises(ValueError, match="extended = True"):
+        aggregate_from_images(_Processor(), ["img"], quality_weight=True)

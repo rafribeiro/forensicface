@@ -6,9 +6,12 @@ import os.path as osp
 import warnings
 from .backends import FaceData, FaceBackend, create_backend
 from .batch import process_images_batch as process_images_batch_workflow
+from .comparison import (
+    aggregate_from_images as aggregate_from_images_workflow,
+    compare_faces,
+)
 from .utils import (
     aggregate_embeddings,
-    cosine_score,
     freeze_env,
     transform_keypoints,
     annotate_img_with_kps,
@@ -369,7 +372,11 @@ class ForensicFace:
                     bgr_aligned_face, aligned_kps
                 )
             result = self._assemble_result(
-                face, bgr_aligned_face, embeddings, fiqa_score
+                face,
+                bgr_aligned_face,
+                aligned_kps,
+                embeddings,
+                fiqa_score,
             )
             results.append(result)
 
@@ -442,12 +449,15 @@ class ForensicFace:
             aligned_keypoints_batch=aligned_keypoints_batch,
         )
 
-    def _assemble_result(self, face: FaceData, bgr_aligned_face, embeddings, fiqa_score):
+    def _assemble_result(
+        self, face: FaceData, bgr_aligned_face, aligned_keypoints, embeddings, fiqa_score
+    ):
         """Assembles the result dictionary for a face."""
         return build_face_result(
             aligned_face=cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
             bbox=face.bbox,
             keypoints=face.kps,
+            aligned_keypoints=aligned_keypoints,
             det_score=face.det_score,
             embeddings=embeddings,
             fiqa_score=fiqa_score,
@@ -600,21 +610,7 @@ class ForensicFace:
             ValueError: If ``concat_embeddings`` is False, because this method
                 requires a single concatenated embedding for each image.
         """
-        if not self.concat_embeddings:
-            raise ValueError(
-                "compare() is not compatible with concat_embeddings=False. "
-                "Instantiate ForensicFace with concat_embeddings=True, or "
-                "compare the model-specific embedding_<model_name> arrays manually."
-            )
-
-        img1data = self.process_image(img1path, single_face=True)
-        if len(img1data) == 0:
-            raise ValueError(f"No face detected in {img1path}")
-        img2data = self.process_image(img2path, single_face=True)
-        if len(img2data) == 0:
-            raise ValueError(f"No face detected in {img2path}")
-
-        return cosine_score(img1data["embedding"], img2data["embedding"])
+        return compare_faces(self, img1path, img2path)
 
     def aggregate_embeddings(
         self,
@@ -662,40 +658,12 @@ class ForensicFace:
             keys in the form ``embedding_<model_name>``. If no faces are found,
             returns an empty list.
         """
-        if quality_weight:
-            if self.extended is not True:
-                raise ValueError("You must initialize ForensicFace with extended = True")
-
-        if self.concat_embeddings:
-            embeddings = []
-        else:
-            embeddings = {model_name: [] for model_name in self.models}
-        weights = []
-        for imgpath in list_of_image_paths:
-            d = self.process_image(imgpath, single_face=True)
-            if len(d) > 0:
-                if self.concat_embeddings:
-                    embeddings.append(d["embedding"])
-                else:
-                    for model_name in self.models:
-                        embeddings[model_name].append(d[f"embedding_{model_name}"])
-                weights.append(d["fiqa_score"] if quality_weight == True else 1.0)
-        if len(weights) > 0:
-            weights_array = np.array(weights)
-            if not self.concat_embeddings:
-                return {
-                    f"embedding_{model_name}": self.aggregate_embeddings(
-                        np.array(model_embeddings),
-                        method=method,
-                        weights=weights_array,
-                    )
-                    for model_name, model_embeddings in embeddings.items()
-                }
-            return self.aggregate_embeddings(
-                np.array(embeddings), method=method, weights=weights_array
-            )
-        else:
-            return []
+        return aggregate_from_images_workflow(
+            self,
+            list_of_image_paths,
+            method=method,
+            quality_weight=quality_weight,
+        )
 
     def _get_extended_bbox(self, bbox, frame_shape, margin_factor):
         """
