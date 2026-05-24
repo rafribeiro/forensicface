@@ -59,7 +59,7 @@ class ONNXOnlyBackend(FaceBackend):
         self.name = "onnx"
         model_dir = osp.join(models_root, model_name)
 
-        onnx_files = self._collect_onnx_files(models_root, model_name)
+        onnx_files = collect_backend_model_files(models_root, model_name)
         if not onnx_files:
             new_detection = osp.join(models_root, "detection")
             new_attributes = osp.join(models_root, "attributes")
@@ -142,10 +142,6 @@ class ONNXOnlyBackend(FaceBackend):
             self.landmark_model.prepare(ctx_id)
         if self.genderage_model is not None:
             self.genderage_model.prepare(ctx_id)
-
-    @staticmethod
-    def _collect_onnx_files(models_root: str, model_name: str) -> list[str]:
-        return collect_backend_model_files(models_root, model_name)
 
     def detect_faces(self, bgr_img: np.ndarray) -> list[FaceData]:
         bboxes, kpss = self.det_model.detect(bgr_img, max_num=0, metric="default")

@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import os.path as osp
 import warnings
-from .backends import FaceData, FaceBackend, create_backend
+from .backends import FaceBackend, create_backend
 from .batch import process_images_batch as process_images_batch_workflow
 from .comparison import (
     aggregate_from_images as aggregate_from_images_workflow,
@@ -18,21 +18,14 @@ from .utils import (
 )
 from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
-from .geometry import extend_bbox, select_best_face
+from .geometry import select_best_face
 from .model_store import resolve_quality_model, resolve_recognition_model
 from .mosaic import build_aligned_face_mosaic
-from .preprocessing import normalize_aligned_keypoints, to_ada_input
-from .recognition import (
-    RecognitionRunner,
-    build_keypoint_model_inputs,
-    looks_like_cuda_oom,
-    try_compute_embeddings_batch,
-)
+from .recognition import RecognitionRunner
 from .results import (
     FaceResult,
     build_align_result,
     build_face_result,
-    build_face_result_from_align_result,
 )
 from .video import extract_faces_from_video
 
@@ -116,7 +109,7 @@ class ForensicFace:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
 
             self.ort_fiqa = onnxruntime.InferenceSession(
-                self._resolve_quality_model(self.models[0]),
+                resolve_quality_model(self.models_root, self.models[0]),
                 providers=[self.providers[0]],
             )
         else:
@@ -161,33 +154,6 @@ class ForensicFace:
             providers=providers,
         )
 
-    def _resolve_quality_model(self, model_name: str) -> str:
-        """Resolves the CR-FIQA quality model path.
-
-        Tries the new shared layout first
-        (``<models_root>/quality/cr_fiqa_l.onnx``) and falls back to the
-        legacy per-model layout
-        (``<models_root>/<model_name>/cr_fiqa/cr_fiqa_l.onnx``).
-        """
-        return resolve_quality_model(self.models_root, model_name)
-
-    def _to_input_ada(self, aligned_bgr_img):
-        """
-        Preprocesses the input face(s) for the face recognition model.
-
-        Args:
-            aligned_bgr_img: Face image(s) in BGR order as a numpy array.
-                Accepts a single image with shape ``(H, W, 3)`` or a batch
-                with shape ``(N, H, W, 3)``.
-
-        Returns:
-            Preprocessed face image(s) as a numpy array with shape
-            ``(1, 3, H, W)`` for a single input or ``(N, 3, H, W)`` for
-            a batch input. Same normalization in both cases — single
-            source of truth for image preprocessing.
-        """
-        return to_ada_input(aligned_bgr_img, image_size=self.IMG_SIZE)
-
     def _recognition_runner(self):
         return RecognitionRunner(
             models=self.models,
@@ -200,10 +166,6 @@ class ForensicFace:
             image_input_name=self.SEPAELV6_IMAGE_INPUT,
             keypoints_input_name=self.SEPAELV6_KEYPOINTS_INPUT,
         )
-
-    def _get_best_face(self, img, faces, criterion="size"):
-        """Get the best face based on a criterion: 'centrality' or 'size'."""
-        return select_best_face(img.shape, faces, criterion=criterion)
 
     def process_image_single_face(
         self, imgpath: str, draw_keypoints=False
@@ -265,8 +227,10 @@ class ForensicFace:
 
         if single_face:
             faces = [
-                self._get_best_face(
-                    bgr_img, faces, criterion=select_single_face_by
+                select_best_face(
+                    bgr_img.shape,
+                    faces,
+                    criterion=select_single_face_by,
                 )
             ]
 
@@ -357,26 +321,38 @@ class ForensicFace:
 
         if single_face:
             faces = [
-                self._get_best_face(bgr_img, faces, criterion=select_single_face_by)
+                select_best_face(
+                    bgr_img.shape,
+                    faces,
+                    criterion=select_single_face_by,
+                )
             ]
 
         results = []
         for face in faces:
             bgr_aligned_face = self.backend.norm_crop(bgr_img, face.kps)
             aligned_kps = self._align_keypoints(face.kps)
-            embeddings, fiqa_score = self._compute_embeddings(
+            embeddings, fiqa_score = self._recognition_runner().compute_one(
                 bgr_aligned_face, aligned_keypoints=aligned_kps
             )
             if draw_keypoints:
                 bgr_aligned_face = self._draw_keypoints_on_aligned_face(
                     bgr_aligned_face, aligned_kps
                 )
-            result = self._assemble_result(
-                face,
-                bgr_aligned_face,
-                aligned_kps,
-                embeddings,
-                fiqa_score,
+            result = build_face_result(
+                aligned_face=cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
+                bbox=face.bbox,
+                keypoints=face.kps,
+                aligned_keypoints=aligned_kps,
+                det_score=face.det_score,
+                embeddings=embeddings,
+                fiqa_score=fiqa_score,
+                models=self.models,
+                extended=self.extended,
+                concat_embeddings=self.concat_embeddings,
+                gender=face.gender,
+                age=face.age,
+                pose=face.pose,
             )
             results.append(result)
 
@@ -392,103 +368,6 @@ class ForensicFace:
             aligned_face, kps=aligned_keypoints, color="green"
         )
         return annotated_aligned_face
-
-    def _compute_embeddings(self, bgr_aligned_face, aligned_keypoints=None):
-        """Computes embeddings and FIQA score for an aligned face."""
-        return self._recognition_runner().compute_one(
-            bgr_aligned_face,
-            aligned_keypoints=aligned_keypoints,
-        )
-
-    def _build_keypoint_model_inputs(
-        self, model_name, rec_ort, img_to_input, aligned_keypoints
-    ):
-        return build_keypoint_model_inputs(
-            model_name=model_name,
-            rec_ort=rec_ort,
-            img_to_input=img_to_input,
-            aligned_keypoints=aligned_keypoints,
-            image_size=self.IMG_SIZE,
-            image_input_name=self.SEPAELV6_IMAGE_INPUT,
-            keypoints_input_name=self.SEPAELV6_KEYPOINTS_INPUT,
-        )
-
-    def _to_keypoints_input(self, aligned_keypoints, model_name):
-        return normalize_aligned_keypoints(
-            aligned_keypoints,
-            model_name=model_name,
-            image_size=self.IMG_SIZE,
-        )
-
-    @staticmethod
-    def _looks_like_cuda_oom(exc: BaseException) -> bool:
-        """Best-effort match for CUDA out-of-memory errors raised by
-        ONNX Runtime. Provider-specific exception types vary by build,
-        so we string-match on the message — broad enough to catch
-        ORT's CUDA, TRT, and DML provider OOMs."""
-        return looks_like_cuda_oom(exc)
-
-    def _try_compute_embeddings_batch(
-        self, bgr_aligned_batch, aligned_keypoints_batch=None,
-    ):
-        """Calls batched recognition inference with CUDA OOM auto-retry.
-
-        On OOM, halves the batch and recurses on each half, concatenating
-        results to match the original call signature. Emits a one-line
-        warning so the user notices and lowers ``batch_size`` upstream.
-        Re-raises if even ``batch_size=1`` OOMs (= genuine out-of-memory,
-        not just over-eager batching).
-
-        ``aligned_keypoints_batch`` é fatiado em paralelo com
-        ``bgr_aligned_batch`` quando fornecido — necessário pra modelos
-        em ``KEYPOINT_RECOGNITION_MODELS`` (sepaelv6/KPRPE).
-        """
-        return try_compute_embeddings_batch(
-            self._recognition_runner().compute_batch,
-            bgr_aligned_batch,
-            aligned_keypoints_batch=aligned_keypoints_batch,
-        )
-
-    def _assemble_result(
-        self, face: FaceData, bgr_aligned_face, aligned_keypoints, embeddings, fiqa_score
-    ):
-        """Assembles the result dictionary for a face."""
-        return build_face_result(
-            aligned_face=cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
-            bbox=face.bbox,
-            keypoints=face.kps,
-            aligned_keypoints=aligned_keypoints,
-            det_score=face.det_score,
-            embeddings=embeddings,
-            fiqa_score=fiqa_score,
-            models=self.models,
-            extended=self.extended,
-            concat_embeddings=self.concat_embeddings,
-            gender=face.gender,
-            age=face.age,
-            pose=face.pose,
-        )
-
-    def _assemble_result_from_align_only(
-        self, align_item, embeddings, fiqa_score
-    ):
-        """Builds a ``process_image``-compatible result dict from an
-        ``align_only`` output plus embeddings extracted in batch.
-
-        Output keys and types match ``_assemble_result`` exactly, so
-        callers can treat the two interchangeably.
-
-        Note: ``align_only`` already returns ``aligned_face`` in RGB
-        and ``gender`` as ``"M"``/``"F"`` — no conversion here.
-        """
-        return build_face_result_from_align_result(
-            align_item=align_item,
-            embeddings=embeddings,
-            fiqa_score=fiqa_score,
-            models=self.models,
-            extended=self.extended,
-            concat_embeddings=self.concat_embeddings,
-        )
 
     def process_images_batch(
         self,
@@ -519,7 +398,7 @@ class ForensicFace:
                 with room for a second model. Raise it on bigger GPUs
                 for more throughput; lower it on CPU. If the batch
                 causes a CUDA OOM, the call auto-halves the batch and
-                may warn while reducing the batch size (see ``_try_compute_embeddings_batch``).
+                may warn while reducing the batch size.
 
         Returns:
             list: Results parallel to ``imgpaths``. With ``single_face=True``,
@@ -665,20 +544,6 @@ class ForensicFace:
             quality_weight=quality_weight,
         )
 
-    def _get_extended_bbox(self, bbox, frame_shape, margin_factor):
-        """
-        Computes and returns the bounding box with extended margins.
-
-        Parameters:
-            bbox (ndarray): The bounding box coordinates (startX, startY, endX, endY).
-            frame_shape (tuple): The shape of the video frame (height, width, channels).
-            margin_factor (float): The factor to be applied for computing the margin.
-
-        Returns:
-            A list with the coordinates of the extended bounding box (startX_out, startY_out, endX_out, endY_out).
-        """
-        return extend_bbox(bbox, frame_shape, margin_factor)
-
     def extract_faces(
         self,
         video_path: str,  # path to video file
@@ -733,7 +598,7 @@ class ForensicFace:
                 f"got {rgb_aligned_face.shape}."
             )
         bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
-        embeddings, fiqa_score = self._compute_embeddings(
+        embeddings, fiqa_score = self._recognition_runner().compute_one(
             bgr_aligned_face, aligned_keypoints=keypoints
         )
 

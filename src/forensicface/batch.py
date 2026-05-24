@@ -5,6 +5,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+from .results import build_face_result_from_align_result
+
 
 __all__ = ["process_images_batch"]
 
@@ -99,10 +101,12 @@ def _process_single_face_images_batch(
         )
 
         for k, idx in enumerate(chunk_idx):
-            results[idx] = processor._assemble_result_from_align_only(
+            results[idx] = _assemble_result(
+                processor,
                 aligned_items[idx],
-                _embedding_at(embeddings, k, processor.concat_embeddings),
-                _fiqa_at(fiqa_scores, k),
+                embeddings,
+                fiqa_scores,
+                k,
             )
 
     return results
@@ -142,10 +146,12 @@ def _process_multi_face_images_batch(
 
         for k, (img_idx, face_item) in enumerate(chunk):
             results_multi[img_idx].append(
-                processor._assemble_result_from_align_only(
+                _assemble_result(
+                    processor,
                     face_item,
-                    _embedding_at(embeddings, k, processor.concat_embeddings),
-                    _fiqa_at(fiqa_scores, k),
+                    embeddings,
+                    fiqa_scores,
+                    k,
                 )
             )
 
@@ -157,7 +163,18 @@ def _compute_batch_for_aligned_items(processor, aligned_items, *, needs_kps: boo
     # sessions are fed BGR crops.
     crops = _aligned_rgb_items_to_bgr_batch(aligned_items)
     keypoints_batch = _aligned_keypoints_batch(aligned_items) if needs_kps else None
-    return processor._try_compute_embeddings_batch(
+    return processor._recognition_runner().try_compute_batch(
         crops,
         aligned_keypoints_batch=keypoints_batch,
+    )
+
+
+def _assemble_result(processor, align_item, embeddings, fiqa_scores, index: int):
+    return build_face_result_from_align_result(
+        align_item=align_item,
+        embeddings=_embedding_at(embeddings, index, processor.concat_embeddings),
+        fiqa_score=_fiqa_at(fiqa_scores, index),
+        models=processor.models,
+        extended=processor.extended,
+        concat_embeddings=processor.concat_embeddings,
     )

@@ -562,10 +562,7 @@ def test_resolve_quality_model_prefers_new_layout(monkeypatch, tmp_path):
     new_path = quality_dir / "cr_fiqa_l.onnx"
     new_path.write_bytes(b"fake-onnx")
 
-    ff = object.__new__(ForensicFace)
-    ff.models_root = str(tmp_path)
-
-    resolved = ff._resolve_quality_model("sepaelv2")
+    resolved = model_store.resolve_quality_model(str(tmp_path), "sepaelv2")
     assert Path(resolved) == new_path
 
 
@@ -575,19 +572,13 @@ def test_resolve_quality_model_falls_back_to_legacy_layout(tmp_path):
     legacy_path = legacy_dir / "cr_fiqa_l.onnx"
     legacy_path.write_bytes(b"fake-onnx")
 
-    ff = object.__new__(ForensicFace)
-    ff.models_root = str(tmp_path)
-
-    resolved = ff._resolve_quality_model("sepaelv2")
+    resolved = model_store.resolve_quality_model(str(tmp_path), "sepaelv2")
     assert Path(resolved) == legacy_path
 
 
 def test_resolve_quality_model_raises_when_missing(tmp_path):
-    ff = object.__new__(ForensicFace)
-    ff.models_root = str(tmp_path)
-
     with pytest.raises(FileNotFoundError, match="cr_fiqa_l.onnx"):
-        ff._resolve_quality_model("sepaelv2")
+        model_store.resolve_quality_model(str(tmp_path), "sepaelv2")
 
 
 def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypatch):

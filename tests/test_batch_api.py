@@ -1,5 +1,4 @@
-"""Tests for the optional batched API (align_only, process_aligned_faces_batch,
-process_images_batch, _assemble_result_from_align_only)."""
+"""Tests for the optional batched API."""
 
 import numpy as np
 import pytest
@@ -151,8 +150,8 @@ def _make_ff(
     )
     if extended:
         monkeypatch.setattr(
-            ForensicFace,
-            "_resolve_quality_model",
+            app_module,
+            "resolve_quality_model",
             lambda *_args, **_kwargs: "dummy_cr_fiqa_l.onnx",
         )
         monkeypatch.setattr(
@@ -295,7 +294,7 @@ def test_process_aligned_faces_batch_fiqa_shape_when_extended(monkeypatch):
 
 def test_process_aligned_faces_batch_matches_single_numerically(monkeypatch):
     """The batch version must produce bit-identical embeddings to the
-    single _compute_embeddings, since ONNX ops are the same."""
+    single-face recognition path, since ONNX ops are the same."""
     ff, _ = _make_ff(monkeypatch, dim=4, two_outputs=True, n_models=1)
     batch = np.random.RandomState(0).randint(
         0, 256, size=(3, 112, 112, 3), dtype=np.uint8

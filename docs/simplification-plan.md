@@ -18,10 +18,11 @@ Update: the first implementation pass introduced `FaceResult(dict)` for public
 face results and extracted initial helper modules for result assembly,
 preprocessing, geometry, and model-store path resolution. A follow-up pass
 extracted recognition/FIQA inference into `recognition.py` while keeping
-`ForensicFace` private wrapper methods for compatibility. A later pass moved
-the mosaic and video extraction workflows into `mosaic.py` and `video.py`,
-again keeping `ForensicFace` methods as wrappers. Another pass moved cosine
-score and embedding aggregation math into `utils.py`. The latest pass replaced
+temporary `ForensicFace` private wrapper methods for compatibility; those
+redundant pass-through wrappers have since been removed. A later pass moved the
+mosaic and video extraction workflows into `mosaic.py` and `video.py`, while
+preserving public `ForensicFace` convenience methods. Another pass moved cosine
+score and embedding aggregation math into `utils.py`. A later pass replaced
 user-facing `assert` validation with explicit `ValueError` exceptions in the
 core facade, utilities, recognition runner, and mosaic workflow. Batch
 embedding extraction now has a public `process_aligned_faces_batch()` method
@@ -63,8 +64,6 @@ Recommended direction:
 Current locations:
 
 - `ForensicFace._load_model()` in `src/forensicface/app.py`
-- `ForensicFace._resolve_quality_model()` in `src/forensicface/app.py`
-- `ONNXOnlyBackend._collect_onnx_files()` in `src/forensicface/backends.py`
 
 Problem:
 
@@ -94,9 +93,8 @@ legacy layout become focused and do not need a `ForensicFace` instance.
 
 Current locations:
 
-- `ForensicFace._to_input_ada()`
-- `ForensicFace._to_keypoints_input()`
-- some RGB/BGR conversion logic inside `process_images_batch()`
+- `src/forensicface/preprocessing.py`
+- RGB/BGR conversion at task boundaries such as `batch.py`
 
 Problem:
 
@@ -126,10 +124,11 @@ preprocessing requirements.
 
 Current locations:
 
-- `ForensicFace._compute_embeddings()`
+- `RecognitionRunner.compute_one()`
+- `RecognitionRunner.compute_batch()`
 - `ForensicFace.process_aligned_faces_batch()`
-- `ForensicFace._build_keypoint_model_inputs()`
-- `ForensicFace._try_compute_embeddings_batch()`
+- `recognition.build_keypoint_model_inputs()`
+- `recognition.try_compute_embeddings_batch()`
 
 Problem:
 
@@ -160,8 +159,7 @@ single owner. Batch and single behavior can be tested against the same runner.
 
 Current locations:
 
-- `ForensicFace._assemble_result()`
-- `ForensicFace._assemble_result_from_align_only()`
+- `src/forensicface/results.py`
 - attribute formatting in `align_only()`
 
 Problem:
@@ -203,9 +201,8 @@ RGB conversion. It also makes output compatibility easier to enforce.
 
 Current locations:
 
-- `ForensicFace._get_best_face()`
+- `src/forensicface/geometry.py`
 - `ForensicFace._align_keypoints()`
-- `ForensicFace._get_extended_bbox()`
 
 Problem:
 
@@ -326,7 +323,7 @@ Tests for numerical behavior become simpler.
 
 Current examples:
 
-- `_get_best_face()` checks criterion and non-empty faces.
+- `geometry.select_best_face()` checks criterion and non-empty faces.
 - `process_aligned_faces_batch()` checks crop shape.
 - `aggregate_embeddings()` checks shape and method.
 - `process_aligned_face_image()` checks aligned face shape.
@@ -413,7 +410,7 @@ clear concept and have tests that are simpler than the original class tests.
    score.
 3. Extract result assembly and introduce an `AlignedFace` dataclass.
 4. Extract model path resolution into `model_store.py`.
-5. Extract recognition runner, preserving current private method wrappers.
+5. Extract recognition runner.
 6. Move video and mosaic workflows behind wrapper methods.
 7. Replace `assert` validation with explicit exceptions.
 8. Revisit public return types only after internal boundaries are stable.
@@ -432,7 +429,7 @@ clear concept and have tests that are simpler than the original class tests.
 
 ## Concrete "Move Out of Class" Checklist
 
-High-confidence candidates:
+Completed move-out candidates:
 
 - `_to_input_ada()` -> `preprocessing.to_ada_input()`
 - `_to_keypoints_input()` -> `preprocessing.normalize_aligned_keypoints()`
@@ -442,8 +439,13 @@ High-confidence candidates:
 - `_looks_like_cuda_oom()` -> `recognition.looks_like_cuda_oom()`
 - `_assemble_result()` and `_assemble_result_from_align_only()` ->
   `results.assemble_face_result()`
-- `_load_model()` and `_resolve_quality_model()` path logic ->
+- `_resolve_quality_model()` and backend ONNX collection path logic ->
   `model_store.py`
+
+Remaining intentional private helper:
+
+- `_load_model()` still creates an ONNX Runtime session from the resolved
+  recognition model path and remains a useful initialization/test seam.
 
 Keep as methods or wrappers for end-user convenience:
 

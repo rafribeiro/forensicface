@@ -7,6 +7,8 @@ import os
 import cv2
 from tqdm import tqdm
 
+from .geometry import extend_bbox
+
 
 __all__ = ["extract_faces_from_video"]
 
@@ -54,7 +56,7 @@ def extract_faces_from_video(
 
             rets = processor.process_image(frame, single_face=False)
             for i, ret in enumerate(rets):
-                out_bbox = processor._get_extended_bbox(
+                out_bbox = extend_bbox(
                     ret["bbox"], frame.shape, margin_factor=margin
                 )
                 face_crop = frame[
