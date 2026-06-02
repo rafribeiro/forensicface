@@ -444,6 +444,8 @@ class ForensicFace:
         border: float = 0.03,
         save_to: str | None = None,
         draw_keypoints: bool = False,
+        aligned_faces: list | np.ndarray | None = None,
+        keypoints: list | np.ndarray | None = None,
     ) -> np.ndarray:
         """
         Build a rectangular mosaic of the aligned faces.
@@ -454,7 +456,12 @@ class ForensicFace:
             mosaic_shape: tuple of integers, (n_cols, n_rows)
             border: float, percent of image to use as white border
             save_to: optional path used to save the mosaic image.
-            draw_keypoints: if True, draw keypoints on each aligned face.
+            draw_keypoints: if True, draw keypoints on each aligned face.    
+            aligned_faces: optional list/array of already aligned RGB face images.
+                When provided, images are not processed again.
+            keypoints: optional list/array of aligned keypoints, one per aligned face.
+                Required when draw_keypoints=True and aligned_faces is provided.
+
 
         Returns:
             np.ndarray: OpenCV BGR image with mosaic.
@@ -466,6 +473,8 @@ class ForensicFace:
             border=border,
             save_to=save_to,
             draw_keypoints=draw_keypoints,
+            aligned_faces=aligned_faces,
+            keypoints=keypoints,
         )
 
     def compare(self, img1path: str, img2path: str) -> float:
