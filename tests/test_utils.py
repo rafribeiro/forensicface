@@ -1,6 +1,13 @@
+import inspect
+
 import numpy as np
 import pytest
 
+from forensicface.app import ForensicFace
+from forensicface.mosaic import (
+    build_mosaic_from_aligned_faces,
+    build_mosaic_from_images,
+)
 from forensicface.utils import (
     aggregate_embeddings,
     annotate_img_with_kps,
@@ -8,7 +15,6 @@ from forensicface.utils import (
     cosine_score,
     cosine_similarity,
 )
-from forensicface.mosaic import build_aligned_face_mosaic
 
 
 def test_cosine_score_matches_single_pair_from_matrix_similarity():
@@ -79,9 +85,79 @@ def test_annotate_img_with_kps_rejects_invalid_color_and_shape():
         annotate_img_with_kps(img, np.zeros((4, 2), dtype=np.float32))
 
 
-def test_build_aligned_face_mosaic_rejects_missing_shape():
-    class _Processor:
-        IMG_SIZE = (112, 112)
+def test_build_mosaic_from_aligned_faces_tiles_rgb_faces_as_bgr():
+    red_rgb = np.full((2, 2, 3), [255, 0, 0], dtype=np.uint8)
+    green_rgb = np.full((2, 2, 3), [0, 255, 0], dtype=np.uint8)
+    blue_rgb = np.full((2, 2, 3), [0, 0, 255], dtype=np.uint8)
 
-    with pytest.raises(ValueError, match="mosaic_shape"):
-        build_aligned_face_mosaic(_Processor(), [], None)
+    mosaic = build_mosaic_from_aligned_faces(
+        [red_rgb, green_rgb, blue_rgb],
+        mosaic_shape=(2, 2),
+        border=0,
+        image_size=(2, 2),
+    )
+
+    assert mosaic.shape == (4, 4, 3)
+    np.testing.assert_array_equal(mosaic[0, 0], [0, 0, 255])
+    np.testing.assert_array_equal(mosaic[0, 2], [0, 255, 0])
+    np.testing.assert_array_equal(mosaic[2, 0], [255, 0, 0])
+    np.testing.assert_array_equal(mosaic[2, 2], [0, 0, 0])
+
+
+def test_build_mosaic_from_aligned_faces_validates_keypoints():
+    aligned_faces = [np.zeros((112, 112, 3), dtype=np.uint8)]
+
+    with pytest.raises(ValueError, match="requires keypoints"):
+        build_mosaic_from_aligned_faces(
+            aligned_faces,
+            mosaic_shape=(1, 1),
+            draw_keypoints=True,
+        )
+
+    with pytest.raises(ValueError, match="same length"):
+        build_mosaic_from_aligned_faces(
+            aligned_faces,
+            mosaic_shape=(1, 1),
+            keypoints=[],
+        )
+
+
+def test_build_mosaic_from_images_processes_original_images():
+    class _Processor:
+        IMG_SIZE = (2, 2)
+
+        def __init__(self):
+            self.calls = []
+
+        def process_image(self, img, draw_keypoints=False, single_face=True):
+            self.calls.append((img, draw_keypoints, single_face))
+            return {
+                "aligned_face": np.full((2, 2, 3), [10, 20, 30], dtype=np.uint8),
+            }
+
+    processor = _Processor()
+    mosaic = build_mosaic_from_images(
+        processor,
+        ["a.jpg", "b.jpg"],
+        mosaic_shape=(2, 1),
+        border=0,
+        draw_keypoints=True,
+    )
+
+    assert processor.calls == [
+        ("a.jpg", True, True),
+        ("b.jpg", True, True),
+    ]
+    assert mosaic.shape == (2, 4, 3)
+    np.testing.assert_array_equal(mosaic[0, 0], [30, 20, 10])
+
+
+def test_forensicface_mosaic_api_separates_aligned_faces():
+    assert "aligned_faces" not in inspect.signature(ForensicFace.build_mosaic).parameters
+
+    ff = ForensicFace.__new__(ForensicFace)
+    aligned_face = np.zeros((112, 112, 3), dtype=np.uint8)
+
+    mosaic = ff.build_mosaic_from_aligned_faces([aligned_face], mosaic_shape=(1, 1), border=0)
+
+    assert mosaic.shape == (112, 112, 3)

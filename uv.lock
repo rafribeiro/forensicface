@@ -505,10 +505,9 @@ wheels = [
 
 [[package]]
 name = "forensicface"
-version = "0.7.1"
+version = "0.7.2"
 source = { editable = "." }
 dependencies = [
-    { name = "imutils" },
     { name = "numpy" },
     { name = "onnx" },
     { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"] },
@@ -530,7 +529,6 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "imutils" },
     { name = "jupyter", marker = "extra == 'docs'", specifier = ">=1.1.0" },
     { name = "matplotlib", marker = "extra == 'docs'", specifier = ">=3.9.0" },
     { name = "numpy" },
@@ -540,7 +538,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "quartodoc", marker = "extra == 'docs'", specifier = ">=0.11.1" },
-    { name = "scikit-image" },
+    { name = "scikit-image", specifier = ">=0.26.0" },
     { name = "tqdm" },
 ]
 provides-extras = ["dev", "docs"]
@@ -668,12 +666,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e4/06/b56dfa750b44e8615
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/db/55a262f3606bebcae07cc14095338471ad7c0bbcaa37707e6f0ee49725b7/importlib_resources-7.1.0-py3-none-any.whl", hash = "sha256:1bd7b48b4088eddb2cd16382150bb515af0bd2c70128194392725f82ad2c96a1", size = 37232, upload-time = "2026-04-12T16:36:08.219Z" },
 ]
-
-[[package]]
-name = "imutils"
-version = "0.5.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/d3/ecb4d108f6c1041d24842a345ee0123cd7f366ba75cf122601e856d42ba2/imutils-0.5.4.tar.gz", hash = "sha256:03827a9fca8b5c540305c0844a62591cf35a0caec199cb0f2f0a4a0fb15d8f24", size = 17240, upload-time = "2021-01-15T10:53:17.816Z" }
 
 [[package]]
 name = "iniconfig"

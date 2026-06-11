@@ -1,0 +1,27 @@
+# video { #forensicface.video }
+
+`video`
+
+Video face extraction workflow.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [extract_faces_from_video](#forensicface.video.extract_faces_from_video) | Extract detected face crops from a video using a processor object. |
+
+### extract_faces_from_video { #forensicface.video.extract_faces_from_video }
+
+```python
+video.extract_faces_from_video(
+    processor,
+    video_path,
+    dest_folder=None,
+    every_n_frames=1,
+    margin=2.0,
+    start_from=0.0,
+    export_metadata=False,
+)
+```
+
+Extract detected face crops from a video using a processor object.

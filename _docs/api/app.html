@@ -249,41 +249,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <td><a href="#forensicface.app.ForensicFace.build_mosaic">build_mosaic</a></td>
-<td>Build a rectangular mosaic of the aligned faces.</td>
+<td>Detect, align, and build a rectangular mosaic from original images.</td>
 </tr>
 <tr class="even">
-<td><a href="#forensicface.app.ForensicFace.compare">compare</a></td>
-<td>Compares the similarity between two face images based on their embeddings.</td>
+<td><a href="#forensicface.app.ForensicFace.build_mosaic_from_aligned_faces">build_mosaic_from_aligned_faces</a></td>
+<td>Build a rectangular mosaic from already aligned RGB face images.</td>
 </tr>
 <tr class="odd">
+<td><a href="#forensicface.app.ForensicFace.compare">compare</a></td>
+<td>Compute the similarity cosine between the embeddings of two face images.</td>
+</tr>
+<tr class="even">
 <td><a href="#forensicface.app.ForensicFace.detect_and_align">detect_and_align</a></td>
 <td>Detect faces and return aligned crops without embedding/FIQA.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#forensicface.app.ForensicFace.extract_faces">extract_faces</a></td>
 <td>Extracts faces from a video and saves them as individual images.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#forensicface.app.ForensicFace.process_aligned_face_image">process_aligned_face_image</a></td>
 <td>Process an already aligned RGB face image.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#forensicface.app.ForensicFace.process_aligned_faces_batch">process_aligned_faces_batch</a></td>
 <td>Process already aligned RGB face images in one recognition batch.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#forensicface.app.ForensicFace.process_image">process_image</a></td>
 <td>Process an image assuming one or multiple faces.</td>
 </tr>
-<tr class="even">
-<td><a href="#forensicface.app.ForensicFace.process_image_multiple_faces">process_image_multiple_faces</a></td>
-<td>Process an image with one or multiple faces.</td>
-</tr>
 <tr class="odd">
+<td><a href="#forensicface.app.ForensicFace.process_image_multiple_faces">process_image_multiple_faces</a></td>
+<td>Process an image assuming multiple faces.</td>
+</tr>
+<tr class="even">
 <td><a href="#forensicface.app.ForensicFace.process_image_single_face">process_image_single_face</a></td>
 <td>Process a an image considering it has a single face and extract useful features for forensic analysis.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#forensicface.app.ForensicFace.process_images_batch">process_images_batch</a></td>
 <td>Batched counterpart of <code>process_image</code>.</td>
 </tr>
@@ -384,7 +388,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    save_to<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Build a rectangular mosaic of the aligned faces. Based on the imutils build_montages function.</p>
+<p>Detect, align, and build a rectangular mosaic from original images.</p>
 <section id="parameters-2" class="level6 doc-section doc-section-parameters">
 <h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h6>
 <dl>
@@ -420,12 +424,63 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dl>
 </section>
 </section>
-<section id="forensicface.app.ForensicFace.compare" class="level5">
-<h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.compare">compare</h5>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.compare(img1path, img2path)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Compares the similarity between two face images based on their embeddings.</p>
+<section id="forensicface.app.ForensicFace.build_mosaic_from_aligned_faces" class="level5">
+<h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.build_mosaic_from_aligned_faces">build_mosaic_from_aligned_faces</h5>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.build_mosaic_from_aligned_faces(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    aligned_faces,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    mosaic_shape,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    border<span class="op">=</span><span class="fl">0.03</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    save_to<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    keypoints<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Build a rectangular mosaic from already aligned RGB face images.</p>
+<p>This is a convenience wrapper around <code>forensicface.mosaic.build_mosaic_from_aligned_faces</code> using this instance’s configured face image size.</p>
 <section id="parameters-3" class="level6 doc-section doc-section-parameters">
 <h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h6>
+<dl>
+<dt><code><span class="parameter-name"><strong>aligned_faces</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list[np.ndarray] | np.ndarray</span></code></dt>
+<dd>
+<p>list/array of already aligned RGB face images.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>mosaic_shape</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">tuple[int, int]</span></code></dt>
+<dd>
+<p>tuple of integers, (n_cols, n_rows)</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>border</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.03</span></code></dt>
+<dd>
+<p>float, percent of image to use as white border</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>save_to</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>optional path used to save the mosaic image.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>draw_keypoints</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">bool</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dd>
+<p>if True, draw keypoints on each aligned face.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>keypoints</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list[np.ndarray] | np.ndarray | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>optional list/array of aligned keypoints, one per aligned face. Required when draw_keypoints=True.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-3" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-3">Returns</h6>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
+<dd>
+<p>np.ndarray: OpenCV BGR image with mosaic.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="forensicface.app.ForensicFace.compare" class="level5">
+<h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.compare">compare</h5>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.compare(img1path, img2path)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Compute the similarity cosine between the embeddings of two face images.</p>
+<section id="parameters-4" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>img1path</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span></code></dt>
 <dd>
@@ -437,16 +492,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-3" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-3">Returns</h6>
+<section id="returns-4" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-4">Returns</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>float</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span></code></dt>
 <dd>
-<p>Similarity score between the two faces based on their embeddings.</p>
+<p>Cosine similarity.</p>
 </dd>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span></code></dt>
 <dd>
-<p>The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.</p>
+<p>The score ranges from -1.0 (most dissimilar) to 1.0 (most similar).</p>
 </dd>
 </dl>
 </section>
@@ -462,16 +517,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="forensicface.app.ForensicFace.detect_and_align" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.detect_and_align">detect_and_align</h5>
-<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.detect_and_align(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    imgpath,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.detect_and_align(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    imgpath,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Detect faces and return aligned crops without embedding/FIQA.</p>
 <p>Useful in two scenarios: 1. Batched extraction: run <code>detect_and_align</code> per image to fill a buffer of aligned crops, then call <code>process_aligned_faces_batch</code> once per chunk. Lets ONNX use real batch parallelism on GPU. 2. Materialize aligned crops on disk for later re-extraction with newer recognition models.</p>
-<section id="parameters-4" class="level6 doc-section doc-section-parameters">
-<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h6>
+<section id="parameters-5" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>imgpath</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | np.ndarray</span></code></dt>
 <dd>
@@ -487,8 +542,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-4" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-4">Returns</h6>
+<section id="returns-5" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-5">Returns</h6>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">dict | list[dict] | None</span></code></dt>
 <dd>
@@ -523,17 +578,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="forensicface.app.ForensicFace.extract_faces" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.extract_faces">extract_faces</h5>
-<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.extract_faces(</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    video_path,</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    margin<span class="op">=</span><span class="fl">2.0</span>,</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="fl">0.0</span>,</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.extract_faces(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    video_path,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    dest_folder<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    every_n_frames<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    margin<span class="op">=</span><span class="fl">2.0</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    start_from<span class="op">=</span><span class="fl">0.0</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    export_metadata<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Extracts faces from a video and saves them as individual images.</p>
-<section id="parameters-5" class="level6 doc-section doc-section-parameters">
-<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h6>
+<section id="parameters-6" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-6">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>video_path</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span></code></dt>
 <dd>
@@ -561,8 +616,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-5" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-5">Returns</h6>
+<section id="returns-6" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>int</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span></code></dt>
 <dd>
@@ -573,10 +628,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="forensicface.app.ForensicFace.process_aligned_face_image" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_aligned_face_image">process_aligned_face_image</h5>
-<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_aligned_face_image(rgb_aligned_face, keypoints<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_aligned_face_image(rgb_aligned_face, keypoints<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Process an already aligned RGB face image.</p>
-<section id="parameters-6" class="level6 doc-section doc-section-parameters">
-<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-6">Parameters</h6>
+<section id="parameters-7" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>rgb_aligned_face</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
@@ -591,13 +646,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="forensicface.app.ForensicFace.process_aligned_faces_batch" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_aligned_faces_batch">process_aligned_faces_batch</h5>
-<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_aligned_faces_batch(</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    rgb_aligned_faces,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    aligned_keypoints_batch<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_aligned_faces_batch(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    rgb_aligned_faces,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    aligned_keypoints_batch<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Process already aligned RGB face images in one recognition batch.</p>
-<section id="parameters-7" class="level6 doc-section doc-section-parameters">
-<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h6>
+<section id="parameters-8" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>rgb_aligned_faces</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">np.ndarray</span></code></dt>
 <dd>
@@ -609,8 +664,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-6" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h6>
+<section id="returns-7" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h6>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list[FaceResult]</span></code></dt>
 <dd>
@@ -633,13 +688,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="forensicface.app.ForensicFace.process_image" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_image">process_image</h5>
-<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image(</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    imgpath,</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Process an image assuming one or multiple faces. Args: - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR. - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face. - single_face (bool): If set to True, assume the image may contain more than one face. - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected. Only applicable when single_face == True. Must be either ‘size’ or ‘centrality’. Returns: A dictionary containing the following keys: - ‘keypoints’: A 2D numpy array of shape (5, 2) containing the facial keypoints for each face in the image. The keypoints are ordered as follows: left eye, right eye, nose tip, left mouth corner, and right mouth corner.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    imgpath,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Process an image assuming one or multiple faces. Args: - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR. - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face. - single_face (bool): If set to True, process only one face in the image. - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected. Only applicable when single_face == True. Must be either ‘size’ or ‘centrality’. Returns: If single_face==True, return a dictionary containing the following keys: - ‘keypoints’: A 2D numpy array of shape (5, 2) containing the facial keypoints for each face in the image. The keypoints are ordered as follows: left eye, right eye, nose tip, left mouth corner, and right mouth corner.</p>
 <pre><code>    - 'ipd': A float representing the inter-pupillary distance for each face in the image.
 
     - 'embedding': A 1D numpy array of shape (512,) containing the facial embedding
@@ -655,9 +710,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
     - 'det_score': A float representing the face detection score.
 
-    If the 'extended' is set to True, the dictionary will also contain the following keys:
-    - 'gender': A string representing the gender for each face in the image.
-                   Possible values are 'M' for male and 'F' for female.
+    If 'extended' is set to True, the dictionary will also contain the following keys:
+    - 'gender': Estimated sex for each face in the image. Possible values: 'M' (male) and 'F' (female).
 
     - 'age': An integer representing the estimated age for each face in the image.
 
@@ -667,31 +721,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
     - 'roll': A float representing the roll angle for each face in the image.
 
-    - fiqa_score: A float indicating facial image quality.</code></pre>
+    - 'fiqa_score': A float indicating facial image quality.
+
+If single_face==False, return a list of dictionaries, each containing the same keys as described above for each detected face in the image.</code></pre>
 </section>
 <section id="forensicface.app.ForensicFace.process_image_multiple_faces" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_image_multiple_faces">process_image_multiple_faces</h5>
-<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image_multiple_faces(imgpath, draw_keypoints<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Process an image with one or multiple faces. THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image_multiple_faces(imgpath, draw_keypoints<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Process an image assuming multiple faces. THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.</p>
 </section>
 <section id="forensicface.app.ForensicFace.process_image_single_face" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_image_single_face">process_image_single_face</h5>
-<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image_single_face(imgpath, draw_keypoints<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_image_single_face(imgpath, draw_keypoints<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Process a an image considering it has a single face and extract useful features for forensic analysis. If more than one face is detected, the largest face will be returned. THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.</p>
 </section>
 <section id="forensicface.app.ForensicFace.process_images_batch" class="level5">
 <h5 class="anchored" data-anchor-id="forensicface.app.ForensicFace.process_images_batch">process_images_batch</h5>
-<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_images_batch(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    imgpaths,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">16</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>app.ForensicFace.process_images_batch(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    imgpaths,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    single_face<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    select_single_face_by<span class="op">=</span><span class="st">'size'</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">16</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Batched counterpart of <code>process_image</code>.</p>
-<p>Pipeline: 1. Per-image: <code>detect_and_align</code> (detect + warp), accumulate aligned crops into a buffer. 2. Per-chunk of <code>batch_size</code>: recognition/FIQA inference in one ONNX call per loaded model. 3. Reassemble into <code>process_image</code>-compatible dicts.</p>
-<section id="parameters-8" class="level6 doc-section doc-section-parameters">
-<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h6>
+<p>Pipeline: 1. Per-image: <code>detect_and_align</code>, accumulate aligned crops into a buffer. 2. Per-chunk of <code>batch_size</code>: recognition/FIQA inference in one ONNX call per loaded model. 3. Reassemble into <code>process_image</code>-compatible dicts.</p>
+<section id="parameters-9" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-9">Parameters</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>imgpaths</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list[str | np.ndarray]</span></code></dt>
 <dd>
@@ -711,8 +767,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-7" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h6>
+<section id="returns-8" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-8">Returns</h6>
 <dl>
 <dt><code><span class="parameter-name"><strong>list</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list</span></code></dt>
 <dd>
@@ -731,10 +787,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>each item is a list of per-image face dictionaries.</p>
 </dd>
 </dl>
-</section>
-<section id="notes" class="level6 doc-section doc-section-notes">
-<h6 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h6>
-<p>Embeddings produced here are equivalent to those from <code>process_image</code> (same ONNX ops, just batched). On GPU the parallel reductions are not bit-exact deterministic, so embeddings may differ from the per-image path by tiny amounts — cosine similarity stays essentially the same.</p>
 
 
 </section>

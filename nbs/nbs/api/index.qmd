@@ -8,9 +8,16 @@ Public API for forensicface.
 | --- | --- |
 | [app](app.qmd#forensicface.app) |  |
 | [backends](backends.qmd#forensicface.backends) |  |
+| [geometry](geometry.qmd#forensicface.geometry) | Geometry helpers used by image and video workflows. |
+| [model_store](model_store.qmd#forensicface.model_store) | Model layout resolution helpers. |
+| [mosaic](mosaic.qmd#forensicface.mosaic) | Mosaic-building utilities for original images and aligned faces. |
 | [ort_runtime_setup](ort_runtime_setup.qmd#forensicface.ort_runtime_setup) |  |
+| [preprocessing](preprocessing.qmd#forensicface.preprocessing) | Preprocessing helpers for recognition ONNX inputs. |
+| [recognition](recognition.qmd#forensicface.recognition) | Recognition and FIQA inference helpers. |
+| [results](results.qmd#forensicface.results) | Result containers and assembly helpers. |
 | [runtime_summary](runtime_summary.qmd#forensicface.runtime_summary) | Initialization summary helpers for ForensicFace. |
 | [utils](utils.qmd#forensicface.utils) |  |
+| [video](video.qmd#forensicface.video) | Video face extraction workflow. |
 
 ## Insightface Internals
 

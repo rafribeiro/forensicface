@@ -1,0 +1,66 @@
+# results { #forensicface.results }
+
+`results`
+
+Result containers and assembly helpers.
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [AlignedFace](#forensicface.results.AlignedFace) | Internal normalized representation of an aligned face. |
+| [FaceResult](#forensicface.results.FaceResult) | Face processing result with both mapping and attribute access. |
+
+### AlignedFace { #forensicface.results.AlignedFace }
+
+```python
+results.AlignedFace(
+    aligned_face,
+    bbox,
+    keypoints,
+    aligned_keypoints,
+    det_score,
+    gender=None,
+    age=None,
+    pose=None,
+)
+```
+
+Internal normalized representation of an aligned face.
+
+``aligned_face`` is RGB because public ``FaceResult`` outputs expose aligned
+faces in RGB order. Recognition helpers may still convert it to BGR at the
+ONNX boundary.
+
+### FaceResult { #forensicface.results.FaceResult }
+
+```python
+results.FaceResult()
+```
+
+Face processing result with both mapping and attribute access.
+
+Existing code can keep using ``ret["bbox"]`` and ``isinstance(ret, dict)``;
+new code can use ``ret.bbox`` for keys that do not collide with dict
+methods such as ``keys`` or ``items``.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [build_embedding_result](#forensicface.results.build_embedding_result) | Build a result for recognition-only APIs that receive aligned faces. |
+
+### build_embedding_result { #forensicface.results.build_embedding_result }
+
+```python
+results.build_embedding_result(
+    embeddings,
+    fiqa_score,
+    models,
+    extended,
+    concat_embeddings,
+    index=None,
+)
+```
+
+Build a result for recognition-only APIs that receive aligned faces.

@@ -1,0 +1,43 @@
+# model_store { #forensicface.model_store }
+
+`model_store`
+
+Model layout resolution helpers.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [collect_backend_model_files](#forensicface.model_store.collect_backend_model_files) | Collect candidate ONNX files for backend probing. |
+| [resolve_quality_model](#forensicface.model_store.resolve_quality_model) | Resolve the CR-FIQA quality model from new or legacy layouts. |
+| [resolve_recognition_model](#forensicface.model_store.resolve_recognition_model) | Resolve a recognition ONNX model path from new or legacy layouts. |
+
+### collect_backend_model_files { #forensicface.model_store.collect_backend_model_files }
+
+```python
+model_store.collect_backend_model_files(models_root, model_name)
+```
+
+Collect candidate ONNX files for backend probing.
+
+The new shared layout is preferred over the legacy per-model layout:
+``detection/`` and ``attributes/`` under ``models_root`` are searched
+first, followed by ``<models_root>/<model_name>/``. Duplicate filenames are
+skipped so a model that exists in both layouts is loaded from the new
+shared location only.
+
+### resolve_quality_model { #forensicface.model_store.resolve_quality_model }
+
+```python
+model_store.resolve_quality_model(models_root, model_name)
+```
+
+Resolve the CR-FIQA quality model from new or legacy layouts.
+
+### resolve_recognition_model { #forensicface.model_store.resolve_recognition_model }
+
+```python
+model_store.resolve_recognition_model(models_root, model_name)
+```
+
+Resolve a recognition ONNX model path from new or legacy layouts.

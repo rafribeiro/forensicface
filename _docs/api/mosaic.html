@@ -182,7 +182,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#functions" id="toc-functions" class="nav-link" data-scroll-target="#functions">Functions</a>
   <ul class="collapse">
-  <li><a href="#forensicface.mosaic.build_aligned_face_mosaic" id="toc-forensicface.mosaic.build_aligned_face_mosaic" class="nav-link" data-scroll-target="#forensicface.mosaic.build_aligned_face_mosaic">build_aligned_face_mosaic</a></li>
+  <li><a href="#forensicface.mosaic.build_mosaic_from_aligned_faces" id="toc-forensicface.mosaic.build_mosaic_from_aligned_faces" class="nav-link" data-scroll-target="#forensicface.mosaic.build_mosaic_from_aligned_faces">build_mosaic_from_aligned_faces</a></li>
+  <li><a href="#forensicface.mosaic.build_mosaic_from_images" id="toc-forensicface.mosaic.build_mosaic_from_images" class="nav-link" data-scroll-target="#forensicface.mosaic.build_mosaic_from_images">build_mosaic_from_images</a></li>
   </ul></li>
   </ul></li>
   </ul>
@@ -197,7 +198,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="forensicface.mosaic" class="level1">
 <h1>mosaic</h1>
 <p><code>mosaic</code></p>
-<p>Mosaic-building workflow for aligned faces.</p>
+<p>Mosaic-building utilities for original images and aligned faces.</p>
 <section id="functions" class="level2">
 <h2 class="anchored" data-anchor-id="functions">Functions</h2>
 <table class="caption-top table">
@@ -209,22 +210,39 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#forensicface.mosaic.build_aligned_face_mosaic">build_aligned_face_mosaic</a></td>
-<td>Build a rectangular mosaic of aligned faces using a processor object.</td>
+<td><a href="#forensicface.mosaic.build_mosaic_from_aligned_faces">build_mosaic_from_aligned_faces</a></td>
+<td>Build a rectangular BGR mosaic from already aligned RGB face images.</td>
+</tr>
+<tr class="even">
+<td><a href="#forensicface.mosaic.build_mosaic_from_images">build_mosaic_from_images</a></td>
+<td>Detect, align, and build a rectangular BGR mosaic from original images.</td>
 </tr>
 </tbody>
 </table>
-<section id="forensicface.mosaic.build_aligned_face_mosaic" class="level3">
-<h3 class="anchored" data-anchor-id="forensicface.mosaic.build_aligned_face_mosaic">build_aligned_face_mosaic</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>mosaic.build_aligned_face_mosaic(</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    processor,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    img_path_list,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    mosaic_shape,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    border<span class="op">=</span><span class="fl">0.03</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    save_to<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Build a rectangular mosaic of aligned faces using a processor object.</p>
+<section id="forensicface.mosaic.build_mosaic_from_aligned_faces" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.mosaic.build_mosaic_from_aligned_faces">build_mosaic_from_aligned_faces</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>mosaic.build_mosaic_from_aligned_faces(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    aligned_faces,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    mosaic_shape,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    border<span class="op">=</span><span class="fl">0.03</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    save_to<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    keypoints<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    image_size<span class="op">=</span>DEFAULT_FACE_SIZE,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Build a rectangular BGR mosaic from already aligned RGB face images.</p>
+</section>
+<section id="forensicface.mosaic.build_mosaic_from_images" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.mosaic.build_mosaic_from_images">build_mosaic_from_images</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mosaic.build_mosaic_from_images(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    processor,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    img_path_list,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    mosaic_shape,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    border<span class="op">=</span><span class="fl">0.03</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    save_to<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    draw_keypoints<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Detect, align, and build a rectangular BGR mosaic from original images.</p>
 
 
 </section>

@@ -36,14 +36,15 @@ Class for processing facial images to extract useful features for forensic analy
 | --- | --- |
 | [aggregate_embeddings](#forensicface.app.ForensicFace.aggregate_embeddings) | Aggregates multiple embeddings into a single embedding. |
 | [aggregate_from_images](#forensicface.app.ForensicFace.aggregate_from_images) | Given a list of image paths, this method returns the average embedding of all faces found in the images. |
-| [build_mosaic](#forensicface.app.ForensicFace.build_mosaic) | Build a rectangular mosaic of the aligned faces. |
-| [compare](#forensicface.app.ForensicFace.compare) | Compares the similarity between two face images based on their embeddings. |
+| [build_mosaic](#forensicface.app.ForensicFace.build_mosaic) | Detect, align, and build a rectangular mosaic from original images. |
+| [build_mosaic_from_aligned_faces](#forensicface.app.ForensicFace.build_mosaic_from_aligned_faces) | Build a rectangular mosaic from already aligned RGB face images. |
+| [compare](#forensicface.app.ForensicFace.compare) | Compute the similarity cosine between the embeddings of two face images. |
 | [detect_and_align](#forensicface.app.ForensicFace.detect_and_align) | Detect faces and return aligned crops without embedding/FIQA. |
 | [extract_faces](#forensicface.app.ForensicFace.extract_faces) | Extracts faces from a video and saves them as individual images. |
 | [process_aligned_face_image](#forensicface.app.ForensicFace.process_aligned_face_image) | Process an already aligned RGB face image. |
 | [process_aligned_faces_batch](#forensicface.app.ForensicFace.process_aligned_faces_batch) | Process already aligned RGB face images in one recognition batch. |
 | [process_image](#forensicface.app.ForensicFace.process_image) | Process an image assuming one or multiple faces. |
-| [process_image_multiple_faces](#forensicface.app.ForensicFace.process_image_multiple_faces) | Process an image with one or multiple faces. |
+| [process_image_multiple_faces](#forensicface.app.ForensicFace.process_image_multiple_faces) | Process an image assuming multiple faces. |
 | [process_image_single_face](#forensicface.app.ForensicFace.process_image_single_face) | Process a an image considering it has a single face and extract useful features for forensic analysis. |
 | [process_images_batch](#forensicface.app.ForensicFace.process_images_batch) | Batched counterpart of ``process_image``. |
 
@@ -139,8 +140,7 @@ app.ForensicFace.build_mosaic(
 )
 ```
 
-Build a rectangular mosaic of the aligned faces.
-Based on the imutils build_montages function.
+Detect, align, and build a rectangular mosaic from original images.
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
@@ -170,13 +170,64 @@ Based on the imutils build_montages function.
 
 :   np.ndarray: OpenCV BGR image with mosaic.
 
+##### build_mosaic_from_aligned_faces { #forensicface.app.ForensicFace.build_mosaic_from_aligned_faces }
+
+```python
+app.ForensicFace.build_mosaic_from_aligned_faces(
+    aligned_faces,
+    mosaic_shape,
+    border=0.03,
+    save_to=None,
+    draw_keypoints=False,
+    keypoints=None,
+)
+```
+
+Build a rectangular mosaic from already aligned RGB face images.
+
+This is a convenience wrapper around
+``forensicface.mosaic.build_mosaic_from_aligned_faces`` using this
+instance's configured face image size.
+
+###### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**aligned_faces**]{.parameter-name} [:]{.parameter-annotation-sep} [list\[np.ndarray\] \| np.ndarray]{.parameter-annotation}</code>
+
+:   list/array of already aligned RGB face images.
+
+<code>[**mosaic_shape**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple\[int, int\]]{.parameter-annotation}</code>
+
+:   tuple of integers, (n_cols, n_rows)
+
+<code>[**border**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.03]{.parameter-default}</code>
+
+:   float, percent of image to use as white border
+
+<code>[**save_to**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   optional path used to save the mosaic image.
+
+<code>[**draw_keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   if True, draw keypoints on each aligned face.
+
+<code>[**keypoints**]{.parameter-name} [:]{.parameter-annotation-sep} [list\[np.ndarray\] \| np.ndarray \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   optional list/array of aligned keypoints, one per aligned face. Required when draw_keypoints=True.
+
+###### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [np.ndarray]{.parameter-annotation}</code>
+
+:   np.ndarray: OpenCV BGR image with mosaic.
+
 ##### compare { #forensicface.app.ForensicFace.compare }
 
 ```python
 app.ForensicFace.compare(img1path, img2path)
 ```
 
-Compares the similarity between two face images based on their embeddings.
+Compute the similarity cosine between the embeddings of two face images.
 
 ###### Parameters {.doc-section .doc-section-parameters}
 
@@ -192,11 +243,11 @@ Compares the similarity between two face images based on their embeddings.
 
 <code>[**float**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
 
-:   Similarity score between the two faces based on their embeddings.
+:   Cosine similarity.
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
 
-:   The score ranges from -1.0 to 1.0, where 1.0 represents a perfect match and -1.0 represents a complete mismatch.
+:   The score ranges from -1.0 (most dissimilar) to 1.0 (most similar).
 
 ###### Raises {.doc-section .doc-section-raises}
 
@@ -387,11 +438,11 @@ Process an image assuming one or multiple faces.
 Args:
     - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR.
     - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face.
-    - single_face (bool): If set to True, assume the image may contain more than one face.
+    - single_face (bool): If set to True, process only one face in the image.
     - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected.
         Only applicable when single_face == True. Must be either 'size' or 'centrality'.
 Returns:
-    A dictionary containing the following keys:
+    If single_face==True, return a dictionary containing the following keys:
         - 'keypoints': A 2D numpy array of shape (5, 2) containing the facial keypoints
                 for each face in the image. The keypoints are ordered as follows:
                left eye, right eye, nose tip, left mouth corner, and right mouth corner.
@@ -411,9 +462,8 @@ Returns:
 
         - 'det_score': A float representing the face detection score.
 
-        If the 'extended' is set to True, the dictionary will also contain the following keys:
-        - 'gender': A string representing the gender for each face in the image.
-                       Possible values are 'M' for male and 'F' for female.
+        If 'extended' is set to True, the dictionary will also contain the following keys:
+        - 'gender': Estimated sex for each face in the image. Possible values: 'M' (male) and 'F' (female).
 
         - 'age': An integer representing the estimated age for each face in the image.
 
@@ -423,7 +473,9 @@ Returns:
 
         - 'roll': A float representing the roll angle for each face in the image.
 
-        - fiqa_score: A float indicating facial image quality.
+        - 'fiqa_score': A float indicating facial image quality.
+    
+    If single_face==False, return a list of dictionaries, each containing the same keys as described above for each detected face in the image.
 
 ##### process_image_multiple_faces { #forensicface.app.ForensicFace.process_image_multiple_faces }
 
@@ -431,7 +483,7 @@ Returns:
 app.ForensicFace.process_image_multiple_faces(imgpath, draw_keypoints=False)
 ```
 
-Process an image with one or multiple faces.
+Process an image assuming multiple faces.
 THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE. Use process_image instead.
 
 ##### process_image_single_face { #forensicface.app.ForensicFace.process_image_single_face }
@@ -459,7 +511,7 @@ app.ForensicFace.process_images_batch(
 Batched counterpart of ``process_image``.
 
 Pipeline:
-1. Per-image: ``detect_and_align`` (detect + warp), accumulate aligned
+1. Per-image: ``detect_and_align``, accumulate aligned
    crops into a buffer.
 2. Per-chunk of ``batch_size``: recognition/FIQA inference in one
    ONNX call per loaded model.
@@ -500,11 +552,3 @@ Pipeline:
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list]{.parameter-annotation}</code>
 
 :   each item is a list of per-image face dictionaries.
-
-###### Notes {.doc-section .doc-section-notes}
-
-Embeddings produced here are equivalent to those from
-``process_image`` (same ONNX ops, just batched). On GPU
-the parallel reductions are not bit-exact deterministic,
-so embeddings may differ from the per-image path by tiny
-amounts — cosine similarity stays essentially the same.

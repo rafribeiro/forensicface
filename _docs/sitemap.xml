@@ -5,103 +5,47 @@
     <lastmod>2026-05-03T01:54:57.106Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/nbs/api/runtime_summary.html</loc>
-    <lastmod>2026-05-03T01:54:15.198Z</lastmod>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/utils.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/results.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/preprocessing.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/mosaic.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.transform.html</loc>
-    <lastmod>2026-05-03T01:54:15.210Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.meanshape68.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.face_align.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/index.html</loc>
-    <lastmod>2026-05-03T01:54:15.162Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/nbs/api/app.html</loc>
-    <lastmod>2026-05-03T01:54:15.194Z</lastmod>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/backends.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/utils.html</loc>
+    <loc>https://rafribeiro.github.io/forensicface/api/video.html</loc>
     <lastmod>2026-05-24T02:05:32.250Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/results.html</loc>
-    <lastmod>2026-05-24T02:05:32.234Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/preprocessing.html</loc>
-    <lastmod>2026-05-24T02:05:32.222Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/mosaic.html</loc>
-    <lastmod>2026-05-24T02:05:32.214Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.transform.html</loc>
-    <lastmod>2026-05-03T01:54:34.498Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.meanshape68.html</loc>
-    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.face_align.html</loc>
-    <lastmod>2026-05-03T01:54:34.490Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/index.html</loc>
-    <lastmod>2026-05-24T02:33:22.985Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/backends.html</loc>
-    <lastmod>2026-05-03T01:54:34.482Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/01_utils.html</loc>
-    <lastmod>2026-05-23T02:51:50.144Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/index.html</loc>
-    <lastmod>2026-05-23T02:27:59.301Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/00_forensicface.html</loc>
-    <lastmod>2026-05-24T02:31:36.649Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/app.html</loc>
-    <lastmod>2026-05-24T02:05:32.202Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/geometry.html</loc>
-    <lastmod>2026-05-24T02:05:32.206Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.attribute.html</loc>
-    <lastmod>2026-05-03T01:54:34.490Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.landmark.html</loc>
-    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/insightface.scrfd.html</loc>
-    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/model_store.html</loc>
-    <lastmod>2026-05-24T02:05:32.214Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/ort_runtime_setup.html</loc>
+    <loc>https://rafribeiro.github.io/forensicface/api/runtime_summary.html</loc>
     <lastmod>2026-05-03T01:54:34.482Z</lastmod>
   </url>
   <url>
@@ -109,35 +53,119 @@
     <lastmod>2026-05-24T02:05:32.230Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/runtime_summary.html</loc>
+    <loc>https://rafribeiro.github.io/forensicface/api/ort_runtime_setup.html</loc>
     <lastmod>2026-05-03T01:54:34.482Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/api/video.html</loc>
+    <loc>https://rafribeiro.github.io/forensicface/api/model_store.html</loc>
+    <lastmod>2026-05-24T02:05:32.214Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.scrfd.html</loc>
+    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.landmark.html</loc>
+    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.attribute.html</loc>
+    <lastmod>2026-05-03T01:54:34.490Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/geometry.html</loc>
+    <lastmod>2026-05-24T02:05:32.206Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/app.html</loc>
+    <lastmod>2026-06-11T12:27:48.773Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/00_forensicface.html</loc>
+    <lastmod>2026-05-24T02:31:36.649Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/index.html</loc>
+    <lastmod>2026-05-23T02:27:59.301Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/01_utils.html</loc>
+    <lastmod>2026-05-23T02:51:50.144Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/backends.html</loc>
+    <lastmod>2026-05-03T01:54:34.482Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/index.html</loc>
+    <lastmod>2026-06-11T12:48:20.555Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.face_align.html</loc>
+    <lastmod>2026-05-03T01:54:34.490Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.meanshape68.html</loc>
+    <lastmod>2026-05-03T01:54:34.494Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/insightface.transform.html</loc>
+    <lastmod>2026-05-03T01:54:34.498Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/mosaic.html</loc>
+    <lastmod>2026-06-11T12:27:48.787Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/preprocessing.html</loc>
+    <lastmod>2026-05-24T02:05:32.222Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/results.html</loc>
+    <lastmod>2026-05-24T02:05:32.234Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/api/utils.html</loc>
     <lastmod>2026-05-24T02:05:32.250Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/nbs/api/backends.html</loc>
-    <lastmod>2026-05-03T01:54:15.194Z</lastmod>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/app.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/geometry.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.attribute.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.landmark.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/insightface.scrfd.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/model_store.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
     <loc>https://rafribeiro.github.io/forensicface/nbs/api/ort_runtime_setup.html</loc>
-    <lastmod>2026-05-03T01:54:15.198Z</lastmod>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
   <url>
-    <loc>https://rafribeiro.github.io/forensicface/nbs/api/utils.html</loc>
-    <lastmod>2026-05-03T01:54:15.206Z</lastmod>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/recognition.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/runtime_summary.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rafribeiro.github.io/forensicface/nbs/api/video.html</loc>
+    <lastmod>2026-06-11T12:49:29.978Z</lastmod>
   </url>
 </urlset>

@@ -1,0 +1,85 @@
+# recognition { #forensicface.recognition }
+
+`recognition`
+
+Recognition and FIQA inference helpers.
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [RecognitionRunner](#forensicface.recognition.RecognitionRunner) | Runs recognition and optional FIQA sessions for aligned face crops. |
+
+### RecognitionRunner { #forensicface.recognition.RecognitionRunner }
+
+```python
+recognition.RecognitionRunner(
+    models,
+    rec_inference_sessions,
+    ort_fiqa=None,
+    extended,
+    concat_embeddings,
+    image_size=(112, 112),
+    keypoint_recognition_models=None,
+    image_input_name=SEPAELV6_IMAGE_INPUT,
+    keypoints_input_name=SEPAELV6_KEYPOINTS_INPUT,
+)
+```
+
+Runs recognition and optional FIQA sessions for aligned face crops.
+
+#### Methods
+
+| Name | Description |
+| --- | --- |
+| [compute_batch](#forensicface.recognition.RecognitionRunner.compute_batch) | Compute embeddings and optional FIQA scores for aligned face crops. |
+| [compute_one](#forensicface.recognition.RecognitionRunner.compute_one) | Compute embeddings and optional FIQA score for one aligned face. |
+
+##### compute_batch { #forensicface.recognition.RecognitionRunner.compute_batch }
+
+```python
+recognition.RecognitionRunner.compute_batch(
+    bgr_aligned_batch,
+    aligned_keypoints_batch=None,
+)
+```
+
+Compute embeddings and optional FIQA scores for aligned face crops.
+
+##### compute_one { #forensicface.recognition.RecognitionRunner.compute_one }
+
+```python
+recognition.RecognitionRunner.compute_one(
+    bgr_aligned_face,
+    aligned_keypoints=None,
+)
+```
+
+Compute embeddings and optional FIQA score for one aligned face.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [looks_like_cuda_oom](#forensicface.recognition.looks_like_cuda_oom) | Best-effort match for CUDA out-of-memory errors raised by ONNX Runtime. |
+| [try_compute_embeddings_batch](#forensicface.recognition.try_compute_embeddings_batch) | Call a batch embedding function with recursive CUDA OOM retry. |
+
+### looks_like_cuda_oom { #forensicface.recognition.looks_like_cuda_oom }
+
+```python
+recognition.looks_like_cuda_oom(exc)
+```
+
+Best-effort match for CUDA out-of-memory errors raised by ONNX Runtime.
+
+### try_compute_embeddings_batch { #forensicface.recognition.try_compute_embeddings_batch }
+
+```python
+recognition.try_compute_embeddings_batch(
+    compute_batch,
+    bgr_aligned_batch,
+    aligned_keypoints_batch=None,
+)
+```
+
+Call a batch embedding function with recursive CUDA OOM retry.

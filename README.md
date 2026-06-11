@@ -147,16 +147,25 @@ python -m forensicface.tools.migrate_shared --models-root /path/to/models
 
 ## Notas de versão
 
-v.0.7.0:
+v0.7.2:
+- Adicionado `ff.build_mosaic_from_aligned_faces()`: monta mosaicos a partir de faces RGB já alinhadas (`ff.build_mosaic()` continua detectando e alinhando imagens antes de montar o mosaico de imagens alinhadas).
+- Adicionada a função utilitária `forensicface.mosaic.build_mosaic_from_aligned_faces()` para criar mosaicos sem instanciar `ForensicFace`.
+- Removida a dependência de `imutils`.
+
+v0.7.1:
+- Adicionada documentação para desenvolvedores
+- Reorganização interna do código - sem mudanças na API pública.
+
+v0.7.0:
 - Adicionado suporte a extração de embeddings em lote
 - Layout das pastas dos modelos pré-treinados otimizado
 - Incluída ferramenta para migração para novo layout de pastas de modelos
 
-v.0.6.0:
+v0.6.0:
 - Adicionado suporte ao modelo KPRPE ViT / Adaface / Webface12M, sob o alias `sepaelv6`.
 Crédito do modelo: https://github.com/mk-minchul/CVLface
 
-v.0.5.1:
+v0.5.1:
 - A dependência do pacote `insightface` foi removida.  
 - O diretório padrão dos modelos mudou para `~/.forensicface/models`.  
 - É possível especificar outro diretório raiz para os modelos  

@@ -20,7 +20,7 @@ from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
 from .geometry import select_best_face
 from .model_store import resolve_quality_model, resolve_recognition_model
-from .mosaic import build_aligned_face_mosaic
+from .mosaic import build_mosaic_from_aligned_faces, build_mosaic_from_images
 from .recognition import RecognitionRunner
 from .results import (
     FaceResult,
@@ -444,37 +444,65 @@ class ForensicFace:
         border: float = 0.03,
         save_to: str | None = None,
         draw_keypoints: bool = False,
-        aligned_faces: list | np.ndarray | None = None,
-        keypoints: list | np.ndarray | None = None,
     ) -> np.ndarray:
         """
-        Build a rectangular mosaic of the aligned faces.
-        Based on the imutils build_montages function.
+        Detect, align, and build a rectangular mosaic from original images.
 
         Args:
             img_path_list: list of paths to image files or list of bgr_images
             mosaic_shape: tuple of integers, (n_cols, n_rows)
             border: float, percent of image to use as white border
             save_to: optional path used to save the mosaic image.
-            draw_keypoints: if True, draw keypoints on each aligned face.    
-            aligned_faces: optional list/array of already aligned RGB face images.
-                When provided, images are not processed again.
-            keypoints: optional list/array of aligned keypoints, one per aligned face.
-                Required when draw_keypoints=True and aligned_faces is provided.
-
+            draw_keypoints: if True, draw keypoints on each aligned face.
 
         Returns:
             np.ndarray: OpenCV BGR image with mosaic.
         """
-        return build_aligned_face_mosaic(
+        return build_mosaic_from_images(
             self,
             img_path_list,
             mosaic_shape,
             border=border,
             save_to=save_to,
             draw_keypoints=draw_keypoints,
-            aligned_faces=aligned_faces,
+        )
+
+    def build_mosaic_from_aligned_faces(
+        self,
+        aligned_faces: list[np.ndarray] | np.ndarray,
+        mosaic_shape: tuple[int, int],
+        border: float = 0.03,
+        save_to: str | None = None,
+        draw_keypoints: bool = False,
+        keypoints: list[np.ndarray] | np.ndarray | None = None,
+    ) -> np.ndarray:
+        """
+        Build a rectangular mosaic from already aligned RGB face images.
+
+        This is a convenience wrapper around
+        ``forensicface.mosaic.build_mosaic_from_aligned_faces`` using this
+        instance's configured face image size.
+
+        Args:
+            aligned_faces: list/array of already aligned RGB face images.
+            mosaic_shape: tuple of integers, (n_cols, n_rows)
+            border: float, percent of image to use as white border
+            save_to: optional path used to save the mosaic image.
+            draw_keypoints: if True, draw keypoints on each aligned face.
+            keypoints: optional list/array of aligned keypoints, one per aligned face.
+                Required when draw_keypoints=True.
+
+        Returns:
+            np.ndarray: OpenCV BGR image with mosaic.
+        """
+        return build_mosaic_from_aligned_faces(
+            aligned_faces,
+            mosaic_shape,
+            border=border,
+            save_to=save_to,
+            draw_keypoints=draw_keypoints,
             keypoints=keypoints,
+            image_size=self.IMG_SIZE,
         )
 
     def compare(self, img1path: str, img2path: str) -> float:

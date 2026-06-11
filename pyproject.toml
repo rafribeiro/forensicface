@@ -4,12 +4,12 @@ build-backend = "uv_build"
 
 [project]
 name = "forensicface"
-version = "0.7.1"
+version = "0.7.2"
 description = "A package for forensic face examination"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [
   { name = "Rafael O. Ribeiro", email = "rafaeloliveiraribeiro@gmail.com" }
 ]
@@ -26,8 +26,7 @@ dependencies = [
   "onnx",
   "opencv-python-headless",
   "onnxruntime-gpu[cuda,cudnn]>=1.25.0",
-  "scikit-image",
-  "imutils",
+  "scikit-image>=0.26.0",
   "tqdm",
 ]
 

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>index – forensicface</title>
+<title>model_store – forensicface</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,25 +20,59 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -68,10 +102,12 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../../styles.css">
 <meta property="og:title" content="forensicface">
+<meta property="og:description" content="A package for forensic face examination">
 <meta property="og:site_name" content="forensicface">
 <meta name="twitter:title" content="forensicface">
+<meta name="twitter:description" content="A package for forensic face examination">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -82,7 +118,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">forensicface</span>
     </a>
   </div>
@@ -110,25 +146,25 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">forensicface</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../00_forensicface.html" class="sidebar-item-text sidebar-link">
+  <a href="../../00_forensicface.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">forensicface–A tool for forensic face examination</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../01_utils.html" class="sidebar-item-text sidebar-link">
+  <a href="../../01_utils.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Utilities</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../api.html" class="sidebar-item-text sidebar-link">
+  <a href="../../api.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">API Reference</span></a>
   </div>
 </li>
@@ -142,10 +178,14 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#function-reference" id="toc-function-reference" class="nav-link active" data-scroll-target="#function-reference">Function reference</a>
+  <li><a href="#forensicface.model_store" id="toc-forensicface.model_store" class="nav-link active" data-scroll-target="#forensicface.model_store">model_store</a>
   <ul class="collapse">
-  <li><a href="#core" id="toc-core" class="nav-link" data-scroll-target="#core">Core</a></li>
-  <li><a href="#insightface-internals" id="toc-insightface-internals" class="nav-link" data-scroll-target="#insightface-internals">Insightface Internals</a></li>
+  <li><a href="#functions" id="toc-functions" class="nav-link" data-scroll-target="#functions">Functions</a>
+  <ul class="collapse">
+  <li><a href="#forensicface.model_store.collect_backend_model_files" id="toc-forensicface.model_store.collect_backend_model_files" class="nav-link" data-scroll-target="#forensicface.model_store.collect_backend_model_files">collect_backend_model_files</a></li>
+  <li><a href="#forensicface.model_store.resolve_quality_model" id="toc-forensicface.model_store.resolve_quality_model" class="nav-link" data-scroll-target="#forensicface.model_store.resolve_quality_model">resolve_quality_model</a></li>
+  <li><a href="#forensicface.model_store.resolve_recognition_model" id="toc-forensicface.model_store.resolve_recognition_model" class="nav-link" data-scroll-target="#forensicface.model_store.resolve_recognition_model">resolve_recognition_model</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
@@ -156,97 +196,52 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<section id="function-reference" class="level1 doc doc-index">
-<h1 class="doc doc-index">Function reference</h1>
-<section id="core" class="level2">
-<h2 class="anchored" data-anchor-id="core">Core</h2>
-<p>Public API for forensicface.</p>
+<section id="forensicface.model_store" class="level1">
+<h1>model_store</h1>
+<p><code>model_store</code></p>
+<p>Model layout resolution helpers.</p>
+<section id="functions" class="level2">
+<h2 class="anchored" data-anchor-id="functions">Functions</h2>
 <table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
 <tbody>
 <tr class="odd">
-<td><a href="../api/app.html#forensicface.app">app</a></td>
-<td></td>
+<td><a href="#forensicface.model_store.collect_backend_model_files">collect_backend_model_files</a></td>
+<td>Collect candidate ONNX files for backend probing.</td>
 </tr>
 <tr class="even">
-<td><a href="../api/backends.html#forensicface.backends">backends</a></td>
-<td></td>
+<td><a href="#forensicface.model_store.resolve_quality_model">resolve_quality_model</a></td>
+<td>Resolve the CR-FIQA quality model from new or legacy layouts.</td>
 </tr>
 <tr class="odd">
-<td><a href="../api/geometry.html#forensicface.geometry">geometry</a></td>
-<td>Geometry helpers used by image and video workflows.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/model_store.html#forensicface.model_store">model_store</a></td>
-<td>Model layout resolution helpers.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/mosaic.html#forensicface.mosaic">mosaic</a></td>
-<td>Mosaic-building utilities for original images and aligned faces.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/ort_runtime_setup.html#forensicface.ort_runtime_setup">ort_runtime_setup</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/preprocessing.html#forensicface.preprocessing">preprocessing</a></td>
-<td>Preprocessing helpers for recognition ONNX inputs.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/recognition.html#forensicface.recognition">recognition</a></td>
-<td>Recognition and FIQA inference helpers.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/results.html#forensicface.results">results</a></td>
-<td>Result containers and assembly helpers.</td>
-</tr>
-<tr class="even">
-<td><a href="../api/runtime_summary.html#forensicface.runtime_summary">runtime_summary</a></td>
-<td>Initialization summary helpers for ForensicFace.</td>
-</tr>
-<tr class="odd">
-<td><a href="../api/utils.html#forensicface.utils">utils</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/video.html#forensicface.video">video</a></td>
-<td>Video face extraction workflow.</td>
+<td><a href="#forensicface.model_store.resolve_recognition_model">resolve_recognition_model</a></td>
+<td>Resolve a recognition ONNX model path from new or legacy layouts.</td>
 </tr>
 </tbody>
 </table>
+<section id="forensicface.model_store.collect_backend_model_files" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.model_store.collect_backend_model_files">collect_backend_model_files</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>model_store.collect_backend_model_files(models_root, model_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Collect candidate ONNX files for backend probing.</p>
+<p>The new shared layout is preferred over the legacy per-model layout: <code>detection/</code> and <code>attributes/</code> under <code>models_root</code> are searched first, followed by <code>&lt;models_root&gt;/&lt;model_name&gt;/</code>. Duplicate filenames are skipped so a model that exists in both layouts is loaded from the new shared location only.</p>
 </section>
-<section id="insightface-internals" class="level2">
-<h2 class="anchored" data-anchor-id="insightface-internals">Insightface Internals</h2>
-<p>Internal components vendored from insightface.</p>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td><a href="../api/insightface.attribute.html#forensicface.insightface.attribute">insightface.attribute</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.face_align.html#forensicface.insightface.face_align">insightface.face_align</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/insightface.landmark.html#forensicface.insightface.landmark">insightface.landmark</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.meanshape68.html#forensicface.insightface.meanshape68">insightface.meanshape68</a></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td><a href="../api/insightface.scrfd.html#forensicface.insightface.scrfd">insightface.scrfd</a></td>
-<td></td>
-</tr>
-<tr class="even">
-<td><a href="../api/insightface.transform.html#forensicface.insightface.transform">insightface.transform</a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
+<section id="forensicface.model_store.resolve_quality_model" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.model_store.resolve_quality_model">resolve_quality_model</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>model_store.resolve_quality_model(models_root, model_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Resolve the CR-FIQA quality model from new or legacy layouts.</p>
+</section>
+<section id="forensicface.model_store.resolve_recognition_model" class="level3">
+<h3 class="anchored" data-anchor-id="forensicface.model_store.resolve_recognition_model">resolve_recognition_model</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>model_store.resolve_recognition_model(models_root, model_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Resolve a recognition ONNX model path from new or legacy layouts.</p>
 
 
+</section>
 </section>
 </section>
 
