@@ -1,3 +1,18 @@
-*.ipynb merge=nbdev-merge
-docs/** linguist-generated=true
-nbs/** linguist-generated=true
+# Rendered/generated documentation.
+_docs/** linguist-generated
+_api/** linguist-generated
+nbs/api/** linguist-generated
+nbs/nbs/api/** linguist-generated
+nbs/_freeze/** linguist-generated
+_proc/** linguist-generated
+index_files/** linguist-generated
+
+# Documentation and examples, not library source.
+docs/** linguist-documentation
+nbs/** linguist-documentation
+
+# Generated web/build assets.
+*.html linguist-generated
+*.svg linguist-generated
+*.js linguist-generated
+*.css linguist-generated
