@@ -6,6 +6,7 @@ project:
     - index.ipynb
     - 00_forensicface.ipynb
     - 01_utils.ipynb
+    - det_size.qmd
     - api/*.qmd
     - api.qmd
 
@@ -37,6 +38,7 @@ website:
       - index.ipynb
       - 00_forensicface.ipynb
       - 01_utils.ipynb
+      - det_size.qmd
       - api.qmd
 
 quartodoc:
