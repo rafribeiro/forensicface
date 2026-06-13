@@ -313,7 +313,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="redetectando-um-crop-salvo" class="level3">
 <h3 class="anchored" data-anchor-id="redetectando-um-crop-salvo">Redetectando um crop salvo</h3>
 <p>Uma situação comum ao processar vídeo é detectar a face no frame inteiro com <code>det_size</code> alto, recortar a região da face com margem e salvar esse recorte como uma imagem. O método <code>extract_faces()</code> do <code>forensicface</code> permite fazer isso.</p>
-<p>A partir da detecção em <code>cftv_distant.png</code> com <code>det_size=1280</code>, foi salvo um crop com o bounding box estendido em 100% em cada dimensão, configuração padrão do forensicface. A imagem salva tem apenas <code>24 x 30</code> pixels:</p>
+<p>A partir da detecção no último exemplo com <code>det_size=1280</code>, foi salvo um crop com o bounding box estendido em 100% em cada dimensão, configuração padrão do forensicface. A imagem salva tem apenas <code>24 x 30</code> pixels:</p>
 <p><img src="det_size_files/cftv_distant_extended_face_crop_preview.jpg" class="img-fluid"></p>
 <p>A imagem acima está ampliada apenas para visualização. O tamanho real da imagem salva é este:</p>
 <p><img src="det_size_files/cftv_distant_extended_face_crop.png" width="24" height="30" alt="Crop facial salvo em tamanho real."></p>
@@ -874,7 +874,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"selector":".lightbox","closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom"});
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"loop":false,"selector":".lightbox","openEffect":"zoom","closeEffect":"zoom","descPosition":"bottom"});
 (function() {
   let previousOnload = window.onload;
   window.onload = () => {

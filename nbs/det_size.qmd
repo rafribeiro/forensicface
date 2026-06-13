@@ -15,7 +15,7 @@ internamente usa:
 det_size = (320, 320)
 ```
 
-A imagem original é redimensionada mantendo a proporção, encaixada dentro dessa janela quadrada e completada com bordas pretas quando necessário. Depois da detecção, os bounding boxes e os pontos faciais são convertidos de volta para as coordenadas da imagem original.
+A imagem original é redimensionada mantendo a proporção, encaixada dentro dessa janela quadrada e completada com bordas pretas quando necessário. Depois da detecção, os bounding boxes e os pontos faciais são convertidos de volta para as coordenadas da imagem original. 
 
 O valor de `det_size` não muda a imagem final alinhada, que continua sendo uma face de `112 x 112` para os modelos de reconhecimento. O `det_size` muda apenas o tamanho com que cada face é "vista" pelo detector antes do alinhamento.
 
@@ -79,7 +79,7 @@ A imagem a seguir é ainda mais desafiadora: a pessoa está parcialmente na bord
 
 Uma situação comum ao processar vídeo é detectar a face no frame inteiro com `det_size` alto, recortar a região da face com margem e salvar esse recorte como uma imagem. O método `extract_faces()` do `forensicface` permite fazer isso.
 
-A partir da detecção em `cftv_distant.png` com `det_size=1280`, foi salvo um crop com o bounding box estendido em 100% em cada dimensão, configuração padrão do forensicface. A imagem salva tem apenas `24 x 30` pixels:
+A partir da detecção no último exemplo com `det_size=1280`, foi salvo um crop com o bounding box estendido em 100% em cada dimensão, configuração padrão do forensicface. A imagem salva tem apenas `24 x 30` pixels:
 
 ![](det_size_files/cftv_distant_extended_face_crop_preview.jpg)
 
