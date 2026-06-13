@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Orientações sobre a escolha de det_size – forensicface</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d242d70d41cd9edc5ebe4da1d712dc5.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Orientações sobre a escolha de det_size – forensicface">
+<meta property="og:description" content="A package for forensic face examination">
+<meta property="og:image" content="https://rafribeiro.github.io/forensicface/det_size_files/cftv_distant_extended_face_crop_preview.jpg">
+<meta property="og:site_name" content="forensicface">
+<meta name="twitter:title" content="Orientações sobre a escolha de det_size – forensicface">
+<meta name="twitter:description" content="A package for forensic face examination">
+<meta name="twitter:image" content="https://rafribeiro.github.io/forensicface/det_size_files/cftv_distant_extended_face_crop_preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">forensicface</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./det_size.html">Orientações sobre a escolha de <code>det_size</code></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">forensicface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00_forensicface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">forensicface–A tool for forensic face examination</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./det_size.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Orientações sobre a escolha de <code>det_size</code></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./api.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">API Reference</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#exemplo-worlds-largest-selfie" id="toc-exemplo-worlds-largest-selfie" class="nav-link active" data-scroll-target="#exemplo-worlds-largest-selfie">Exemplo: World’s Largest Selfie</a></li>
+  <li><a href="#exemplo-face-grande-na-imagem" id="toc-exemplo-face-grande-na-imagem" class="nav-link" data-scroll-target="#exemplo-face-grande-na-imagem">Exemplo: face grande na imagem</a></li>
+  <li><a href="#exemplo-cftv-com-face-distante" id="toc-exemplo-cftv-com-face-distante" class="nav-link" data-scroll-target="#exemplo-cftv-com-face-distante">Exemplo: CFTV com face distante</a>
+  <ul class="collapse">
+  <li><a href="#redetectando-um-crop-salvo" id="toc-redetectando-um-crop-salvo" class="nav-link" data-scroll-target="#redetectando-um-crop-salvo">Redetectando um crop salvo</a></li>
+  </ul></li>
+  <li><a href="#relação-com-o-scrfd" id="toc-relação-com-o-scrfd" class="nav-link" data-scroll-target="#relação-com-o-scrfd">Relação com o SCRFD</a></li>
+  <li><a href="#sugestões-para-escolher-na-prática" id="toc-sugestões-para-escolher-na-prática" class="nav-link" data-scroll-target="#sugestões-para-escolher-na-prática">Sugestões para escolher na prática</a></li>
+  <li><a href="#custo-computacional" id="toc-custo-computacional" class="nav-link" data-scroll-target="#custo-computacional">Custo computacional</a></li>
+  <li><a href="#interação-com-qualidade-da-imagem" id="toc-interação-com-qualidade-da-imagem" class="nav-link" data-scroll-target="#interação-com-qualidade-da-imagem">Interação com qualidade da imagem</a></li>
+  <li><a href="#interação-com-det_thresh" id="toc-interação-com-det_thresh" class="nav-link" data-scroll-target="#interação-com-det_thresh">Interação com <code>det_thresh</code></a></li>
+  <li><a href="#resumo" id="toc-resumo" class="nav-link" data-scroll-target="#resumo">Resumo</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Orientações sobre a escolha de <code>det_size</code></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p><code>det_size</code> controla o tamanho da imagem que entra no detector de faces SCRFD. No <code>ForensicFace</code>, o valor informado é convertido para uma janela quadrada:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>ff <span class="op">=</span> ForensicFace(det_size<span class="op">=</span><span class="dv">320</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>internamente usa:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>det_size <span class="op">=</span> (<span class="dv">320</span>, <span class="dv">320</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A imagem original é redimensionada mantendo a proporção, encaixada dentro dessa janela quadrada e completada com bordas pretas quando necessário. Depois da detecção, os bounding boxes e os pontos faciais são convertidos de volta para as coordenadas da imagem original.</p>
+<p>O valor de <code>det_size</code> não muda a imagem final alinhada, que continua sendo uma face de <code>112 x 112</code> para os modelos de reconhecimento. O <code>det_size</code> muda apenas o tamanho com que cada face é “vista” pelo detector antes do alinhamento.</p>
+<p>Exemplo: se uma face ocupa cerca de 5% do maior lado da imagem:</p>
+<ul>
+<li>com <code>det_size=320</code>, ela terá aproximadamente <code>16 px</code> no detector;</li>
+<li>com <code>det_size=640</code>, ela terá aproximadamente <code>32 px</code>;</li>
+<li>com <code>det_size=1280</code>, ela terá aproximadamente <code>64 px</code>.</li>
+</ul>
+<p>O valor padrão de <code>det_size</code> do <code>forensicface</code> é 320.</p>
+<p>Os exemplos a seguir ilustram situações diversas que demonstram a importância da escolha adequada do valor de <code>det_size</code>.</p>
+<section id="exemplo-worlds-largest-selfie" class="level2">
+<h2 class="anchored" data-anchor-id="exemplo-worlds-largest-selfie">Exemplo: World’s Largest Selfie</h2>
+<p>A imagem abaixo tem <code>2048 x 1150</code> pixels e contém faces de vários tamanhos. Usando o mesmo detector (<code>det_10g.onnx</code>) e o mesmo limiar <code>det_thresh=0.5</code>, apenas mudando <code>det_size</code>, o número de faces detectadas muda bastante:</p>
+<p><a href="det_size_files/selfie_full_det_size_grid.jpg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="det_size_files/selfie_full_det_size_grid.jpg" class="img-fluid"></a></p>
+<p>Com <code>det_size=320</code>, o detector encontra principalmente faces grandes e relativamente nítidas. Com <code>det_size=640</code>, faces menores começam a entrar no regime de escala em que o SCRFD trabalha melhor. Com <code>det_size=1280</code>, muitas faces pequenas passam a ser detectadas, mas o custo computacional também sobe.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: right;"><code>det_size</code></th>
+<th style="text-align: right;">Faces detectadas</th>
+<th style="text-align: right;">Menor face detectada, aprox.</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">320</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">36,7 px</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">640</td>
+<td style="text-align: right;">202</td>
+<td style="text-align: right;">16,2 px</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1280</td>
+<td style="text-align: right;">490</td>
+<td style="text-align: right;">8,3 px</td>
+</tr>
+</tbody>
+</table>
+<p>Observação: os tamanhos acima são medidos como <code>sqrt(largura * altura)</code> do bounding box detectado na imagem original. Eles descrevem esta imagem específica, não uma garantia geral de desempenho.</p>
+</section>
+<section id="exemplo-face-grande-na-imagem" class="level2">
+<h2 class="anchored" data-anchor-id="exemplo-face-grande-na-imagem">Exemplo: face grande na imagem</h2>
+<p>Quando a face ocupa uma grande proporção da imagem, valores pequenos de <code>det_size</code> já podem ser suficientes. A imagem abaixo tem <code>270 x 344</code> pixels, e a face ocupa boa parte da imagem. Nesse caso, até <code>det_size=32</code> detecta a face.</p>
+<p><img src="obama.png" class="img-fluid"></p>
+<p>A figura abaixo foi gerada com <code>ff.process_image(..., draw_keypoints=True)</code>. A opção <code>draw_keypoints=True</code> desenha os cinco pontos faciais na face alinhada retornada pelo <code>forensicface</code>.</p>
+<p><a href="det_size_files/obama_keypoints_det_size_grid.jpg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="det_size_files/obama_keypoints_det_size_grid.jpg" class="img-fluid"></a></p>
+<p>Esse exemplo também mostra que <strong>detectar uma face não significa necessariamente localizar os pontos faciais com a mesma precisão</strong>. Com <code>det_size=32</code>, a face é detectada, mas os <em>keypoints</em> ficam visivelmente menos bem posicionados, porque a imagem foi reduzida para uma janela muito pequena antes da detecção. Com <code>det_size=64</code>, os pontos já melhoram. Com <code>det_size=128</code> e <code>det_size=320</code>, os keypoints ficam mais estáveis e melhor alinhados. Isso importa porque o <code>forensicface</code> usa esses pontos para gerar a face alinhada de <code>112 x 112</code> pixels, a partir da qual são extraídas as embeddings para reconhecimento.</p>
+<p>Quando a face já ocupa uma proporção grande na imagem, aumentar <code>det_size</code> tende a trazer pouco ganho para a detecção. Nesses casos, <code>320</code> é uma escolha conservadora e prática. Valores menores podem até funcionar, mas devem ser testados.</p>
+</section>
+<section id="exemplo-cftv-com-face-distante" class="level2">
+<h2 class="anchored" data-anchor-id="exemplo-cftv-com-face-distante">Exemplo: CFTV com face distante</h2>
+<p>Em imagens de CFTV, a resolução total do frame pode parecer alta, mas a face pode ocupar poucos pixels. A imagem a seguir tem <code>960 x 480</code> pixels. Com <code>det_size=320</code>, a face não é detectada com <code>det_thresh=0.5</code>. Com <code>640</code> e <code>1280</code>, a face passa a ser detectada.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: right;"><code>det_size</code></th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">320</td>
+<td>nenhuma face detectada</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">640</td>
+<td>1 face, <code>det_score=0,63</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1280</td>
+<td>1 face, <code>det_score=0,85</code></td>
+</tr>
+</tbody>
+</table>
+<p><a href="det_size_files/cftv_distant_det_size_grid.jpg" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="det_size_files/cftv_distant_det_size_grid.jpg" class="img-fluid"></a></p>
+<p>A imagem a seguir é ainda mais desafiadora: a pessoa está parcialmente na borda da imagem, a face é menor e há menos detalhe visual disponível. Nesse caso, só <code>det_size=1280</code> detectou a face com <code>det_thresh=0.5</code>.</p>
+<p><a href="det_size_files/cftv_distant2_det_size_grid.jpg" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="det_size_files/cftv_distant2_det_size_grid.jpg" class="img-fluid"></a></p>
+<section id="redetectando-um-crop-salvo" class="level3">
+<h3 class="anchored" data-anchor-id="redetectando-um-crop-salvo">Redetectando um crop salvo</h3>
+<p>Uma situação comum ao processar vídeo é detectar a face no frame inteiro com <code>det_size</code> alto, recortar a região da face com margem e salvar esse recorte como uma imagem. O método <code>extract_faces()</code> do <code>forensicface</code> permite fazer isso.</p>
+<p>A partir da detecção no último exemplo com <code>det_size=1280</code>, foi salvo um crop com o bounding box estendido em 100% em cada dimensão, configuração padrão do forensicface. A imagem salva tem apenas <code>24 x 30</code> pixels:</p>
+<p><img src="det_size_files/cftv_distant_extended_face_crop_preview.jpg" class="img-fluid"></p>
+<p>A imagem acima está ampliada apenas para visualização. O tamanho real da imagem salva é este:</p>
+<p><img src="det_size_files/cftv_distant_extended_face_crop.png" width="24" height="30" alt="Crop facial salvo em tamanho real."></p>
+<p>Ao tentar detectar novamente a face nessa imagem, usar o mesmo <code>det_size=1280</code> falha. Com <code>det_size=160</code> ou <code>det_size=320</code>, a face volta a ser detectada:</p>
+<p><a href="det_size_files/cftv_crop_redetect_det_size_grid.jpg" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="det_size_files/cftv_crop_redetect_det_size_grid.jpg" class="img-fluid"></a></p>
+<p>Isso acontece porque <code>det_size</code> sempre é aplicado à imagem que está sendo processada naquele momento. No frame inteiro, a face é minúscula em relação aos <code>960 x 480</code> pixels, então <code>det_size=1280</code> ajuda a trazê-la para uma escala mais detectável. Depois do recorte, a mesma face passa a ocupar uma proporção grande da imagem de <code>24 x 30</code> pixels. Redimensionar esse crop para <code>1280 x 1280</code> faz a face ficar enorme na entrada do detector e amplia apenas os blocos, ruído e compressão já presentes no recorte. Com <code>det_size=160</code> ou <code>320</code>, a face entra em uma faixa de escala mais razoável para o SCRFD.</p>
+<p>Esses exemplos mostram um limite importante: aumentar <code>det_size</code> pode fazer uma face pequena ser detectada, mas não cria detalhe facial novo. Quando a face tem poucos pixels na imagem original (aproximadamente 15 pixels de altura neste exemplo), o alinhamento e a embedding ainda devem ser interpretados com cautela, mesmo quando o detector retorna uma detecção com boa confiança.</p>
+</section>
+</section>
+<section id="relação-com-o-scrfd" class="level2">
+<h2 class="anchored" data-anchor-id="relação-com-o-scrfd">Relação com o SCRFD</h2>
+<p>O detector usado pelo <code>forensicface</code> é baseado no SCRFD, descrito no artigo <a href="https://arxiv.org/abs/2105.04714">Sample and Computation Redistribution for Efficient Face Detection</a>.</p>
+<p>O SCRFD foi desenhado pensando em detecção eficiente de faces em múltiplas escalas. No modelo <code>det_10g.onnx</code> usado pelo <code>forensicface</code>, a detecção é feita em mapas de características com strides <code>8</code>, <code>16</code> e <code>32</code>. Isso significa que faces muito pequenas na imagem de entrada do detector dependem fortemente dos níveis mais rasos, especialmente o stride <code>8</code>.</p>
+<p>Por isso, o valor de <code>det_size</code> muda a dificuldade do problema:</p>
+<ul>
+<li>se a face fica muito pequena dentro da janela do detector, ela pode não produzir evidência suficiente para ser detectada;</li>
+<li>se a face fica em uma faixa de escala mais confortável, a chance de detecção e a precisão dos pontos faciais aumentam;</li>
+<li>se <code>det_size</code> cresce muito, o detector avalia muito mais posições e pode encontrar mais faces pequenas, mas também pode encontrar falsos positivos em texturas, óculos, mãos, cartazes e regiões borradas.</li>
+</ul>
+</section>
+<section id="sugestões-para-escolher-na-prática" class="level2">
+<h2 class="anchored" data-anchor-id="sugestões-para-escolher-na-prática">Sugestões para escolher na prática</h2>
+<p>Comece com <code>det_size=320</code> quando:</p>
+<ul>
+<li>a imagem é um retrato, selfie simples, foto de documento ou rosto ocupando boa parte do quadro;</li>
+<li>a face principal ocupa mais ou menos 10% ou mais do maior lado da imagem;</li>
+<li>você quer boa velocidade e não espera muitas faces pequenas.</li>
+</ul>
+<p>Use <code>det_size=640</code> quando:</p>
+<ul>
+<li>a imagem tem várias pessoas;</li>
+<li>a face de interesse ocupa algo entre 5% e 10% do maior lado;</li>
+<li>você está processando frames de vídeo, screenshots ou imagens de cena aberta;</li>
+<li><code>det_size=320</code> perde faces que visualmente ainda parecem aproveitáveis.</li>
+</ul>
+<p>Considere <code>det_size=960</code> ou <code>det_size=1280</code> quando:</p>
+<ul>
+<li>as faces são pequenas, mas ainda têm detalhe real na imagem original;</li>
+<li>o objetivo é maximizar recall em fotos de grupo ou imagens investigativas;</li>
+<li>o tempo de processamento e o uso de memória são aceitáveis;</li>
+<li>você revisará os resultados, porque podem aparecer mais falsos positivos.</li>
+</ul>
+<p>Evite aumentar <code>det_size</code> esperando recuperar informação que não existe. Se a face original tem pouquíssimos pixels, está muito borrada, comprimida ou oculta, aumentar <code>det_size</code> apenas amplia a mesma falta de detalhe.</p>
+<p>Uma tabela prática:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Face em relação ao maior lado da imagem</th>
+<th style="text-align: right;">Tamanho efetivo com <code>320</code></th>
+<th style="text-align: right;">Tamanho efetivo com <code>640</code></th>
+<th>Sugestão inicial</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">64 px</td>
+<td style="text-align: right;">128 px</td>
+<td><code>320</code> deve bastar</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">32 px</td>
+<td style="text-align: right;">64 px</td>
+<td><code>320</code> ou <code>640</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5%</td>
+<td style="text-align: right;">16 px</td>
+<td style="text-align: right;">32 px</td>
+<td><code>640</code> pode ser melhor</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,5%</td>
+<td style="text-align: right;">8 px</td>
+<td style="text-align: right;">16 px</td>
+<td><code>960</code> ou <code>1280</code>, se houver detalhe</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1%</td>
+<td style="text-align: right;">3 px</td>
+<td style="text-align: right;">6 px</td>
+<td>considere recortar a imagem original</td>
+</tr>
+</tbody>
+</table>
+<p>É obrigatório que o valor de <code>det_size</code> seja múltiplo de <code>32</code>, como <code>320</code>, <code>640</code>, <code>960</code> ou <code>1280</code>. Valores que não sejam múltiplos de 32 resultarão em erro de processamento na etapa de detecção.</p>
+</section>
+<section id="custo-computacional" class="level2">
+<h2 class="anchored" data-anchor-id="custo-computacional">Custo computacional</h2>
+<p>O custo do detector cresce aproximadamente com a área da janela:</p>
+<pre class="text"><code>640  ~= 4x o custo de 320
+960  ~= 9x o custo de 320
+1280 ~= 16x o custo de 320</code></pre>
+<p>Na prática, o impacto depende do hardware, do provedor do ONNX Runtime (<code>CUDAExecutionProvider</code>, <code>CPUExecutionProvider</code>, etc.) e do restante do fluxo. O reconhecimento facial ainda roda sobre faces alinhadas de <code>112 x 112</code>, mas uma detecção maior pode produzir muito mais faces para alinhar e processar.</p>
+</section>
+<section id="interação-com-qualidade-da-imagem" class="level2">
+<h2 class="anchored" data-anchor-id="interação-com-qualidade-da-imagem">Interação com qualidade da imagem</h2>
+<p><code>det_size</code> ajuda quando a face está pequena em uma imagem que ainda preserva detalhes. Ele ajuda menos quando o problema principal é qualidade:</p>
+<ul>
+<li>desfoque de movimento;</li>
+<li>compressão forte;</li>
+<li>baixa iluminação;</li>
+<li>face fora de foco;</li>
+<li>pose extrema;</li>
+<li>oclusão por mãos, cabelo, máscara, óculos escuros ou outras pessoas.</li>
+</ul>
+<p>Nesses casos, aumentar <code>det_size</code> pode até detectar mais faces, mas nem sempre melhora o alinhamento ou a qualidade da embedding. Para uso forense, vale olhar também para os pontos faciais, a face alinhada e a qualidade visual do recorte.</p>
+</section>
+<section id="interação-com-det_thresh" class="level2">
+<h2 class="anchored" data-anchor-id="interação-com-det_thresh">Interação com <code>det_thresh</code></h2>
+<p><code>det_size</code> e <code>det_thresh</code> controlam coisas diferentes:</p>
+<ul>
+<li><code>det_size</code> muda a escala em que o detector vê a imagem;</li>
+<li><code>det_thresh</code> muda o limiar mínimo de confiança para aceitar uma detecção.</li>
+</ul>
+<p>Reduzir <code>det_thresh</code> pode aumentar recall, mas também aumenta falsos positivos. Aumentar <code>det_size</code> pode tornar faces pequenas mais detectáveis sem baixar o limiar, mas também aumenta custo e pode revelar candidatos ambíguos.</p>
+<p>Uma estratégia razoável:</p>
+<ol type="1">
+<li>comece com <code>det_size=320</code> e <code>det_thresh=0.5</code>;</li>
+<li>se faces pequenas forem perdidas, tente <code>det_size=640</code>;</li>
+<li>se o objetivo for busca ampla em multidões ou imagens grandes, teste <code>det_size=960</code> ou <code>1280</code>;</li>
+<li>só depois ajuste <code>det_thresh</code>, e revise visualmente as detecções.</li>
+</ol>
+</section>
+<section id="resumo" class="level2">
+<h2 class="anchored" data-anchor-id="resumo">Resumo</h2>
+<p><strong><code>det_size</code> deve ser escolhido principalmente pela relação entre o tamanho da face e o tamanho da imagem</strong>, não apenas pela resolução total da imagem. Para faces ocupando uma boa proporção da imagem, <code>320</code> tende a ser suficiente. Para faces pequenas em imagens grandes, <code>640</code> é um bom primeiro aumento. Para multidões ou busca de faces muito pequenas, <code>960</code> ou <code>1280</code> podem melhorar recall, com custo computacional maior e possibilidade maior de falsos positivos.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/rafribeiro\.github\.io\/forensicface");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/rafribeiro/forensicface/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>
