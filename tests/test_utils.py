@@ -74,12 +74,56 @@ def test_compute_ss_ds_rejects_missing_z_id():
         compute_ss_ds(X, x_id, Z=Z)
 
 
-def test_annotate_img_with_kps_rejects_invalid_color_and_shape():
+def test_annotate_img_with_kps_uses_default_keypoint_colors():
+    img = np.zeros((20, 20, 3), dtype=np.uint8)
+    kps = np.array(
+        [[2, 2], [5, 2], [8, 2], [11, 2], [14, 2]],
+        dtype=np.float32,
+    )
+
+    annotated = annotate_img_with_kps(img, kps, radius=0)
+
+    np.testing.assert_array_equal(annotated[2, 2], [0, 255, 0])
+    np.testing.assert_array_equal(annotated[2, 5], [0, 0, 255])
+    np.testing.assert_array_equal(annotated[2, 8], [0, 255, 0])
+    np.testing.assert_array_equal(annotated[2, 11], [0, 255, 0])
+    np.testing.assert_array_equal(annotated[2, 14], [0, 255, 0])
+
+
+def test_annotate_img_with_kps_accepts_per_keypoint_colors():
+    img = np.zeros((20, 20, 3), dtype=np.uint8)
+    kps = np.array(
+        [[2, 2], [5, 2], [8, 2], [11, 2], [14, 2]],
+        dtype=np.float32,
+    )
+
+    annotated = annotate_img_with_kps(
+        img,
+        kps,
+        colors=("red", "blue", "green", "white", "black"),
+        radius=0,
+    )
+
+    np.testing.assert_array_equal(annotated[2, 2], [0, 0, 255])
+    np.testing.assert_array_equal(annotated[2, 5], [255, 0, 0])
+    np.testing.assert_array_equal(annotated[2, 8], [0, 255, 0])
+    np.testing.assert_array_equal(annotated[2, 11], [255, 255, 255])
+    np.testing.assert_array_equal(annotated[2, 14], [0, 0, 0])
+
+
+def test_annotate_img_with_kps_rejects_invalid_colors_and_shape():
     img = np.zeros((112, 112, 3), dtype=np.uint8)
     kps = np.zeros((5, 2), dtype=np.float32)
 
-    with pytest.raises(ValueError, match="color"):
-        annotate_img_with_kps(img, kps, color="purple")
+    with pytest.raises(ValueError, match="colors"):
+        annotate_img_with_kps(
+            img,
+            kps,
+            colors=("green", "red", "purple", "green", "green"),
+        )
+
+    with pytest.raises(ValueError, match="length 5"):
+        annotate_img_with_kps(img, kps, colors=("green", "red"))
 
     with pytest.raises(ValueError, match="shape"):
         annotate_img_with_kps(img, np.zeros((4, 2), dtype=np.float32))
@@ -122,6 +166,30 @@ def test_build_mosaic_from_aligned_faces_validates_keypoints():
         )
 
 
+def test_build_mosaic_from_aligned_faces_uses_custom_keypoint_colors():
+    aligned_faces = [np.zeros((20, 20, 3), dtype=np.uint8)]
+    keypoints = [
+        np.array(
+            [[2, 2], [5, 2], [8, 2], [11, 2], [14, 2]],
+            dtype=np.float32,
+        )
+    ]
+
+    mosaic = build_mosaic_from_aligned_faces(
+        aligned_faces,
+        mosaic_shape=(1, 1),
+        border=0,
+        draw_keypoints=True,
+        keypoints=keypoints,
+        keypoint_colors=("blue", "white", "red", "green", "black"),
+        image_size=(20, 20),
+    )
+
+    np.testing.assert_array_equal(mosaic[2, 2], [255, 0, 0])
+    np.testing.assert_array_equal(mosaic[2, 5], [255, 255, 255])
+    np.testing.assert_array_equal(mosaic[2, 8], [0, 0, 255])
+
+
 def test_build_mosaic_from_images_processes_original_images():
     class _Processor:
         IMG_SIZE = (2, 2)
@@ -129,24 +197,32 @@ def test_build_mosaic_from_images_processes_original_images():
         def __init__(self):
             self.calls = []
 
-        def process_image(self, img, draw_keypoints=False, single_face=True):
-            self.calls.append((img, draw_keypoints, single_face))
+        def process_image(
+            self,
+            img,
+            draw_keypoints=False,
+            keypoint_colors=None,
+            single_face=True,
+        ):
+            self.calls.append((img, draw_keypoints, keypoint_colors, single_face))
             return {
                 "aligned_face": np.full((2, 2, 3), [10, 20, 30], dtype=np.uint8),
             }
 
     processor = _Processor()
+    keypoint_colors = ("blue", "white", "red", "green", "black")
     mosaic = build_mosaic_from_images(
         processor,
         ["a.jpg", "b.jpg"],
         mosaic_shape=(2, 1),
         border=0,
         draw_keypoints=True,
+        keypoint_colors=keypoint_colors,
     )
 
     assert processor.calls == [
-        ("a.jpg", True, True),
-        ("b.jpg", True, True),
+        ("a.jpg", True, keypoint_colors, True),
+        ("b.jpg", True, keypoint_colors, True),
     ]
     assert mosaic.shape == (2, 4, 3)
     np.testing.assert_array_equal(mosaic[0, 0], [30, 20, 10])

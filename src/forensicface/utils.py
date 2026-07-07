@@ -6,6 +6,7 @@ __all__ = [
     'freeze_env',
     'transform_keypoints',
     'annotate_img_with_kps',
+    'DEFAULT_KEYPOINT_COLORS',
 ]
 import numpy as np
 
@@ -182,8 +183,14 @@ def transform_keypoints(keypoints: np.ndarray, M: np.ndarray) -> np.ndarray:
     transformed_keypoints = (M @ keypoints_homo.T).T  # Apply affine transformation
     return transformed_keypoints
 
+DEFAULT_KEYPOINT_COLORS = ("green", "red", "green", "green", "green")
+
+
 def annotate_img_with_kps(
-    bgr_img: np.ndarray, kps: np.ndarray, color: str = "red", radius: int = 2
+    bgr_img: np.ndarray,
+    kps: np.ndarray,
+    colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
+    radius: int = 2,
 ) -> np.ndarray:
     """
     Annotate an image with keypoints.
@@ -191,8 +198,9 @@ def annotate_img_with_kps(
     Parameters:
     bgr_img (numpy.ndarray): The input image in BGR format.
     kps (numpy.ndarray): A numpy array of shape (5, 2) containing the keypoints.
-    color (str, optional): The color of the keypoints. Default is 'red'.
-                        Options are 'red', 'blue', 'green', 'white', 'black'.
+    colors (tuple[str, str, str, str, str], optional): The color of each
+        keypoint. By default, keypoint index 1 is red and the others are green.
+        Options are 'red', 'blue', 'green', 'white', 'black'.
     radius (int, optional): The radius of the keypoints. Default is 2.
 
     Returns:
@@ -200,7 +208,7 @@ def annotate_img_with_kps(
     """
     import cv2
 
-    colors = {
+    color_values = {
         "red": (0, 0, 255),
         "blue": (255, 0, 0),
         "green": (0, 255, 0),
@@ -208,21 +216,25 @@ def annotate_img_with_kps(
         "black": (0, 0, 0),
     }
 
-    if color not in colors:
-        raise ValueError(
-            f"color must be one of {sorted(colors)}; got {color!r}."
-        )
     if kps.shape != (5, 2):
         raise ValueError(f"kps must have shape (5, 2); got {kps.shape}.")
+    if len(colors) != 5:
+        raise ValueError(f"colors must have length 5; got {len(colors)}.")
+    invalid_colors = [color for color in colors if color not in color_values]
+    if invalid_colors:
+        raise ValueError(
+            f"colors must contain only {sorted(color_values)}; "
+            f"got invalid colors {invalid_colors}."
+        )
 
     bgr_img_with_kps = bgr_img.copy()
 
-    for x, y in kps:
+    for (x, y), color in zip(kps, colors):
         cv2.circle(
             bgr_img_with_kps,
             (int(x), int(y)),
             radius=radius,
-            color=colors[color],
+            color=color_values[color],
             thickness=-1,
         )
 

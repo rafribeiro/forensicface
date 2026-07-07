@@ -7,7 +7,7 @@ import warnings
 import cv2
 import numpy as np
 
-from .utils import annotate_img_with_kps
+from .utils import DEFAULT_KEYPOINT_COLORS, annotate_img_with_kps
 
 
 __all__ = [
@@ -106,6 +106,7 @@ def build_mosaic_from_images(
     border: float = 0.03,
     save_to: str | None = None,
     draw_keypoints: bool = False,
+    keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
 ) -> np.ndarray:
     """Detect, align, and build a rectangular BGR mosaic from original images."""
     mosaic_shape = _validate_pair("mosaic_shape", mosaic_shape)
@@ -117,7 +118,12 @@ def build_mosaic_from_images(
         if not isinstance(img, str):
             list_of_arrays = True
 
-        ret = processor.process_image(img, draw_keypoints=draw_keypoints, single_face=True)
+        ret = processor.process_image(
+            img,
+            draw_keypoints=draw_keypoints,
+            keypoint_colors=keypoint_colors,
+            single_face=True,
+        )
         if ret is None or len(ret) == 0:
             continue
         if isinstance(ret, list):
@@ -148,6 +154,7 @@ def build_mosaic_from_aligned_faces(
     save_to: str | None = None,
     draw_keypoints: bool = False,
     keypoints: list[np.ndarray] | np.ndarray | None = None,
+    keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     image_size: tuple[int, int] = DEFAULT_FACE_SIZE,
 ) -> np.ndarray:
     """Build a rectangular BGR mosaic from already aligned RGB face images."""
@@ -182,7 +189,9 @@ def build_mosaic_from_aligned_faces(
             kps = np.asarray(keypoints[idx], dtype=np.float32)
             if kps.shape != (5, 2):
                 raise ValueError(f"keypoints[{idx}] must have shape (5, 2).")
-            aligned_bgr = annotate_img_with_kps(aligned_bgr, kps=kps, color="green")
+            aligned_bgr = annotate_img_with_kps(
+                aligned_bgr, kps=kps, colors=keypoint_colors
+            )
 
         imgs.append(_add_border(aligned_bgr, image_size, border))
 
@@ -193,4 +202,3 @@ def build_mosaic_from_aligned_faces(
         border=border,
         save_to=save_to,
     )
-

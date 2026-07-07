@@ -11,6 +11,7 @@ from .comparison import (
     compare_faces,
 )
 from .utils import (
+    DEFAULT_KEYPOINT_COLORS,
     aggregate_embeddings,
     freeze_env,
     transform_keypoints,
@@ -169,7 +170,10 @@ class ForensicFace:
         )
 
     def process_image_single_face(
-        self, imgpath: str, draw_keypoints=False
+        self,
+        imgpath: str,
+        draw_keypoints=False,
+        keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ):  # Path to image to be processed
         """
         Process a an image considering it has a single face and extract useful features for forensic analysis.
@@ -185,6 +189,7 @@ class ForensicFace:
         return self.process_image(
             bgr_img,
             draw_keypoints=draw_keypoints,
+            keypoint_colors=keypoint_colors,
             single_face=True,
             select_single_face_by="size",
         )
@@ -265,12 +270,15 @@ class ForensicFace:
         imgpath,
         single_face=True,
         draw_keypoints=False,
+        keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
         select_single_face_by="size",
     ):
         """Process an image assuming one or multiple faces.
         Args:
             - imgpath (str | np.ndarray): Path to the input image or cv2 image array in BGR.
             - draw_keypoints (bool): If set to True, draw the keypoints on the aligned face.
+            - keypoint_colors (tuple[str, str, str, str, str]): colors used for
+                the five aligned keypoints when draw_keypoints=True.
             - single_face (bool): If set to True, process only one face in the image.
             - select_single_face_by (str): criterion to select the face in the image, if more than one face is detected.
                 Only applicable when single_face == True. Must be either 'size' or 'centrality'.
@@ -339,7 +347,7 @@ class ForensicFace:
             )
             if draw_keypoints:
                 bgr_aligned_face = self._draw_keypoints_on_aligned_face(
-                    bgr_aligned_face, aligned_kps
+                    bgr_aligned_face, aligned_kps, keypoint_colors=keypoint_colors
                 )
             result = build_face_result(
                 aligned_face=cv2.cvtColor(bgr_aligned_face, cv2.COLOR_BGR2RGB),
@@ -364,10 +372,15 @@ class ForensicFace:
         M = self.backend.estimate_norm(keypoints)
         return transform_keypoints(keypoints=keypoints, M=M)
 
-    def _draw_keypoints_on_aligned_face(self, bgr_aligned_face, aligned_keypoints):
+    def _draw_keypoints_on_aligned_face(
+        self,
+        bgr_aligned_face,
+        aligned_keypoints,
+        keypoint_colors=DEFAULT_KEYPOINT_COLORS,
+    ):
         aligned_face = bgr_aligned_face.copy()
         annotated_aligned_face = annotate_img_with_kps(
-            aligned_face, kps=aligned_keypoints, color="green"
+            aligned_face, kps=aligned_keypoints, colors=keypoint_colors
         )
         return annotated_aligned_face
 
@@ -421,7 +434,10 @@ class ForensicFace:
         return cv2.imread(imgpath) if isinstance(imgpath, str) else imgpath.copy()
 
     def process_image_multiple_faces(
-        self, imgpath: str, draw_keypoints=False  # Path to image to be processed
+        self,
+        imgpath: str,
+        draw_keypoints=False,
+        keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ):
         """
         Process an image assuming multiple faces.
@@ -434,7 +450,10 @@ class ForensicFace:
         )
         bgr_img = self._load_image(imgpath)
         return self.process_image(
-            bgr_img, draw_keypoints=draw_keypoints, single_face=False
+            bgr_img,
+            draw_keypoints=draw_keypoints,
+            keypoint_colors=keypoint_colors,
+            single_face=False,
         )
 
     def build_mosaic(
@@ -444,6 +463,7 @@ class ForensicFace:
         border: float = 0.03,
         save_to: str | None = None,
         draw_keypoints: bool = False,
+        keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ) -> np.ndarray:
         """
         Detect, align, and build a rectangular mosaic from original images.
@@ -454,6 +474,8 @@ class ForensicFace:
             border: float, percent of image to use as white border
             save_to: optional path used to save the mosaic image.
             draw_keypoints: if True, draw keypoints on each aligned face.
+            keypoint_colors: colors used for the five aligned keypoints when
+                draw_keypoints=True.
 
         Returns:
             np.ndarray: OpenCV BGR image with mosaic.
@@ -465,6 +487,7 @@ class ForensicFace:
             border=border,
             save_to=save_to,
             draw_keypoints=draw_keypoints,
+            keypoint_colors=keypoint_colors,
         )
 
     def build_mosaic_from_aligned_faces(
@@ -475,6 +498,7 @@ class ForensicFace:
         save_to: str | None = None,
         draw_keypoints: bool = False,
         keypoints: list[np.ndarray] | np.ndarray | None = None,
+        keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ) -> np.ndarray:
         """
         Build a rectangular mosaic from already aligned RGB face images.
@@ -491,6 +515,8 @@ class ForensicFace:
             draw_keypoints: if True, draw keypoints on each aligned face.
             keypoints: optional list/array of aligned keypoints, one per aligned face.
                 Required when draw_keypoints=True.
+            keypoint_colors: colors used for the five aligned keypoints when
+                draw_keypoints=True.
 
         Returns:
             np.ndarray: OpenCV BGR image with mosaic.
@@ -502,6 +528,7 @@ class ForensicFace:
             save_to=save_to,
             draw_keypoints=draw_keypoints,
             keypoints=keypoints,
+            keypoint_colors=keypoint_colors,
             image_size=self.IMG_SIZE,
         )
 
