@@ -147,6 +147,10 @@ python -m forensicface.tools.migrate_shared --models-root /path/to/models
 
 ## Notas de versão
 
+Ainda não lançado:
+- Adicionada customização de cores para a anotação de keypoints nas imagens via `colors` / `keypoint_colors`.
+- A anotação de keypoints agora colore o keypoint de índice 1 em vermelho, mantendo os demais em verde, para facilitar a inspeção do alinhamento da imagem.
+
 v0.7.2:
 - Adicionado `ff.build_mosaic_from_aligned_faces()`: monta mosaicos a partir de faces RGB já alinhadas (`ff.build_mosaic()` continua detectando e alinhando imagens antes de montar o mosaico de imagens alinhadas).
 - Adicionada a função utilitária `forensicface.mosaic.build_mosaic_from_aligned_faces()` para criar mosaicos sem instanciar `ForensicFace`.
