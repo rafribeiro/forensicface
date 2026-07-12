@@ -148,6 +148,7 @@ python -m forensicface.tools.migrate_shared --models-root /path/to/models
 ## Notas de versão
 
 Ainda não lançado:
+- `compute_ss_ds()` agora retorna, por padrão, índices `int32` dos pares comparados em vez de nomes de arquivos; o retorno desses índices pode ser desabilitado com `return_pair_indices=False`.
 - Adicionada customização de cores para a anotação de keypoints nas imagens via `colors` / `keypoint_colors`.
 - A anotação de keypoints agora colore o keypoint de índice 1 em vermelho, mantendo os demais em verde, para facilitar a inspeção do alinhamento da imagem.
 
