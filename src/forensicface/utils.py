@@ -63,30 +63,31 @@ def aggregate_embeddings(
 def compute_ss_ds(
     X: np.ndarray,
     x_id: np.ndarray,
-    x_names: np.ndarray | None = None,
     Z: np.ndarray | None = None,
     z_id: np.ndarray | None = None,
-    z_names: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray, list[tuple] | None]:
+    return_pair_indices: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """
     Compute cosine similarities between the cartesian product of two arrays X and Z and
     return same-source (ss) and different-source (ds) scores.
     If only the array X and x_id are provided, compute the cosine similarities between all pairwise
-    combination in X. Also return the names of the files associated with each score, is x_names and z_names are provided.
+    combination in X.
 
     Args:
         X: 2D numpy array with one embedding per row.
         x_id: 1D numpy array with identity labels for ``X``.
-        x_names: Optional 1D numpy array with names of files associated with
-            the embeddings in ``X``.
         Z: Optional 2D numpy array with one embedding per row.
         z_id: Optional 1D numpy array with identity labels for ``Z``.
-        z_names: Optional 1D numpy array with names of files associated with
-            the embeddings in ``Z``.
+        return_pair_indices: Whether to return ``int32`` pair indices as the
+            third return value. If ``False``, pair indices are not computed and
+            the third return value is ``None``.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, list[tuple] | None]: Scores, same-source
-        and different-source labels, and optional file-name pairs.
+        tuple[np.ndarray, np.ndarray, np.ndarray | None]: Scores, same-source
+        and different-source labels, and optional ``int32`` pair indices. For
+        ``X`` vs ``X``, both index columns refer to rows in ``X``. For ``X`` vs
+        ``Z``, the first column refers to ``X`` and the second column refers to
+        ``Z``.
     """
     if X.ndim != 2:
         raise ValueError(f"X must be a 2D array; got ndim={X.ndim}.")
@@ -94,30 +95,30 @@ def compute_ss_ds(
         raise ValueError(
             f"x_id length must match X rows; got {len(x_id)} labels for {X.shape[0]} rows."
         )
-    ss_names = None
-    ds_names = None
     if Z is None:  # compute scores of X vs X
         similarities = cosine_similarity(X, X)
-        ss_mask = x_id[:, np.newaxis] == x_id
-        upper_triangle_mask = np.triu(np.ones_like(similarities), k=1).astype(bool)
-        ss = similarities[(ss_mask & upper_triangle_mask)]
-        ds = similarities[(~ss_mask & upper_triangle_mask)]
-        if x_names is not None:  # compute names of X vs X
-            if len(x_names) != X.shape[0]:
-                raise ValueError(
-                    "x_names length must match X rows; "
-                    f"got {len(x_names)} names for {X.shape[0]} rows."
-                )
-            ss_names = [
-                (x_names[i], x_names[j])
-                for i, j in np.argwhere(upper_triangle_mask)
-                if x_id[i] == x_id[j]
-            ]
-            ds_names = [
-                (x_names[i], x_names[j])
-                for i, j in np.argwhere(upper_triangle_mask)
-                if x_id[i] != x_id[j]
-            ]
+        if return_pair_indices:
+            pair_i, pair_j = np.triu_indices(X.shape[0], k=1)
+            pair_i = pair_i.astype(np.int32, copy=False)
+            pair_j = pair_j.astype(np.int32, copy=False)
+            ss_pair_mask = x_id[pair_i] == x_id[pair_j]
+            ds_pair_mask = ~ss_pair_mask
+            ss = similarities[pair_i[ss_pair_mask], pair_j[ss_pair_mask]]
+            ds = similarities[pair_i[ds_pair_mask], pair_j[ds_pair_mask]]
+            pair_indices = np.empty((len(pair_i), 2), dtype=np.int32)
+            n_ss = np.count_nonzero(ss_pair_mask)
+            pair_indices[:n_ss, 0] = pair_i[ss_pair_mask]
+            pair_indices[:n_ss, 1] = pair_j[ss_pair_mask]
+            pair_indices[n_ss:, 0] = pair_i[ds_pair_mask]
+            pair_indices[n_ss:, 1] = pair_j[ds_pair_mask]
+        else:
+            ss_mask = x_id[:, np.newaxis] == x_id
+            upper_triangle_mask = np.triu(
+                np.ones_like(similarities, dtype=bool), k=1
+            )
+            ss = similarities[ss_mask & upper_triangle_mask]
+            ds = similarities[~ss_mask & upper_triangle_mask]
+            pair_indices = None
     if Z is not None:  # compute scores of X vs Z
         if Z.ndim != 2:
             raise ValueError(f"Z must be a 2D array; got ndim={Z.ndim}.")
@@ -130,24 +131,22 @@ def compute_ss_ds(
         similarities = cosine_similarity(X, Z)
         ss_mask = x_id[:, np.newaxis] == z_id
         ss = similarities[ss_mask]
-        ds = similarities[~ss_mask]
-        if z_names is not None:  # compute names of X vs Z
-            if x_names is None:
-                raise ValueError("x_names is required when z_names is provided.")
-            if len(z_names) != Z.shape[0]:
-                raise ValueError(
-                    "z_names length must match Z rows; "
-                    f"got {len(z_names)} names for {Z.shape[0]} rows."
-                )
-            ss_names = [(x_names[i], z_names[j]) for i, j in np.argwhere(ss_mask)]
-            ds_names = [(x_names[i], z_names[j]) for i, j in np.argwhere(~ss_mask)]
+        ds_mask = ~ss_mask
+        ds = similarities[ds_mask]
+        if return_pair_indices:
+            ss_i, ss_j = np.nonzero(ss_mask)
+            ds_i, ds_j = np.nonzero(ds_mask)
+            pair_indices = np.empty((ss_i.size + ds_i.size, 2), dtype=np.int32)
+            pair_indices[: ss_i.size, 0] = ss_i
+            pair_indices[: ss_i.size, 1] = ss_j
+            pair_indices[ss_i.size :, 0] = ds_i
+            pair_indices[ss_i.size :, 1] = ds_j
+        else:
+            pair_indices = None
 
     scores = np.concatenate([ss, ds])
     y = np.concatenate([np.ones(len(ss)), np.zeros(len(ds))])
-    names = (
-        ss_names + ds_names if ss_names is not None and ds_names is not None else None
-    )
-    return scores, y, names
+    return scores, y, pair_indices
 
 def freeze_env():
     import sys

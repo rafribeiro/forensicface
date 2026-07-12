@@ -74,6 +74,143 @@ def test_compute_ss_ds_rejects_missing_z_id():
         compute_ss_ds(X, x_id, Z=Z)
 
 
+def test_compute_ss_ds_returns_x_pair_indices_in_score_order():
+    X = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    x_id = np.array(["a", "b", "a", "c"])
+
+    scores, y, pair_indices = compute_ss_ds(X, x_id)
+
+    np.testing.assert_allclose(scores, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+    np.testing.assert_array_equal(y, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    assert pair_indices.dtype == np.int32
+    np.testing.assert_array_equal(
+        pair_indices,
+        [
+            [0, 2],
+            [0, 1],
+            [0, 3],
+            [1, 2],
+            [1, 3],
+            [2, 3],
+        ],
+    )
+
+
+def test_compute_ss_ds_can_skip_x_pair_indices(monkeypatch):
+    X = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    x_id = np.array(["a", "b", "a", "c"])
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("pair indices should not be computed")
+
+    with monkeypatch.context() as context:
+        context.setattr(np, "triu_indices", fail_if_called)
+        scores, y, pair_indices = compute_ss_ds(
+            X,
+            x_id,
+            return_pair_indices=False,
+        )
+
+    np.testing.assert_allclose(scores, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+    np.testing.assert_array_equal(y, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    assert pair_indices is None
+
+
+def test_compute_ss_ds_returns_x_z_pair_indices_in_score_order():
+    X = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    Z = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    x_id = np.array(["a", "b"])
+    z_id = np.array(["b", "a", "c"])
+
+    scores, y, pair_indices = compute_ss_ds(
+        X,
+        x_id,
+        Z=Z,
+        z_id=z_id,
+    )
+
+    np.testing.assert_allclose(scores, [0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
+    np.testing.assert_array_equal(y, [1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+    assert pair_indices.dtype == np.int32
+    np.testing.assert_array_equal(
+        pair_indices,
+        [
+            [0, 1],
+            [1, 0],
+            [0, 0],
+            [0, 2],
+            [1, 1],
+            [1, 2],
+        ],
+    )
+
+
+def test_compute_ss_ds_can_skip_x_z_pair_indices(monkeypatch):
+    X = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    Z = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    x_id = np.array(["a", "b"])
+    z_id = np.array(["b", "a", "c"])
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("pair indices should not be computed")
+
+    with monkeypatch.context() as context:
+        context.setattr(np, "nonzero", fail_if_called)
+        scores, y, pair_indices = compute_ss_ds(
+            X,
+            x_id,
+            Z=Z,
+            z_id=z_id,
+            return_pair_indices=False,
+        )
+
+    np.testing.assert_allclose(scores, [0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
+    np.testing.assert_array_equal(y, [1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+    assert pair_indices is None
+
+
 def test_annotate_img_with_kps_uses_default_keypoint_colors():
     img = np.zeros((20, 20, 3), dtype=np.uint8)
     kps = np.array(
