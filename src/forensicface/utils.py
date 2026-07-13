@@ -65,7 +65,8 @@ def compute_ss_ds(
     x_id: np.ndarray,
     Z: np.ndarray | None = None,
     z_id: np.ndarray | None = None,
-    return_pair_indices: bool = True,
+    return_pair_indices: bool = False,
+    block_size: int = 2048,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """
     Compute cosine similarities between the cartesian product of two arrays X and Z and
@@ -81,71 +82,131 @@ def compute_ss_ds(
         return_pair_indices: Whether to return ``int32`` pair indices as the
             third return value. If ``False``, pair indices are not computed and
             the third return value is ``None``.
+        block_size: Maximum number of rows and columns in each similarity tile.
+            Smaller values reduce peak working memory without changing the
+            returned arrays.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, np.ndarray | None]: Scores, same-source
-        and different-source labels, and optional ``int32`` pair indices. For
-        ``X`` vs ``X``, both index columns refer to rows in ``X``. For ``X`` vs
-        ``Z``, the first column refers to ``X`` and the second column refers to
-        ``Z``.
+        tuple[np.ndarray, np.ndarray, np.ndarray | None]: Scores, Boolean
+        same-source labels, and optional ``int32`` pair indices. ``True`` means
+        same-source and ``False`` means different-source. For ``X`` vs ``X``,
+        both index columns refer to rows in ``X``. For ``X`` vs ``Z``, the first
+        column refers to ``X`` and the second column refers to ``Z``.
+
+        Same-source scores precede different-source scores. Ordering within
+        those two sections is unspecified.
     """
+    X = np.asarray(X)
+    x_id = np.asarray(x_id)
     if X.ndim != 2:
         raise ValueError(f"X must be a 2D array; got ndim={X.ndim}.")
     if X.shape[0] != len(x_id):
         raise ValueError(
             f"x_id length must match X rows; got {len(x_id)} labels for {X.shape[0]} rows."
         )
-    if Z is None:  # compute scores of X vs X
-        similarities = cosine_similarity(X, X)
-        if return_pair_indices:
-            pair_i, pair_j = np.triu_indices(X.shape[0], k=1)
-            pair_i = pair_i.astype(np.int32, copy=False)
-            pair_j = pair_j.astype(np.int32, copy=False)
-            ss_pair_mask = x_id[pair_i] == x_id[pair_j]
-            ds_pair_mask = ~ss_pair_mask
-            ss = similarities[pair_i[ss_pair_mask], pair_j[ss_pair_mask]]
-            ds = similarities[pair_i[ds_pair_mask], pair_j[ds_pair_mask]]
-            pair_indices = np.empty((len(pair_i), 2), dtype=np.int32)
-            n_ss = np.count_nonzero(ss_pair_mask)
-            pair_indices[:n_ss, 0] = pair_i[ss_pair_mask]
-            pair_indices[:n_ss, 1] = pair_j[ss_pair_mask]
-            pair_indices[n_ss:, 0] = pair_i[ds_pair_mask]
-            pair_indices[n_ss:, 1] = pair_j[ds_pair_mask]
-        else:
-            ss_mask = x_id[:, np.newaxis] == x_id
-            upper_triangle_mask = np.triu(
-                np.ones_like(similarities, dtype=bool), k=1
-            )
-            ss = similarities[ss_mask & upper_triangle_mask]
-            ds = similarities[~ss_mask & upper_triangle_mask]
-            pair_indices = None
-    if Z is not None:  # compute scores of X vs Z
+    if not isinstance(block_size, (int, np.integer)) or block_size <= 0:
+        raise ValueError(f"block_size must be a positive integer; got {block_size!r}.")
+    block_size = int(block_size)
+
+    if Z is not None:
+        Z = np.asarray(Z)
         if Z.ndim != 2:
             raise ValueError(f"Z must be a 2D array; got ndim={Z.ndim}.")
         if z_id is None:
             raise ValueError("z_id is required when Z is provided.")
+        z_id = np.asarray(z_id)
         if Z.shape[0] != len(z_id):
             raise ValueError(
                 f"z_id length must match Z rows; got {len(z_id)} labels for {Z.shape[0]} rows."
             )
-        similarities = cosine_similarity(X, Z)
-        ss_mask = x_id[:, np.newaxis] == z_id
-        ss = similarities[ss_mask]
-        ds_mask = ~ss_mask
-        ds = similarities[ds_mask]
-        if return_pair_indices:
-            ss_i, ss_j = np.nonzero(ss_mask)
-            ds_i, ds_j = np.nonzero(ds_mask)
-            pair_indices = np.empty((ss_i.size + ds_i.size, 2), dtype=np.int32)
-            pair_indices[: ss_i.size, 0] = ss_i
-            pair_indices[: ss_i.size, 1] = ss_j
-            pair_indices[ss_i.size :, 0] = ds_i
-            pair_indices[ss_i.size :, 1] = ds_j
-        else:
-            pair_indices = None
+        if X.shape[1] != Z.shape[1]:
+            raise ValueError(
+                "X and Z must have the same embedding dimension; "
+                f"got {X.shape[1]} and {Z.shape[1]}."
+            )
 
-    scores = np.concatenate([ss, ds])
-    y = np.concatenate([np.ones(len(ss)), np.zeros(len(ds))])
+    # Normalize once, instead of normalizing X twice in the X-vs-X case.
+    normalized_X = X / np.linalg.norm(X, axis=1, keepdims=True)
+    normalized_Z = (
+        normalized_X
+        if Z is None
+        else Z / np.linalg.norm(Z, axis=1, keepdims=True)
+    )
+
+    if Z is None:
+        n_pairs = X.shape[0] * (X.shape[0] - 1) // 2
+        _, identity_counts = np.unique(x_id, return_counts=True)
+        n_ss = int(np.sum(identity_counts * (identity_counts - 1) // 2))
+    else:
+        n_pairs = X.shape[0] * Z.shape[0]
+        x_values, x_counts = np.unique(x_id, return_counts=True)
+        z_values, z_counts = np.unique(z_id, return_counts=True)
+        _, x_common, z_common = np.intersect1d(
+            x_values,
+            z_values,
+            assume_unique=True,
+            return_indices=True,
+        )
+        n_ss = int(np.sum(x_counts[x_common] * z_counts[z_common]))
+
+    score_dtype = np.result_type(normalized_X.dtype, normalized_Z.dtype)
+    scores = np.empty(n_pairs, dtype=score_dtype)
+    y = np.zeros(n_pairs, dtype=bool)
+    y[:n_ss] = True
+    pair_indices = (
+        np.empty((n_pairs, 2), dtype=np.int32)
+        if return_pair_indices
+        else None
+    )
+
+    ss_position = 0
+    ds_position = n_ss
+    z_rows = normalized_Z.shape[0]
+
+    for x_start in range(0, normalized_X.shape[0], block_size):
+        x_stop = min(x_start + block_size, normalized_X.shape[0])
+        z_first = x_start if Z is None else 0
+
+        for z_start in range(z_first, z_rows, block_size):
+            z_stop = min(z_start + block_size, z_rows)
+            similarities = (
+                normalized_X[x_start:x_stop]
+                @ normalized_Z[z_start:z_stop].T
+            )
+            same_mask = (
+                x_id[x_start:x_stop, np.newaxis]
+                == (x_id if Z is None else z_id)[z_start:z_stop]
+            )
+
+            if Z is None and x_start == z_start:
+                eligible_mask = np.triu(
+                    np.ones(similarities.shape, dtype=bool),
+                    k=1,
+                )
+                same_mask &= eligible_mask
+                different_mask = eligible_mask & ~same_mask
+            else:
+                different_mask = ~same_mask
+
+            n_tile_ss = int(np.count_nonzero(same_mask))
+            n_tile_ds = int(np.count_nonzero(different_mask))
+            next_ss_position = ss_position + n_tile_ss
+            next_ds_position = ds_position + n_tile_ds
+
+            scores[ss_position:next_ss_position] = similarities[same_mask]
+            scores[ds_position:next_ds_position] = similarities[different_mask]
+
+            if pair_indices is not None:
+                ss_i, ss_j = np.nonzero(same_mask)
+                ds_i, ds_j = np.nonzero(different_mask)
+                pair_indices[ss_position:next_ss_position, 0] = ss_i + x_start
+                pair_indices[ss_position:next_ss_position, 1] = ss_j + z_start
+                pair_indices[ds_position:next_ds_position, 0] = ds_i + x_start
+                pair_indices[ds_position:next_ds_position, 1] = ds_j + z_start
+
+            ss_position = next_ss_position
+            ds_position = next_ds_position
+
     return scores, y, pair_indices
 
 def freeze_env():

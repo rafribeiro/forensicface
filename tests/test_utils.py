@@ -86,10 +86,15 @@ def test_compute_ss_ds_returns_x_pair_indices_in_score_order():
     )
     x_id = np.array(["a", "b", "a", "c"])
 
-    scores, y, pair_indices = compute_ss_ds(X, x_id)
+    scores, y, pair_indices = compute_ss_ds(
+        X,
+        x_id,
+        return_pair_indices=True,
+    )
 
     np.testing.assert_allclose(scores, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0])
     np.testing.assert_array_equal(y, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    assert y.dtype == np.bool_
     assert pair_indices.dtype == np.int32
     np.testing.assert_array_equal(
         pair_indices,
@@ -130,6 +135,17 @@ def test_compute_ss_ds_can_skip_x_pair_indices(monkeypatch):
     np.testing.assert_allclose(scores, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0])
     np.testing.assert_array_equal(y, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     assert pair_indices is None
+    assert y.dtype == np.bool_
+
+
+def test_compute_ss_ds_skips_pair_indices_by_default():
+    X = np.eye(3, dtype=np.float32)
+    x_id = np.array(["a", "a", "b"])
+
+    _, y, pair_indices = compute_ss_ds(X, x_id)
+
+    assert pair_indices is None
+    assert y.dtype == np.bool_
 
 
 def test_compute_ss_ds_returns_x_z_pair_indices_in_score_order():
@@ -156,10 +172,12 @@ def test_compute_ss_ds_returns_x_z_pair_indices_in_score_order():
         x_id,
         Z=Z,
         z_id=z_id,
+        return_pair_indices=True,
     )
 
     np.testing.assert_allclose(scores, [0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
     np.testing.assert_array_equal(y, [1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+    assert y.dtype == np.bool_
     assert pair_indices.dtype == np.int32
     np.testing.assert_array_equal(
         pair_indices,
@@ -174,7 +192,7 @@ def test_compute_ss_ds_returns_x_z_pair_indices_in_score_order():
     )
 
 
-def test_compute_ss_ds_can_skip_x_z_pair_indices(monkeypatch):
+def test_compute_ss_ds_can_skip_x_z_pair_indices():
     X = np.array(
         [
             [1.0, 0.0],
@@ -193,22 +211,70 @@ def test_compute_ss_ds_can_skip_x_z_pair_indices(monkeypatch):
     x_id = np.array(["a", "b"])
     z_id = np.array(["b", "a", "c"])
 
-    def fail_if_called(*args, **kwargs):
-        raise AssertionError("pair indices should not be computed")
-
-    with monkeypatch.context() as context:
-        context.setattr(np, "nonzero", fail_if_called)
-        scores, y, pair_indices = compute_ss_ds(
-            X,
-            x_id,
-            Z=Z,
-            z_id=z_id,
-            return_pair_indices=False,
-        )
+    scores, y, pair_indices = compute_ss_ds(
+        X,
+        x_id,
+        Z=Z,
+        z_id=z_id,
+        return_pair_indices=False,
+    )
 
     np.testing.assert_allclose(scores, [0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
     np.testing.assert_array_equal(y, [1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
     assert pair_indices is None
+
+
+def test_compute_ss_ds_x_pair_indices_align_across_blocks():
+    rng = np.random.default_rng(42)
+    X = rng.normal(size=(7, 4)).astype(np.float32)
+    x_id = np.array(["a", "b", "a", "c", "b", "c", "d"])
+
+    scores, y, pair_indices = compute_ss_ds(
+        X,
+        x_id,
+        return_pair_indices=True,
+        block_size=2,
+    )
+
+    assert len(scores) == 21
+    assert len({tuple(pair) for pair in pair_indices}) == 21
+    assert np.all(pair_indices[:, 0] < pair_indices[:, 1])
+    expected_scores = np.array(
+        [cosine_score(X[i], X[j]) for i, j in pair_indices],
+    )
+    np.testing.assert_allclose(scores, expected_scores, rtol=1e-6, atol=1e-6)
+    np.testing.assert_array_equal(
+        y,
+        x_id[pair_indices[:, 0]] == x_id[pair_indices[:, 1]],
+    )
+
+
+def test_compute_ss_ds_x_z_pair_indices_align_across_blocks():
+    rng = np.random.default_rng(43)
+    X = rng.normal(size=(5, 4)).astype(np.float32)
+    Z = rng.normal(size=(7, 4)).astype(np.float32)
+    x_id = np.array(["a", "b", "a", "c", "d"])
+    z_id = np.array(["b", "a", "e", "c", "b", "d", "a"])
+
+    scores, y, pair_indices = compute_ss_ds(
+        X,
+        x_id,
+        Z=Z,
+        z_id=z_id,
+        return_pair_indices=True,
+        block_size=2,
+    )
+
+    assert len(scores) == 35
+    assert len({tuple(pair) for pair in pair_indices}) == 35
+    expected_scores = np.array(
+        [cosine_score(X[i], Z[j]) for i, j in pair_indices],
+    )
+    np.testing.assert_allclose(scores, expected_scores, rtol=1e-6, atol=1e-6)
+    np.testing.assert_array_equal(
+        y,
+        x_id[pair_indices[:, 0]] == z_id[pair_indices[:, 1]],
+    )
 
 
 def test_annotate_img_with_kps_uses_default_keypoint_colors():
