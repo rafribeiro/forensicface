@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .backends import PoseAngles, normalize_pose
+
 
 __all__ = [
     "AlignedFace",
@@ -64,7 +66,7 @@ class AlignedFace:
     det_score: float
     gender: str | int | None = None
     age: int | None = None
-    pose: np.ndarray | None = None
+    pose: PoseAngles | np.ndarray | None = None
 
     @classmethod
     def from_align_result(cls, align_item: dict):
@@ -89,10 +91,11 @@ def gender_label(gender) -> str | None:
 
 
 def pose_angles(pose) -> tuple[float | None, float | None, float | None]:
-    """Return yaw, pitch, roll from a pose vector stored as pitch, yaw, roll."""
-    if pose is None:
+    """Return yaw, pitch, roll from the normalized internal representation."""
+    normalized = normalize_pose(pose)
+    if normalized is None:
         return None, None, None
-    return pose[1], pose[0], pose[2]
+    return normalized.yaw, normalized.pitch, normalized.roll
 
 
 def build_align_result(
@@ -106,6 +109,7 @@ def build_align_result(
     gender=None,
     age=None,
     pose=None,
+    enabled_tasks: frozenset[str] | set[str] | None = None,
 ) -> FaceResult:
     result = FaceResult(
         {
@@ -116,10 +120,17 @@ def build_align_result(
             "det_score": float(det_score),
         }
     )
-    if extended:
+    if enabled_tasks is None:
+        enabled_tasks = {"gender", "age", "pose"} if extended else set()
+    if "gender" in enabled_tasks:
         result["gender"] = gender_label(gender)
+    if "age" in enabled_tasks:
         result["age"] = int(age) if age is not None else None
-        result["pose"] = pose.copy() if pose is not None else None
+    if "pose" in enabled_tasks:
+        normalized_pose = normalize_pose(pose)
+        result["pose"] = (
+            normalized_pose.as_array() if normalized_pose is not None else None
+        )
     return result
 
 
@@ -131,17 +142,20 @@ def build_embedding_result(
     extended: bool,
     concat_embeddings: bool,
     index: int | None = None,
+    enabled_tasks: frozenset[str] | set[str] | None = None,
 ) -> FaceResult:
     """Build a result for recognition-only APIs that receive aligned faces."""
     result = FaceResult()
-    if concat_embeddings:
+    if embeddings is not None and concat_embeddings:
         result["embedding"] = embeddings if index is None else embeddings[index]
-    else:
+    elif embeddings is not None:
         for model_name, embedding in zip(models, embeddings):
             result[f"embedding_{model_name}"] = (
                 embedding if index is None else embedding[index]
             )
-    if extended:
+    if enabled_tasks is None:
+        enabled_tasks = {"quality"} if extended else set()
+    if "quality" in enabled_tasks:
         if index is None:
             result["fiqa_score"] = fiqa_score
         else:
@@ -159,23 +173,27 @@ def assemble_face_result(
     models: list[str],
     extended: bool,
     concat_embeddings: bool,
+    enabled_tasks: frozenset[str] | set[str] | None = None,
 ) -> FaceResult:
     result = FaceResult(
         {"ipd": np.linalg.norm(aligned_face.keypoints[0] - aligned_face.keypoints[1])}
     )
 
-    if extended:
-        yaw, pitch, roll = pose_angles(aligned_face.pose)
-        result.update(
-            {
-                "fiqa_score": fiqa_score,
-                "gender": gender_label(aligned_face.gender),
-                "age": aligned_face.age,
-                "yaw": yaw,
-                "pitch": pitch,
-                "roll": roll,
-            }
+    if enabled_tasks is None:
+        enabled_tasks = (
+            {"gender", "age", "pose", "quality", "embedding"}
+            if extended
+            else {"embedding"}
         )
+    if "quality" in enabled_tasks:
+        result["fiqa_score"] = fiqa_score
+    if "gender" in enabled_tasks:
+        result["gender"] = gender_label(aligned_face.gender)
+    if "age" in enabled_tasks:
+        result["age"] = aligned_face.age
+    if "pose" in enabled_tasks:
+        yaw, pitch, roll = pose_angles(aligned_face.pose)
+        result.update({"yaw": yaw, "pitch": pitch, "roll": roll})
 
     result.update(
         {
@@ -184,9 +202,9 @@ def assemble_face_result(
             "bbox": aligned_face.bbox.astype("int"),
         }
     )
-    if concat_embeddings:
+    if embeddings is not None and concat_embeddings:
         result["embedding"] = embeddings
-    else:
+    elif embeddings is not None:
         for model_name, embedding in zip(models, embeddings):
             result[f"embedding_{model_name}"] = embedding
 
@@ -209,6 +227,7 @@ def build_face_result(
     age=None,
     pose=None,
     aligned_keypoints=None,
+    enabled_tasks: frozenset[str] | set[str] | None = None,
 ) -> FaceResult:
     return assemble_face_result(
         aligned_face=AlignedFace(
@@ -226,6 +245,7 @@ def build_face_result(
         models=models,
         extended=extended,
         concat_embeddings=concat_embeddings,
+        enabled_tasks=enabled_tasks,
     )
 
 
@@ -237,6 +257,7 @@ def build_face_result_from_align_result(
     models: list[str],
     extended: bool,
     concat_embeddings: bool,
+    enabled_tasks: frozenset[str] | set[str] | None = None,
 ) -> FaceResult:
     return assemble_face_result(
         aligned_face=AlignedFace.from_align_result(align_item),
@@ -245,4 +266,5 @@ def build_face_result_from_align_result(
         models=models,
         extended=extended,
         concat_embeddings=concat_embeddings,
+        enabled_tasks=enabled_tasks,
     )

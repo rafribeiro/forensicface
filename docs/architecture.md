@@ -18,8 +18,9 @@ The implementation has four main layers:
    implement multi-step operations behind facade methods.
 3. Model and data helpers: `recognition.py`, `preprocessing.py`, `results.py`,
    `geometry.py`, and `model_store.py` own reusable logic.
-4. Backend/model adapters: `backends.py` and `insightface/` hide detector,
-   alignment, landmark, and attribute model details.
+4. Component/model adapters: `components.py`, `component_catalog.py`,
+   `onnx_components.py`, `backends.py`, and `insightface/` hide detector,
+   alignment, landmark, attribute, quality, and embedding model details.
 
 ```mermaid
 flowchart LR
@@ -29,9 +30,11 @@ flowchart LR
     FF --> Mosaic[mosaic.py]
     FF --> Video[video.py]
     FF --> Backend[FaceBackend]
+    FF --> Catalog[component_catalog.py]
     FF --> Runner[RecognitionRunner]
     FF --> Store[model_store.py]
     Backend --> Insight[insightface adapters]
+    Catalog --> Components[ONNX task components]
     Runner --> Pre[preprocessing.py]
     Batch --> Results[results.py]
     Compare --> Utils[utils.py]
@@ -53,6 +56,7 @@ flowchart LR
 | Extract faces from video | `ForensicFace.extract_faces()` | `video.py`, `geometry.py` |
 | Compute evaluation scores | `utils.compute_ss_ds()` | `utils.py` |
 | Migrate model files | `python -m forensicface.tools.migrate_shared` | `tools/migrate_shared.py` |
+| Correct a CenterFace ONNX export | `python -m forensicface.tools.convert_centerface_onnx` | `tools/convert_centerface_onnx.py` |
 
 Public face outputs are `FaceResult` objects. `FaceResult` is a `dict`
 subclass, so existing code can use `ret["bbox"]`, while newer code can also use
@@ -137,6 +141,12 @@ aligned face coordinate system.
 - options such as `extended`, `det_size`, `det_thresh`, and
   `concat_embeddings`.
 
+Constructor calls using only legacy arguments retain the original backend
+initialization path. Supplying any keyword-only task selector (`detection`,
+`pose`, `gender`, `age`, `quality`, or `embedding`) activates the component
+pipeline. Omitted optional selectors inherit from `extended`; explicit `None`
+disables the task and causes its result fields to be omitted.
+
 Keep end-user convenience methods here. Move stateless logic or large task
 workflows out to helper modules.
 
@@ -156,7 +166,7 @@ Deprecated public compatibility methods:
 
 ### `recognition.py`
 
-`RecognitionRunner` owns recognition/FIQA inference for aligned BGR crops.
+`RecognitionRunner` owns only embedding inference for aligned BGR crops.
 
 It handles:
 
@@ -164,8 +174,12 @@ It handles:
 - batch inference through `compute_batch()`;
 - keypoint-aware model input dictionaries;
 - two-output recognition models where embedding is scaled by norm;
-- optional CR-FIQA inference;
 - CUDA OOM fallback through `try_compute_batch()`.
+
+`QualityRunner` in `quality.py` independently owns legacy or component quality
+inference and its CUDA OOM fallback. `AlignedFaceRunner` in
+`aligned_processing.py` combines recognition and quality results without
+making either task depend on the other.
 
 Small pure helpers in this module include `build_keypoint_model_inputs()`,
 `looks_like_cuda_oom()`, and `try_compute_embeddings_batch()`.
@@ -221,12 +235,39 @@ Geometry helpers are pure:
 
 All model layout resolution rules live here:
 
+- `resolve_component_model()`
 - `resolve_recognition_model()`
 - `resolve_quality_model()`
 - `collect_backend_model_files()`
 
-This module understands both the preferred shared layout and the legacy
-per-model layout.
+This module understands the preferred task/alias layout, the prior flat shared
+layout, and the original per-model layout.
+
+### Extensible components
+
+`components.py` defines `ModelSpec`, operational `ComponentMetadata`, the task
+protocols, `FaceContext`, and `ComponentBackend`. `FaceContext` contains the
+original BGR image, normalized detection, aligned BGR crop, aligned keypoints,
+and alignment transform. Each estimator adapter still owns its crop choice,
+resize, normalization, and native input dimensions.
+
+`component_catalog.py` is the immutable built-in alias catalog and construction
+boundary. Built-in aliases can be configured with a generic `ModelSpec`;
+third-party implementations are supplied as constructed objects, without
+mutating global registry state.
+
+`onnx_components.py` contains the built-in adapters:
+
+- SCRFD and CenterFace detection;
+- InsightFace 3D-68 pose;
+- joint InsightFace gender-age;
+- CR-FIQA quality;
+- SEPAEL ONNX embeddings, including keypoint-aware `sepaelv6`.
+
+Joint estimators are deduplicated by identity/configuration, so the current
+gender-age model runs once even when selected for both capabilities.
+Face-estimator batching is deliberately outside the initial contract;
+batching is supported only for embeddings and quality.
 
 ### `backends.py`
 
@@ -236,8 +277,8 @@ per-model layout.
 - `norm_crop(bgr_img, keypoints) -> ndarray`
 - `estimate_norm(keypoints) -> ndarray`
 
-`ONNXOnlyBackend` is currently the concrete backend. It loads detector,
-landmark, and gender-age models and returns `FaceData` objects.
+`ONNXOnlyBackend` remains the concrete legacy backend. `ComponentBackend` is
+the explicit-selector path and composes independently selected task objects.
 
 ```mermaid
 classDiagram
@@ -271,8 +312,10 @@ classDiagram
 
 - `mosaic.py`: builds aligned-face mosaics.
 - `video.py`: exports detected face crops and optional metadata from video.
-- `tools/migrate_shared.py`: migrates legacy model directories into the shared
-  layout using a plan/apply/report structure.
+- `tools/migrate_shared.py`: migrates legacy model directories into the
+  task/alias layout using a plan/apply/report structure.
+- `tools/convert_centerface_onnx.py`: creates and verifies the dynamic-shape
+  CenterFace artifact used by the ONNX Runtime adapter.
 
 ### Runtime and Utilities
 
@@ -289,17 +332,34 @@ Preferred layout:
 ```text
 ~/.forensicface/models/
   detection/
-    det_10g.onnx
+    scrfd/
+      det_10g.onnx
+    centerface/
+      centerface.onnx
+  pose/
+    insightface-3d68/
+      1k3d68.onnx
   attributes/
-    1k3d68.onnx
-    genderage.onnx
+    insightface-genderage/
+      genderage.onnx
   quality/
-    cr_fiqa_l.onnx
+    cr-fiqa/
+      cr_fiqa_l.onnx
   recognition/
     sepaelv2/
       *face*.onnx
     sepaelv6/
       *face*.onnx
+```
+
+The flat shared layout introduced in 0.7 remains a lookup fallback:
+
+```text
+~/.forensicface/models/
+  detection/det_10g.onnx
+  attributes/1k3d68.onnx
+  attributes/genderage.onnx
+  quality/cr_fiqa_l.onnx
 ```
 
 Legacy fallback layout:
@@ -317,6 +377,9 @@ Legacy fallback layout:
 ```
 
 The model-store helpers are the source of truth for lookup behavior.
+`python -m forensicface.tools.migrate_shared` migrates either historical
+layout to task/alias directories. The CenterFace source export can be prepared
+offline with `python -m forensicface.tools.convert_centerface_onnx`.
 
 ## Contribution Map
 

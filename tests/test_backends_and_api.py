@@ -339,7 +339,9 @@ def test_onnx_backend_propagates_optional_fields(monkeypatch):
     assert len(faces) == 1
     assert faces[0].gender == 1
     assert faces[0].age == 33
-    assert np.allclose(faces[0].pose, np.array([0.1, 0.2, 0.3], dtype=np.float32))
+    assert faces[0].pose.pitch == pytest.approx(0.1)
+    assert faces[0].pose.yaw == pytest.approx(0.2)
+    assert faces[0].pose.roll == pytest.approx(0.3)
 
 
 def test_process_image_draw_keypoints_saves_aligned_image_onnx_backend(
@@ -560,6 +562,19 @@ def test_resolve_quality_model_prefers_new_layout(monkeypatch, tmp_path):
     assert Path(resolved) == new_path
 
 
+def test_resolve_quality_model_prefers_namespaced_layout_over_flat(tmp_path):
+    namespaced_dir = tmp_path / "quality" / "cr-fiqa"
+    namespaced_dir.mkdir(parents=True)
+    namespaced_path = namespaced_dir / "cr_fiqa_l.onnx"
+    namespaced_path.write_bytes(b"namespaced")
+    flat_path = tmp_path / "quality" / "cr_fiqa_l.onnx"
+    flat_path.write_bytes(b"flat")
+
+    resolved = model_store.resolve_quality_model(str(tmp_path), "sepaelv2")
+
+    assert Path(resolved) == namespaced_path
+
+
 def test_resolve_quality_model_falls_back_to_legacy_layout(tmp_path):
     legacy_dir = tmp_path / "sepaelv2" / "cr_fiqa"
     legacy_dir.mkdir(parents=True)
@@ -592,18 +607,21 @@ def test_onnx_backend_missing_directory_message_uses_forensicface_root(monkeypat
         )
 
 
-def test_backend_prefers_new_shared_structure_over_legacy(monkeypatch):
+def test_backend_prefers_namespaced_structure_over_flat_and_legacy(monkeypatch):
     import forensicface.backends as backends_module
 
-    new_det = "/fake/model/detection/det_10g.onnx"
+    namespaced_det = "/fake/model/detection/scrfd/det_10g.onnx"
+    flat_det = "/fake/model/detection/det_10g.onnx"
     legacy_det = "/fake/model/sepaelv2/det_10g.onnx"
 
     glob_calls = {"patterns": []}
 
     def fake_glob(pattern):
         glob_calls["patterns"].append(pattern)
+        if pattern.endswith(osp.join("detection", "scrfd", "*.onnx")):
+            return [namespaced_det]
         if pattern.endswith(osp.join("detection", "*.onnx")):
-            return [new_det]
+            return [flat_det]
         if pattern.endswith(osp.join("attributes", "*.onnx")):
             return []
         if pattern.endswith(osp.join("sepaelv2", "*.onnx")):
@@ -636,7 +654,7 @@ def test_backend_prefers_new_shared_structure_over_legacy(monkeypatch):
         models_root="/fake/model",
     )
 
-    assert backend.det_model.model_file == new_det
+    assert backend.det_model.model_file == namespaced_det
 
 
 def test_backend_falls_back_to_legacy_when_new_layout_missing(monkeypatch):

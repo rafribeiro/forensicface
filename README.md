@@ -15,26 +15,66 @@ pip install forensicface
 - Tutoriais e exemplos: notebooks em `nbs/` (em desenvolvimento)
 - Referência de API: https://rafribeiro.github.io/forensicface/api.html
 - Documentação para contribuidores: [`docs/README.md`](docs/README.md)
+- Guia para implementar novos modelos: [`docs/extending-models.md`](docs/extending-models.md)
 
 ## Como utilizar
 
 Importação da classe ForensicFace:
 
 ``` python
+from forensicface import ModelSpec
 from forensicface.app import ForensicFace
 ```
 
 Instanciamento do ForensicFace:
 
 ``` python
-ff = ForensicFace(det_size=320, use_gpu=True, extended=True)
+ff = ForensicFace(
+    detection=ModelSpec("scrfd", det_size=320),
+    pose="insightface-3d68",
+    gender="insightface-genderage",
+    age="insightface-genderage",
+    quality="cr-fiqa",
+    embedding="sepaelv2",
+    use_gpu=True,
+)
 ```
+
+Também é possível selecionar cada tarefa diretamente. Seletores omitidos
+herdam os defaults definidos por `extended`; `None` desabilita uma tarefa
+opcional:
+
+``` python
+ff = ForensicFace(
+    detection=ModelSpec("centerface", score_threshold=0.35),
+    pose="insightface-3d68",
+    embedding=["sepaelv2", "sepaelv4"],
+)
+```
+
+`models=[...]` continua sendo o seletor legado de embeddings e não pode ser
+combinado com os novos seletores. Componentes ONNX construídos pelo usuário
+também podem ser injetados diretamente. `detection=None` é rejeitado;
+`embedding=None` permite detecção, alinhamento e atributos sem reconhecimento.
+
+### Retrocompatibilidade
+
+A API anterior permanece compatível na versão 0.8.0. Chamadas que utilizam
+`ForensicFace()` sem seletores, `models`, o parâmetro descontinuado `model`,
+`extended`, `det_size`, `det_thresh` ou um `backend` construído continuam
+seguindo o fluxo legado e preservam seus defaults e formatos de resultado.
+
+Os novos seletores são uma forma adicional e mais granular de configuração.
+Para evitar ambiguidades, uma chamada que utilize qualquer seletor novo não
+pode combinar `models`, `model` ou `backend`; utilize `embedding` no lugar de
+`models`. Os layouts de modelos das versões anteriores também continuam sendo
+consultados como fallback.
 
 ``` console
 [ForensicFace] Initialized with configuration:
                 loaded_models=['sepaelv2']
                 modules=['detection', 'headpose', 'genderage', 'cr_fiqa']
-                det_size=(256, 256)
+                det_size=(320, 320)
                 session_providers=all models use CUDAExecutionProvider
 ```
 
@@ -45,14 +85,14 @@ Obter pontos de referência, distância interpupilar, representação
 vetorial, a face alinhada com dimensão fixa (112x112), estimativas de
 sexo, idade, pose (*pitch*, *yaw*, *roll*) e qualidade. Opcionalmente, é
 possível anotar a face alinhada com os pontos de referência utilizados
-no alinhamento (parâmetro `draw_kypoints`).
+no alinhamento (parâmetro `draw_keypoints`).
 
 ``` python
 results = ff.process_image("obama2.png", draw_keypoints=True, single_face=True)
 results.keys()
 ```
 
-    dict_keys(['keypoints', 'ipd', 'embedding', 'norm', 'bbox', 'det_score', 'aligned_face', 'gender', 'age', 'pitch', 'yaw', 'roll', 'fiqa_score'])
+    dict_keys(['ipd', 'fiqa_score', 'gender', 'age', 'yaw', 'pitch', 'roll', 'det_score', 'keypoints', 'bbox', 'embedding', 'aligned_face'])
 
 ``` python
 plt.imshow(results["aligned_face"])
@@ -93,12 +133,22 @@ embeddings. Para isso, a partir da versão 0.7.0 há métodos para:
 Estimativa de qualidade pelo método
 [CR-FIQA](https://github.com/fdbtrs/CR-FIQA)
 
-Para desabilitar, instancie o forensicface com a opção `extended=False`:
+Para desabilitar a qualidade e os demais estimadores opcionais explicitamente:
 
-`ff = ForensicFace(extended=False)`
+``` python
+ff = ForensicFace(
+    detection="scrfd",
+    pose=None,
+    gender=None,
+    age=None,
+    quality=None,
+    embedding="sepaelv2",
+)
+```
 
-Obs.: a opção `extended=False` também desabilita as estimativas de
-sexo, idade e pose.
+O parâmetro legado `extended=False` continua disponível por
+retrocompatibilidade e também desabilita qualidade, sexo, idade e pose quando
+nenhum seletor novo é utilizado.
 
 ``` python
 good = ff.process_image("001_frontal.jpg")
@@ -108,23 +158,26 @@ good["fiqa_score"], bad["fiqa_score"]
 
     (2.3786173, 1.4386057)
 
-## Novo layout de pastas a partir da versão 0.7.0
-A partir da versão 0.7.0, os arquivos dos modelos pré-treinados são organizados por 
-**tipo** em quatro pastas sob `~/.forensicface/models/`:
+## Layout de modelos por tarefa e alias
+
+O layout extensível organiza os modelos por **tarefa** e **alias** sob
+`~/.forensicface/models/`:
 
 | Tipo | Caminho |
 |---|---|
-| Detecção (SCRFD)   | `~/.forensicface/models/detection/det_10g.onnx` |
-| Atributos — pose   | `~/.forensicface/models/attributes/1k3d68.onnx` |
-| Atributos — sexo/idade | `~/.forensicface/models/attributes/genderage.onnx` |
-| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr_fiqa_l.onnx` |
+| Detecção (SCRFD)   | `~/.forensicface/models/detection/scrfd/det_10g.onnx` |
+| Detecção (CenterFace) | `~/.forensicface/models/detection/centerface/centerface20260722.onnx` |
+| Atributos — pose   | `~/.forensicface/models/pose/insightface-3d68/1k3d68.onnx` |
+| Atributos — gênero/idade | `~/.forensicface/models/attributes/insightface-genderage/genderage.onnx` |
+| Qualidade (CR-FIQA) | `~/.forensicface/models/quality/cr-fiqa/cr_fiqa_l.onnx` |
 | Reconhecimento     | `~/.forensicface/models/recognition/<model_name>/*face*.onnx` |
 
-A estrutura de pastas anterior continua funcionando, mas é recomendado que você
-mude para a nova estrutura de pastas. Para auxiliar na migração, foi incluída uma ferramenta para realizar a migração de forma automática:  
+A estrutura original por modelo e o layout compartilhado plano da versão 0.7
+continuam sendo reconhecidos como fallback. A ferramenta de migração aceita
+ambos e os converte para os diretórios por tarefa e alias:
 
-`python -m forensicface.tools.migrate_shared` move arquivos para a nova estrutura e
-remove as cópias desnecessárias, liberando espaço em disco.  
+`python -m forensicface.tools.migrate_shared` move os arquivos e remove somente
+cópias com SHA-256 idêntico, liberando espaço em disco.
 ``` sh
 # Dry-run (default): mostra o que seria feito, não toca em nada
 python -m forensicface.tools.migrate_shared
@@ -148,10 +201,50 @@ python -m forensicface.tools.migrate_shared --models-root /path/to/models
 ## Notas de versão
 
 Ainda não lançado:
-- `compute_ss_ds()` pode retornar índices dos pares comparados com `return_pair_indices=True`; por padrão, `return_pair_indices=False`.
--  Para evitar o uso excessivo de memória, `compute_ss_ds()` agora calcula similaridades em blocos, preenche diretamente os arrays de saída e retorna `y` como `bool` (`True` para mesma fonte e `False` para fontes diferentes).
-- Adicionada customização de cores para a anotação de keypoints nas imagens via `colors` / `keypoint_colors`.
-- A anotação de keypoints agora colore o keypoint de índice 1 em vermelho, mantendo os demais em verde, para facilitar a inspeção do alinhamento da imagem.
+- Nenhuma alteração registrada até o momento.
+
+v0.8.0:
+- Adicionados os seletores por tarefa `detection`, `pose`, `gender`, `age`,
+  `quality` e `embedding`, com precedência da configuração explícita sobre o
+  preset legado `extended` e os defaults da biblioteca.
+- Adicionado `ModelSpec` genérico para selecionar aliases, caminhos de modelos
+  e parâmetros específicos de cada implementação, além do suporte à injeção
+  direta de componentes construídos pelo usuário.
+- Mantido o suporte a múltiplos modelos de embeddings pelo seletor
+  `embedding`; `embedding=None` permite executar detecção, alinhamento e
+  atributos sem gerar embeddings.
+- Adicionado o detector [CenterFace](https://github.com/Star-Clouds/CenterFace)
+- Separados os contratos e adaptadores de detecção, pose, sexo/idade,
+  qualidade e embeddings. Cada componente passa a controlar seu próprio
+  recorte, tamanho de entrada, normalização, sessão e interpretação da saída.
+- Adicionado suporte a estimadores conjuntos por capacidades; o modelo atual
+  de sexo e idade é executado apenas uma vez quando atende às duas tarefas.
+- A pose passou a utilizar internamente valores nomeados de `pitch`, `yaw` e
+  `roll`, preservando os campos e arrays da API pública anterior.
+- A inferência de qualidade foi separada da extração de embeddings. O fallback
+  por falta de memória da GPU divide lotes de qualidade independentemente, sem
+  repetir a inferência de embeddings.
+- Adicionado layout de modelos por tarefa e alias, com fallback para os layouts
+  das versões anteriores, e adaptada a ferramenta
+  `forensicface.tools.migrate_shared` para realizar a migração com validação de
+  hashes e conflitos.
+- Tarefas opcionais desabilitadas explicitamente deixam de adicionar seus
+  campos aos resultados; chamadas pela API legada preservam exatamente seus
+  formatos anteriores.
+- Mantida a retrocompatibilidade com `models`, `model`, `extended`,
+  `det_size`, `det_thresh`, `backend` e os layouts anteriores de modelos.
+  `models`, `model` e `backend` não podem ser combinados com os novos seletores
+  na mesma chamada. `det_size` e `det_thresh` continuam válidos para SCRFD e
+  são rejeitados com detectores aos quais não se aplicam.
+- `compute_ss_ds()` é mais eficiente no uso de memória, calculando similaridade em blocos.
+- `compute_ss_ds()` não retorna mais os nomes dos arquivos envolvidos em cada score, mas os índices dos arrays de nomes.
+- Adicionada a customização de cores para a anotação de pontos-chave por meio
+  de `colors` e `keypoint_colors`.
+- A anotação agora colore o ponto-chave de índice 1 em vermelho e mantém os
+  demais em verde, facilitando a inspeção do alinhamento facial.
+- Adicionado um guia para implementação de novos modelos em
+  [`docs/extending-models.md`](docs/extending-models.md), incluindo contratos,
+  convenções de cor e coordenadas, providers, concorrência e testes.
 
 v0.7.2:
 - Adicionado `ff.build_mosaic_from_aligned_faces()`: monta mosaicos a partir de faces RGB já alinhadas (`ff.build_mosaic()` continua detectando e alinhando imagens antes de montar o mosaico de imagens alinhadas).

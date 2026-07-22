@@ -17,6 +17,11 @@ def _aggregate_embeddings(processor, embeddings, *, method: str, weights):
 
 def compare_faces(processor, img1path: str, img2path: str) -> float:
     """Compare two images through the processor facade."""
+    if "embedding" not in getattr(processor, "enabled_tasks", {"embedding"}):
+        raise ValueError(
+            "compare() requires an embedding model; initialize ForensicFace "
+            "with embedding=... instead of embedding=None."
+        )
     if not processor.concat_embeddings:
         raise ValueError(
             "compare() is not compatible with concat_embeddings=False. "
@@ -41,8 +46,16 @@ def aggregate_from_images(
     quality_weight: bool = False,
 ) -> np.ndarray | dict[str, np.ndarray] | list:
     """Aggregate embeddings from all detected faces in a list of images."""
-    if quality_weight and processor.extended is not True:
+    enabled_tasks = getattr(processor, "enabled_tasks", None)
+    if enabled_tasks is not None and "embedding" not in enabled_tasks:
+        raise ValueError(
+            "aggregate_from_images() requires an embedding model; initialize "
+            "ForensicFace with embedding=... instead of embedding=None."
+        )
+    if quality_weight and enabled_tasks is None and processor.extended is not True:
         raise ValueError("You must initialize ForensicFace with extended = True")
+    if quality_weight and enabled_tasks is not None and "quality" not in enabled_tasks:
+        raise ValueError("quality_weight=True requires an enabled quality estimator.")
 
     if processor.concat_embeddings:
         embeddings = []

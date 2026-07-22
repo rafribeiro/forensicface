@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from forensicface.comparison import aggregate_from_images, compare_faces
+from forensicface.aligned_processing import AlignedFaceRunner
 from forensicface.geometry import extend_bbox, select_best_face
 from forensicface.preprocessing import normalize_aligned_keypoints, to_ada_input
 from forensicface.recognition import (
@@ -12,6 +13,7 @@ from forensicface.recognition import (
     looks_like_cuda_oom,
     try_compute_embeddings_batch,
 )
+from forensicface.quality import QualityRunner, try_compute_quality_batch
 from forensicface.results import (
     AlignedFace,
     FaceResult,
@@ -285,7 +287,7 @@ def test_build_keypoint_model_inputs_reports_missing_onnx_inputs():
         )
 
 
-def test_recognition_runner_compute_one_wires_inputs_and_fiqa():
+def test_recognition_runner_compute_one_wires_embedding_inputs():
     plain = _Session(["image"], [np.array([[1.0, 2.0]], dtype=np.float32)])
     keypoint = _Session(
         ["input_images", "keypoints"],
@@ -294,29 +296,22 @@ def test_recognition_runner_compute_one_wires_inputs_and_fiqa():
             np.array([[0.5]], dtype=np.float32),
         ],
     )
-    fiqa = _Session(
-        ["image"],
-        [np.zeros((1, 1), dtype=np.float32), np.array([[0.9]], dtype=np.float32)],
-    )
     runner = RecognitionRunner(
         models=["plain", "sepaelv6"],
         rec_inference_sessions=[plain, keypoint],
-        ort_fiqa=fiqa,
-        extended=True,
         concat_embeddings=True,
     )
     img = np.zeros((112, 112, 3), dtype=np.uint8)
     keypoints = np.full((5, 2), 56, dtype=np.float32)
 
-    embedding, fiqa_score = runner.compute_one(img, aligned_keypoints=keypoints)
+    embedding = runner.compute_one(img, aligned_keypoints=keypoints)
 
     np.testing.assert_allclose(embedding, [1.0, 2.0, 1.5, 2.0])
-    assert fiqa_score == pytest.approx(0.9)
     assert set(keypoint.calls[0]) == {"input_images", "keypoints"}
     np.testing.assert_allclose(keypoint.calls[0]["keypoints"], 0.5)
 
 
-def test_recognition_runner_compute_batch_concatenates_embeddings_and_fiqa():
+def test_recognition_runner_compute_batch_concatenates_embeddings():
     def plain_outputs(inputs):
         batch_size = inputs["image"].shape[0]
         return [np.ones((batch_size, 2), dtype=np.float32)]
@@ -328,37 +323,26 @@ def test_recognition_runner_compute_batch_concatenates_embeddings_and_fiqa():
             np.full((batch_size, 1), 0.25, dtype=np.float32),
         ]
 
-    def fiqa_outputs(inputs):
-        batch_size = inputs["image"].shape[0]
-        return [
-            np.zeros((batch_size, 1), dtype=np.float32),
-            np.arange(batch_size, dtype=np.float32).reshape(batch_size, 1),
-        ]
-
     runner = RecognitionRunner(
         models=["plain", "scaled"],
         rec_inference_sessions=[
             _Session(["image"], plain_outputs),
             _Session(["image"], scaled_outputs),
         ],
-        ort_fiqa=_Session(["image"], fiqa_outputs),
-        extended=True,
         concat_embeddings=True,
     )
     batch = np.zeros((3, 112, 112, 3), dtype=np.uint8)
 
-    embeddings, fiqa_scores = runner.compute_batch(batch)
+    embeddings = runner.compute_batch(batch)
 
     assert embeddings.shape == (3, 4)
     np.testing.assert_allclose(embeddings, np.ones((3, 4), dtype=np.float32))
-    np.testing.assert_allclose(fiqa_scores, [0.0, 1.0, 2.0])
 
 
 def test_recognition_runner_compute_batch_rejects_invalid_shapes():
     runner = RecognitionRunner(
         models=[],
         rec_inference_sessions=[],
-        extended=False,
         concat_embeddings=True,
     )
 
@@ -397,13 +381,13 @@ def test_try_compute_embeddings_batch_splits_cuda_oom_and_merges_results():
         if batch.shape[0] > 1:
             raise RuntimeError("CUDA out of memory")
         value = float(batch[0, 0, 0, 0])
-        return np.array([[value, value + 1]], dtype=np.float32), np.array([value])
+        return np.array([[value, value + 1]], dtype=np.float32)
 
     batch = np.arange(3 * 112 * 112 * 3, dtype=np.float32).reshape(3, 112, 112, 3)
     keypoints = np.arange(3 * 5 * 2, dtype=np.float32).reshape(3, 5, 2)
 
     with pytest.warns(UserWarning, match="CUDA OOM"):
-        embeddings, fiqa_scores = try_compute_embeddings_batch(
+        embeddings = try_compute_embeddings_batch(
             compute_batch,
             batch,
             aligned_keypoints_batch=keypoints,
@@ -414,7 +398,78 @@ def test_try_compute_embeddings_batch_splits_cuda_oom_and_merges_results():
     np.testing.assert_array_equal(seen_keypoints[3], keypoints[1:2])
     np.testing.assert_array_equal(seen_keypoints[4], keypoints[2:])
     assert embeddings.shape == (3, 2)
-    np.testing.assert_allclose(fiqa_scores, batch[:, 0, 0, 0])
+
+
+def test_quality_runner_handles_legacy_session_single_and_batch():
+    def outputs(inputs):
+        size = inputs["image"].shape[0]
+        return [
+            np.zeros((size, 1), dtype=np.float32),
+            np.arange(size, dtype=np.float32).reshape(size, 1) + 0.25,
+        ]
+
+    runner = QualityRunner(legacy_session=_Session(["image"], outputs))
+    batch = np.zeros((3, 112, 112, 3), dtype=np.uint8)
+
+    assert runner.compute_one(batch[0]) == pytest.approx(0.25)
+    np.testing.assert_allclose(runner.compute_batch(batch), [0.25, 1.25, 2.25])
+
+
+def test_quality_oom_retry_splits_independently_and_merges_scores():
+    seen_batches = []
+
+    def compute_batch(batch):
+        seen_batches.append(len(batch))
+        if len(batch) > 1:
+            raise RuntimeError("CUDA out of memory")
+        return batch[:, 0, 0, 0].astype(np.float32)
+
+    batch = np.arange(3 * 4 * 4 * 3, dtype=np.float32).reshape(3, 4, 4, 3)
+    with pytest.warns(UserWarning, match="quality inference"):
+        scores = try_compute_quality_batch(compute_batch, batch)
+
+    assert seen_batches == [3, 1, 2, 1, 1]
+    np.testing.assert_allclose(scores, batch[:, 0, 0, 0])
+
+
+def test_aligned_runner_does_not_rerun_embeddings_for_quality_oom():
+    class _Recognition:
+        def __init__(self):
+            self.calls = 0
+
+        def try_compute_batch(self, batch, aligned_keypoints_batch=None):
+            self.calls += 1
+            return np.ones((len(batch), 2), dtype=np.float32)
+
+    class _QualityEstimator:
+        def __init__(self):
+            self.batch_sizes = []
+
+        def score_batch(self, batch):
+            self.batch_sizes.append(len(batch))
+            if len(batch) > 1:
+                raise RuntimeError("CUDA out of memory")
+            return np.full(len(batch), 0.5, dtype=np.float32)
+
+        def score_one(self, image):
+            return 0.5
+
+    recognition = _Recognition()
+    estimator = _QualityEstimator()
+    runner = AlignedFaceRunner(
+        recognition=recognition,
+        quality=QualityRunner(estimator=estimator),
+    )
+
+    with pytest.warns(UserWarning, match="quality inference"):
+        embeddings, scores = runner.try_compute_batch(
+            np.zeros((3, 112, 112, 3), dtype=np.uint8)
+        )
+
+    assert recognition.calls == 1
+    assert estimator.batch_sizes == [3, 1, 2, 1, 1]
+    assert embeddings.shape == (3, 2)
+    np.testing.assert_allclose(scores, 0.5)
 
 
 def test_compare_faces_uses_concatenated_embeddings():

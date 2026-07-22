@@ -1,10 +1,21 @@
-__all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult']
+__all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult', 'ModelSpec']
 import onnxruntime
 import cv2
 import numpy as np
 import os.path as osp
 import warnings
 from .backends import FaceBackend, create_backend
+from .aligned_processing import AlignedFaceRunner
+from .component_catalog import (
+    DEFAULT_ALIASES,
+    build_detector,
+    build_embedding_estimators,
+    build_face_estimator,
+    build_quality_estimator,
+    normalize_embedding_selection,
+    selection_alias,
+)
+from .components import DEFAULT, ComponentBackend, ModelSpec
 from .batch import process_images_batch as process_images_batch_workflow
 from .comparison import (
     aggregate_from_images as aggregate_from_images_workflow,
@@ -23,6 +34,7 @@ from .geometry import select_best_face
 from .model_store import resolve_quality_model, resolve_recognition_model
 from .mosaic import build_mosaic_from_aligned_faces, build_mosaic_from_images
 from .recognition import RecognitionRunner
+from .quality import QualityRunner
 from .results import (
     FaceResult,
     build_align_result,
@@ -50,17 +62,24 @@ class ForensicFace:
 
     def __init__(
         self,
-        models: list[str] = ["sepaelv2"],
+        models: list[str] | object = DEFAULT,
         model: str = None,
-        det_size: int = 320,
+        det_size: int | object = DEFAULT,
         use_gpu: bool = True,
         gpu: int = 0,  # which GPU to use
         concat_embeddings: bool = True,
         extended=True,
-        det_thresh: float = 0.5,
+        det_thresh: float | object = DEFAULT,
         backend_name: str = "onnx",
         backend: FaceBackend | None = None,
         models_root: str = osp.join(osp.expanduser("~"), ".forensicface", "models"),
+        *,
+        detection=DEFAULT,
+        pose=DEFAULT,
+        gender=DEFAULT,
+        age=DEFAULT,
+        quality=DEFAULT,
+        embedding=DEFAULT,
     ):
         """
         A face comparison tool for forensic analysis and comparison of facial images.
@@ -74,7 +93,51 @@ class ForensicFace:
         - concat_embeddings (bool): If True, concatenates the embeddings of each model.
         - extended (bool): Whether to use extended modules (detection, landmark_3d_68, genderage) (default: True).
         - det_thresh (float): threshold for the face detector (default = 0.5).
+        - detection, pose, gender, age, quality: keyword-only task selectors.
+          Each accepts a built-in alias, ModelSpec, or constructed component;
+          optional tasks also accept None to disable them.
+        - embedding: keyword-only embedding selector accepting one selection,
+          multiple selections, or None. It is mutually exclusive with models.
         """
+
+        selector_values = {
+            "detection": detection,
+            "pose": pose,
+            "gender": gender,
+            "age": age,
+            "quality": quality,
+            "embedding": embedding,
+        }
+        explicit_selectors = {
+            task for task, value in selector_values.items() if value is not DEFAULT
+        }
+        if explicit_selectors and models is not DEFAULT:
+            raise ValueError(
+                "'models' cannot be combined with explicit task selectors "
+                f"{sorted(explicit_selectors)}. Use 'embedding' instead."
+            )
+        if explicit_selectors and model is not None:
+            raise ValueError(
+                "Deprecated 'model' cannot be combined with explicit task selectors. "
+                "Use 'embedding' instead."
+            )
+        if explicit_selectors and backend is not None:
+            raise ValueError(
+                "'backend' cannot be combined with explicit task selectors. "
+                "Inject individual task components instead."
+            )
+        if explicit_selectors and backend_name != "onnx":
+            raise ValueError(
+                "A non-default 'backend_name' cannot be combined with explicit "
+                "task selectors. Inject individual task components instead."
+            )
+        if detection is None:
+            raise ValueError("detection=None is not supported; detection is required.")
+
+        det_size_was_explicit = det_size is not DEFAULT
+        det_thresh_was_explicit = det_thresh is not DEFAULT
+        det_size = 320 if det_size is DEFAULT else det_size
+        det_thresh = 0.5 if det_thresh is DEFAULT else det_thresh
 
         if use_gpu:
             self.providers = configure_onnxruntime_acceleration(verbose=False)
@@ -89,7 +152,7 @@ class ForensicFace:
             )
             self.models = [model]
         else:
-            self.models = models
+            self.models = ["sepaelv2"] if models is DEFAULT else list(models)
         self.models_root = models_root
         # backward compatibility with older versions in which models_root was os.expanduser("~/.insightface/models")
         if not osp.isdir(models_root):
@@ -100,22 +163,51 @@ class ForensicFace:
                 Warning,
             )
             self.models_root = osp.join(osp.expanduser("~"), ".insightface", "models")
-        self.rec_inference_sessions = [
-            self._load_model(model_name, [self.providers[0]], gpu, self.models_root) for model_name in self.models
-        ]
-
         self.det_size = (det_size, det_size)
         self.det_thresh = det_thresh
         self.extended = extended
+        self.embedding_estimators = None
+        self.quality_estimator = None
+
+        if not explicit_selectors:
+            self._initialize_legacy_pipeline(
+                backend=backend,
+                backend_name=backend_name,
+                gpu=gpu,
+                use_gpu=use_gpu,
+            )
+        else:
+            self._initialize_component_pipeline(
+                selector_values=selector_values,
+                gpu=gpu,
+                use_gpu=use_gpu,
+                det_size_was_explicit=det_size_was_explicit,
+                det_thresh_was_explicit=det_thresh_was_explicit,
+            )
+
+        self.environment = freeze_env()
+        self.concat_embeddings = concat_embeddings
+        print_initialization_summary(self)
+
+    def _initialize_legacy_pipeline(self, *, backend, backend_name, gpu, use_gpu):
+        """Initialize the unchanged pre-selector path for API compatibility."""
+        self.rec_inference_sessions = [
+            self._load_model(model_name, [self.providers[0]], gpu, self.models_root)
+            for model_name in self.models
+        ]
         if self.extended:
             allowed_modules = ["detection", "landmark_3d_68", "genderage"]
-
             self.ort_fiqa = onnxruntime.InferenceSession(
                 resolve_quality_model(self.models_root, self.models[0]),
                 providers=[self.providers[0]],
             )
+            self.enabled_tasks = frozenset(
+                {"detection", "pose", "gender", "age", "quality", "embedding"}
+            )
         else:
             allowed_modules = ["detection"]
+            self.ort_fiqa = None
+            self.enabled_tasks = frozenset({"detection", "embedding"})
 
         self.backend = backend or create_backend(
             backend_name=backend_name,
@@ -128,9 +220,145 @@ class ForensicFace:
             models_root=self.models_root,
         )
 
-        self.environment = freeze_env()
-        self.concat_embeddings = concat_embeddings
-        print_initialization_summary(self)
+    def _initialize_component_pipeline(
+        self,
+        *,
+        selector_values,
+        gpu,
+        use_gpu,
+        det_size_was_explicit,
+        det_thresh_was_explicit,
+    ):
+        providers = [self.providers[0]]
+        ctx_id = gpu if use_gpu else -1
+        embedding_selection = selector_values["embedding"]
+        if embedding_selection is DEFAULT:
+            embedding_selection = DEFAULT_ALIASES["embedding"]
+        legacy_model_names = []
+        if embedding_selection is not None:
+            for selection in normalize_embedding_selection(embedding_selection):
+                alias = selection_alias(selection)
+                if isinstance(alias, str):
+                    legacy_model_names.append(alias)
+
+        detection_selection = selector_values["detection"]
+        if detection_selection is DEFAULT:
+            detection_selection = DEFAULT_ALIASES["detection"]
+        detector_alias = (
+            detection_selection.alias
+            if isinstance(detection_selection, ModelSpec)
+            else detection_selection
+        )
+        if detector_alias != "scrfd" and (
+            det_size_was_explicit or det_thresh_was_explicit
+        ):
+            raise ValueError(
+                "Legacy 'det_size' and 'det_thresh' apply only to SCRFD. "
+                "Configure another detector through ModelSpec options."
+            )
+        detector = build_detector(
+            detection_selection,
+            models_root=self.models_root,
+            providers=providers,
+            ctx_id=ctx_id,
+            det_size=self.det_size,
+            det_thresh=self.det_thresh,
+            legacy_model_names=legacy_model_names,
+        )
+        effective_input_size = getattr(detector, "input_size", None)
+        if effective_input_size is not None:
+            self.det_size = tuple(effective_input_size)
+
+        if embedding_selection is None:
+            self.embedding_estimators = []
+        else:
+            self.embedding_estimators = build_embedding_estimators(
+                embedding_selection,
+                models_root=self.models_root,
+                providers=providers,
+            )
+        self.models = [
+            estimator.name for estimator in self.embedding_estimators
+        ]
+        self.rec_inference_sessions = [
+            getattr(estimator, "session", None)
+            for estimator in self.embedding_estimators
+        ]
+
+        optional_selections = {}
+        for task in ("pose", "gender", "age", "quality"):
+            value = selector_values[task]
+            optional_selections[task] = (
+                DEFAULT_ALIASES[task] if value is DEFAULT and self.extended else
+                None if value is DEFAULT else value
+            )
+
+        estimators = []
+        estimator_cache = {}
+        for task in ("pose", "gender", "age"):
+            selection = optional_selections[task]
+            if selection is None:
+                continue
+            cache_key = self._estimator_cache_key(selection)
+            estimator = estimator_cache.get(cache_key)
+            if estimator is None:
+                estimator = build_face_estimator(
+                    task,
+                    selection,
+                    models_root=self.models_root,
+                    providers=providers,
+                    ctx_id=ctx_id,
+                    legacy_model_names=legacy_model_names,
+                )
+                estimator_cache[cache_key] = estimator
+            elif task not in estimator.capabilities:
+                estimator = build_face_estimator(
+                    task,
+                    selection,
+                    models_root=self.models_root,
+                    providers=providers,
+                    ctx_id=ctx_id,
+                    legacy_model_names=legacy_model_names,
+                )
+            estimators.append(estimator)
+
+        quality_selection = optional_selections["quality"]
+        if quality_selection is not None:
+            legacy_name = self.models[0] if self.models else DEFAULT_ALIASES["embedding"]
+            self.quality_estimator = build_quality_estimator(
+                quality_selection,
+                models_root=self.models_root,
+                legacy_model_name=legacy_name,
+                providers=providers,
+            )
+        self.ort_fiqa = getattr(self.quality_estimator, "session", None)
+        self.enabled_tasks = frozenset(
+            {"detection"}
+            | ({"embedding"} if self.embedding_estimators else set())
+            | {task for task, value in optional_selections.items() if value is not None}
+        )
+        self.backend = ComponentBackend(
+            detector=detector,
+            estimators=estimators,
+            enabled_tasks=set(self.enabled_tasks),
+        )
+
+    @staticmethod
+    def _estimator_cache_key(selection):
+        if isinstance(selection, str):
+            return ("alias", selection)
+        if isinstance(selection, ModelSpec):
+            if selection.path is None and not selection.options:
+                return ("alias", selection.alias)
+            return (
+                "spec",
+                selection.alias,
+                str(selection.path),
+                tuple(
+                    sorted((key, repr(value)) for key, value in selection.options.items())
+                ),
+            )
+        return ("object", id(selection))
 
     def _get_loaded_modules(self) -> list[str]:
         modules = ["detection"]
@@ -138,7 +366,7 @@ class ForensicFace:
             modules.append("headpose")
         if getattr(self.backend, "genderage_model", None) is not None:
             modules.append("genderage")
-        if self.extended:
+        if "quality" in getattr(self, "enabled_tasks", set()):
             modules.append("cr_fiqa")
         
         return modules
@@ -160,13 +388,28 @@ class ForensicFace:
         return RecognitionRunner(
             models=self.models,
             rec_inference_sessions=self.rec_inference_sessions,
-            ort_fiqa=getattr(self, "ort_fiqa", None),
-            extended=self.extended,
             concat_embeddings=self.concat_embeddings,
             image_size=self.IMG_SIZE,
             keypoint_recognition_models=self.KEYPOINT_RECOGNITION_MODELS,
             image_input_name=self.SEPAELV6_IMAGE_INPUT,
             keypoints_input_name=self.SEPAELV6_KEYPOINTS_INPUT,
+            embedding_estimators=self.embedding_estimators,
+        )
+
+    def _quality_runner(self):
+        return QualityRunner(
+            estimator=self.quality_estimator,
+            legacy_session=(
+                None if self.quality_estimator is not None
+                else getattr(self, "ort_fiqa", None)
+            ),
+            image_size=self.IMG_SIZE,
+        )
+
+    def _aligned_face_runner(self):
+        return AlignedFaceRunner(
+            recognition=self._recognition_runner(),
+            quality=self._quality_runner(),
         )
 
     def process_image_single_face(
@@ -242,14 +485,22 @@ class ForensicFace:
 
         results = []
         for face in faces:
-            aligned_bgr = self.backend.norm_crop(bgr_img, face.kps)
+            aligned_bgr = (
+                face.aligned_bgr
+                if face.aligned_bgr is not None
+                else self.backend.norm_crop(bgr_img, face.kps)
+            )
             aligned_rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB)
             # `aligned_keypoints` are in the 112×112 coordinate system of
             # the aligned face — this is what KEYPOINT_RECOGNITION_MODELS
             # (sepaelv6/KPRPE) consume as a second input. They are
             # precomputed here so `process_images_batch` can stack them
             # without having to run `_align_keypoints` again.
-            aligned_kps = self._align_keypoints(face.kps)
+            aligned_kps = (
+                face.aligned_keypoints
+                if face.aligned_keypoints is not None
+                else self._align_keypoints(face.kps)
+            )
             item = build_align_result(
                 aligned_face=aligned_rgb,
                 bbox=face.bbox,
@@ -260,6 +511,7 @@ class ForensicFace:
                 gender=face.gender,
                 age=face.age,
                 pose=face.pose,
+                enabled_tasks=self.enabled_tasks,
             )
             results.append(item)
 
@@ -340,9 +592,17 @@ class ForensicFace:
 
         results = []
         for face in faces:
-            bgr_aligned_face = self.backend.norm_crop(bgr_img, face.kps)
-            aligned_kps = self._align_keypoints(face.kps)
-            embeddings, fiqa_score = self._recognition_runner().compute_one(
+            bgr_aligned_face = (
+                face.aligned_bgr
+                if face.aligned_bgr is not None
+                else self.backend.norm_crop(bgr_img, face.kps)
+            )
+            aligned_kps = (
+                face.aligned_keypoints
+                if face.aligned_keypoints is not None
+                else self._align_keypoints(face.kps)
+            )
+            embeddings, fiqa_score = self._aligned_face_runner().compute_one(
                 bgr_aligned_face, aligned_keypoints=aligned_kps
             )
             if draw_keypoints:
@@ -363,6 +623,7 @@ class ForensicFace:
                 gender=face.gender,
                 age=face.age,
                 pose=face.pose,
+                enabled_tasks=self.enabled_tasks,
             )
             results.append(result)
 
@@ -550,6 +811,13 @@ class ForensicFace:
         """
         return compare_faces(self, img1path, img2path)
 
+    def _require_embedding_models(self, api_name: str) -> None:
+        if "embedding" not in self.enabled_tasks:
+            raise ValueError(
+                f"{api_name} requires an embedding model; initialize "
+                "ForensicFace with embedding=... instead of embedding=None."
+            )
+
     def aggregate_embeddings(
         self,
         embeddings: np.ndarray,
@@ -651,13 +919,14 @@ class ForensicFace:
                 coordinate system. Required when a keypoint-aware recognition
                 model such as sepaelv6 is loaded.
         """
+        self._require_embedding_models("process_aligned_face_image()")
         if rgb_aligned_face.shape != (*self.IMG_SIZE, 3):
             raise ValueError(
                 f"rgb_aligned_face must have shape {(*self.IMG_SIZE, 3)}; "
                 f"got {rgb_aligned_face.shape}."
             )
         bgr_aligned_face = rgb_aligned_face[..., ::-1].copy()
-        embeddings, fiqa_score = self._recognition_runner().compute_one(
+        embeddings, fiqa_score = self._aligned_face_runner().compute_one(
             bgr_aligned_face, aligned_keypoints=keypoints
         )
 
@@ -667,6 +936,7 @@ class ForensicFace:
             models=self.models,
             extended=self.extended,
             concat_embeddings=self.concat_embeddings,
+            enabled_tasks=self.enabled_tasks,
         )
 
     def process_aligned_faces_batch(
@@ -691,6 +961,7 @@ class ForensicFace:
             ``embedding_<model_name>`` key per model otherwise. When
             ``extended=True``, each result also includes ``fiqa_score``.
         """
+        self._require_embedding_models("process_aligned_faces_batch()")
         rgb_aligned_faces = np.asarray(rgb_aligned_faces)
         if (
             rgb_aligned_faces.ndim != 4
@@ -702,7 +973,7 @@ class ForensicFace:
             )
 
         bgr_aligned_faces = rgb_aligned_faces[..., ::-1].copy()
-        embeddings, fiqa_scores = self._recognition_runner().compute_batch(
+        embeddings, fiqa_scores = self._aligned_face_runner().compute_batch(
             bgr_aligned_faces,
             aligned_keypoints_batch=aligned_keypoints_batch,
         )
@@ -714,6 +985,7 @@ class ForensicFace:
                 models=self.models,
                 extended=self.extended,
                 concat_embeddings=self.concat_embeddings,
+                enabled_tasks=self.enabled_tasks,
                 index=idx,
             )
             for idx in range(rgb_aligned_faces.shape[0])

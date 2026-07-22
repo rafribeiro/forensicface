@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from collections.abc import Mapping
 import os.path as osp
 
 import numpy as np
@@ -11,6 +12,61 @@ from .insightface.scrfd import SCRFD
 from .model_store import collect_backend_model_files
 
 
+@dataclass(frozen=True)
+class PoseAngles:
+    """Normalized internal head pose representation, in degrees."""
+
+    pitch: float
+    yaw: float
+    roll: float
+
+    def __post_init__(self):
+        object.__setattr__(self, "pitch", float(self.pitch))
+        object.__setattr__(self, "yaw", float(self.yaw))
+        object.__setattr__(self, "roll", float(self.roll))
+        if not np.isfinite([self.pitch, self.yaw, self.roll]).all():
+            raise ValueError("Pose angles must be finite.")
+
+    def as_array(self) -> np.ndarray:
+        """Return the legacy ``[pitch, yaw, roll]`` representation."""
+        return np.array([self.pitch, self.yaw, self.roll], dtype=np.float32)
+
+
+def normalize_pose(pose) -> PoseAngles | None:
+    if pose is None:
+        return None
+    if isinstance(pose, PoseAngles):
+        return pose
+    if isinstance(pose, Mapping):
+        missing = {"pitch", "yaw", "roll"} - set(pose)
+        if missing:
+            raise ValueError(f"Pose mapping is missing fields: {sorted(missing)}.")
+        normalized = PoseAngles(
+            pitch=float(pose["pitch"]),
+            yaw=float(pose["yaw"]),
+            roll=float(pose["roll"]),
+        )
+        if not np.isfinite(
+            [normalized.pitch, normalized.yaw, normalized.roll]
+        ).all():
+            raise ValueError("Pose angles must be finite.")
+        return normalized
+    values = np.asarray(pose).reshape(-1)
+    if values.shape != (3,):
+        raise ValueError(
+            "Pose must be PoseAngles, a pitch/yaw/roll mapping, or a "
+            f"three-value [pitch, yaw, roll] sequence; got {values.shape}."
+        )
+    normalized = PoseAngles(
+        pitch=float(values[0]),
+        yaw=float(values[1]),
+        roll=float(values[2]),
+    )
+    if not np.isfinite([normalized.pitch, normalized.yaw, normalized.roll]).all():
+        raise ValueError("Pose angles must be finite.")
+    return normalized
+
+
 @dataclass
 class FaceData:
     bbox: np.ndarray
@@ -18,7 +74,10 @@ class FaceData:
     det_score: float
     gender: int | None = None
     age: int | None = None
-    pose: np.ndarray | None = None
+    pose: PoseAngles | None = None
+    aligned_bgr: np.ndarray | None = None
+    aligned_keypoints: np.ndarray | None = None
+    alignment_transform: np.ndarray | None = None
 
 
 class FaceBackend(ABC):
@@ -170,7 +229,7 @@ class ONNXOnlyBackend(FaceBackend):
                     det_score=float(det_score),
                     gender=face.get("gender"),
                     age=face.get("age"),
-                    pose=face.get("pose"),
+                    pose=normalize_pose(face.get("pose")),
                 )
             )
         return faces_data

@@ -18,12 +18,32 @@ def _session_providers(session) -> list[str]:
 def collect_session_provider_details(ff) -> list[tuple[str, list[str]]]:
     details: list[tuple[str, list[str]]] = []
 
+    backend = getattr(ff, "backend", None)
+    if hasattr(backend, "detector"):
+        components = []
+        components.extend(getattr(ff, "embedding_estimators", None) or [])
+        components.append(backend.detector)
+        components.extend(getattr(backend, "estimators", []))
+        quality = getattr(ff, "quality_estimator", None)
+        if quality is not None:
+            components.append(quality)
+
+        seen: set[int] = set()
+        for component in components:
+            if id(component) in seen:
+                continue
+            seen.add(id(component))
+            metadata = getattr(component, "metadata", None)
+            providers = [str(value) for value in getattr(metadata, "providers", ())]
+            if providers:
+                details.append((metadata.component_id, providers))
+        return details
+
     for model_name, session in zip(ff.models, ff.rec_inference_sessions):
         providers = _session_providers(session)
         if providers:
             details.append((model_name, providers))
 
-    backend = getattr(ff, "backend", None)
     det_session = getattr(getattr(backend, "det_model", None), "session", None)
     det_providers = _session_providers(det_session)
     if det_providers:
@@ -63,14 +83,11 @@ def _best_provider(providers: list[str]) -> str | None:
 
 
 def get_effective_provider(ff) -> str:
-    candidate_sessions = list(ff.rec_inference_sessions)
-    backend = getattr(ff, "backend", None)
-    candidate_sessions.append(getattr(getattr(backend, "det_model", None), "session", None))
-    candidate_sessions.append(getattr(ff, "ort_fiqa", None))
-
-    candidate_providers: list[str] = []
-    for session in candidate_sessions:
-        candidate_providers.extend(_session_providers(session))
+    candidate_providers = [
+        provider
+        for _, providers in collect_session_provider_details(ff)
+        for provider in providers
+    ]
 
     provider = _best_provider(candidate_providers)
     if provider is not None:
@@ -98,11 +115,19 @@ def build_initialization_summary(ff) -> str:
             parts = [f"{label}: {providers[0]}" for label, providers in session_provider_details]
             session_provider_summary = ", ".join(parts) if parts else "unknown"
 
+    backend = getattr(ff, "backend", None)
+    detector = getattr(backend, "detector", None)
+    det_size_summary = getattr(
+        detector,
+        "input_size_summary",
+        getattr(ff, "det_size", "unknown"),
+    )
+
     return (
         "[ForensicFace] Initialized with configuration:\n"
         f"                  loaded_models={ff.models}\n"
         f"                  modules={ff._get_loaded_modules()}\n"
-        f"                  det_size={ff.det_size}\n"
+        f"                  det_size={det_size_summary}\n"
         f"                  session_providers={session_provider_summary}\n"
     )
 

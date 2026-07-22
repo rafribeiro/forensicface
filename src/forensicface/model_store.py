@@ -4,25 +4,74 @@ from __future__ import annotations
 
 from glob import glob
 import os.path as osp
+from pathlib import Path
 
 
 __all__ = [
     "collect_backend_model_files",
+    "resolve_component_model",
     "resolve_quality_model",
     "resolve_recognition_model",
 ]
 
 
+def resolve_component_model(
+    models_root: str,
+    *,
+    task: str,
+    alias: str,
+    filenames: tuple[str, ...] = (),
+    legacy_paths: tuple[str, ...] = (),
+) -> str:
+    """Resolve one built-in component model from namespaced/legacy layouts.
+
+    A known filename is preferred. If none is present, a directory containing
+    exactly one ONNX file is accepted; this supports versioned offline files
+    such as ``centerface20260722.onnx`` without hard-coding release dates.
+    """
+    directory = Path(models_root) / task / alias
+    searched: list[Path] = []
+    for filename in filenames:
+        candidate = directory / filename
+        searched.append(candidate)
+        if candidate.is_file():
+            return str(candidate)
+
+    if directory.is_dir():
+        candidates = sorted(directory.glob("*.onnx"))
+        if len(candidates) == 1:
+            return str(candidates[0])
+        if len(candidates) > 1:
+            raise RuntimeError(
+                f"Multiple ONNX files found for {task} model '{alias}' in "
+                f"{directory}: {[str(path) for path in candidates]}. "
+                "Use ModelSpec(path=...) to select one explicitly."
+            )
+    searched.append(directory / "*.onnx")
+
+    for relative_path in legacy_paths:
+        candidate = Path(models_root) / relative_path
+        searched.append(candidate)
+        if candidate.is_file():
+            return str(candidate)
+
+    raise FileNotFoundError(
+        f"No ONNX file found for {task} model '{alias}'. Searched: "
+        + ", ".join(str(path) for path in searched)
+    )
+
+
 def collect_backend_model_files(models_root: str, model_name: str) -> list[str]:
     """Collect candidate ONNX files for backend probing.
 
-    The new shared layout is preferred over the legacy per-model layout:
-    ``detection/`` and ``attributes/`` under ``models_root`` are searched
-    first, followed by ``<models_root>/<model_name>/``. Duplicate filenames are
-    skipped so a model that exists in both layouts is loaded from the new
-    shared location only.
+    The task/alias layout is preferred, followed by the flat shared layout and
+    the original per-model layout. Duplicate filenames are skipped so a model
+    present in more than one layout is loaded from the newest location only.
     """
     sources = [
+        osp.join(models_root, "detection", "scrfd"),
+        osp.join(models_root, "pose", "insightface-3d68"),
+        osp.join(models_root, "attributes", "insightface-genderage"),
         osp.join(models_root, "detection"),
         osp.join(models_root, "attributes"),
         osp.join(models_root, model_name),
@@ -66,13 +115,22 @@ def resolve_recognition_model(models_root: str, model_name: str) -> str:
 
 
 def resolve_quality_model(models_root: str, model_name: str) -> str:
-    """Resolve the CR-FIQA quality model from new or legacy layouts."""
-    new_path = osp.join(models_root, "quality", "cr_fiqa_l.onnx")
-    if osp.isfile(new_path):
-        return new_path
+    """Resolve the CR-FIQA model from task/alias, flat, or legacy layouts."""
+    namespaced_path = osp.join(
+        models_root,
+        "quality",
+        "cr-fiqa",
+        "cr_fiqa_l.onnx",
+    )
+    if osp.isfile(namespaced_path):
+        return namespaced_path
+    flat_path = osp.join(models_root, "quality", "cr_fiqa_l.onnx")
+    if osp.isfile(flat_path):
+        return flat_path
     legacy_path = osp.join(models_root, model_name, "cr_fiqa", "cr_fiqa_l.onnx")
     if osp.isfile(legacy_path):
         return legacy_path
     raise FileNotFoundError(
-        f"CR-FIQA quality model not found. Searched: {new_path} and {legacy_path}"
+        "CR-FIQA quality model not found. Searched: "
+        f"{namespaced_path}, {flat_path}, and {legacy_path}"
     )

@@ -80,10 +80,19 @@ def test_apply_moves_files_and_removes_duplicates(tmp_path):
     plan = build_plan(tmp_path)
     apply_plan(plan)
 
-    assert (tmp_path / "detection" / "det_10g.onnx").is_file()
-    assert (tmp_path / "attributes" / "1k3d68.onnx").is_file()
-    assert (tmp_path / "attributes" / "genderage.onnx").is_file()
-    assert (tmp_path / "quality" / "cr_fiqa_l.onnx").is_file()
+    assert (tmp_path / "detection" / "scrfd" / "det_10g.onnx").is_file()
+    assert (
+        tmp_path / "pose" / "insightface-3d68" / "1k3d68.onnx"
+    ).is_file()
+    assert (
+        tmp_path
+        / "attributes"
+        / "insightface-genderage"
+        / "genderage.onnx"
+    ).is_file()
+    assert (
+        tmp_path / "quality" / "cr-fiqa" / "cr_fiqa_l.onnx"
+    ).is_file()
     assert (
         tmp_path / "recognition" / "sepaelv2" / "adaface_ir101web12m.onnx"
     ).is_file()
@@ -110,6 +119,45 @@ def test_apply_is_idempotent(tmp_path):
     second_plan = build_plan(tmp_path)
     assert not second_plan.has_work
     assert not second_plan.has_conflicts
+
+
+def test_apply_migrates_flat_shared_layout_to_task_alias_directories(tmp_path):
+    (tmp_path / "detection").mkdir()
+    (tmp_path / "detection" / "det_10g.onnx").write_bytes(b"detector")
+    (tmp_path / "attributes").mkdir()
+    (tmp_path / "attributes" / "1k3d68.onnx").write_bytes(b"pose")
+    (tmp_path / "attributes" / "genderage.onnx").write_bytes(b"genderage")
+    (tmp_path / "quality").mkdir()
+    (tmp_path / "quality" / "cr_fiqa_l.onnx").write_bytes(b"quality")
+    (tmp_path / "recognition" / "sepaelv2").mkdir(parents=True)
+    recognition = tmp_path / "recognition" / "sepaelv2" / "ada_face.onnx"
+    recognition.write_bytes(b"recognition")
+
+    plan = build_plan(tmp_path)
+    moves = [a for a in plan.actions if a.kind == ActionKind.MOVE_SHARED]
+    assert len(moves) == 4
+    assert not plan.has_conflicts
+
+    apply_plan(plan)
+
+    assert (tmp_path / "detection" / "scrfd" / "det_10g.onnx").is_file()
+    assert (
+        tmp_path / "pose" / "insightface-3d68" / "1k3d68.onnx"
+    ).is_file()
+    assert (
+        tmp_path
+        / "attributes"
+        / "insightface-genderage"
+        / "genderage.onnx"
+    ).is_file()
+    assert (
+        tmp_path / "quality" / "cr-fiqa" / "cr_fiqa_l.onnx"
+    ).is_file()
+    assert recognition.is_file()
+    assert not (tmp_path / "detection" / "det_10g.onnx").exists()
+    assert not (tmp_path / "attributes" / "1k3d68.onnx").exists()
+    assert not (tmp_path / "attributes" / "genderage.onnx").exists()
+    assert not (tmp_path / "quality" / "cr_fiqa_l.onnx").exists()
 
 
 def test_plan_records_conflict_on_hash_mismatch(tmp_path):
@@ -169,6 +217,41 @@ def test_plan_skips_when_shared_already_has_matching_hash(tmp_path):
     assert not any(
         m.dst == tmp_path / "detection" / "det_10g.onnx" for m in moves
     )
+
+
+def test_plan_deletes_matching_flat_file_when_namespaced_target_exists(tmp_path):
+    payload = b"identical-detector"
+    target = tmp_path / "detection" / "scrfd" / "det_10g.onnx"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(payload)
+    flat_source = tmp_path / "detection" / "det_10g.onnx"
+    flat_source.write_bytes(payload)
+
+    plan = build_plan(tmp_path)
+
+    assert not plan.has_conflicts
+    assert any(
+        action.kind == ActionKind.DELETE_DUPLICATE
+        and action.src == flat_source
+        for action in plan.actions
+    )
+    apply_plan(plan)
+    assert target.read_bytes() == payload
+    assert not flat_source.exists()
+
+
+def test_plan_blocks_when_flat_file_differs_from_namespaced_target(tmp_path):
+    target = tmp_path / "detection" / "scrfd" / "det_10g.onnx"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"target")
+    flat_source = tmp_path / "detection" / "det_10g.onnx"
+    flat_source.write_bytes(b"flat")
+
+    plan = build_plan(tmp_path)
+
+    assert plan.has_conflicts
+    assert plan.conflicts[0].legacy_path == flat_source
+    assert plan.conflicts[0].shared_path == target
 
 
 def test_plan_removes_empty_subdirectories_after_migration(tmp_path):
@@ -238,7 +321,7 @@ def test_main_apply_with_yes(tmp_path, capsys):
     )
     rc = main(["--models-root", str(tmp_path), "--apply", "--yes"])
     assert rc == 0
-    assert (tmp_path / "detection" / "det_10g.onnx").is_file()
+    assert (tmp_path / "detection" / "scrfd" / "det_10g.onnx").is_file()
 
 
 def test_main_apply_returns_non_zero_on_conflicts(tmp_path):

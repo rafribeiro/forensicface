@@ -17,6 +17,11 @@ def _chunked(items, batch_size: int):
 
 
 def _needs_aligned_keypoints(processor) -> bool:
+    estimators = getattr(processor, "embedding_estimators", None)
+    if estimators is not None:
+        return any(
+            estimator.requires_aligned_keypoints for estimator in estimators
+        )
     return bool(set(processor.models) & processor.KEYPOINT_RECOGNITION_MODELS)
 
 
@@ -35,6 +40,8 @@ def _aligned_keypoints_batch(items) -> np.ndarray:
 
 
 def _embedding_at(embeddings, index: int, concat_embeddings: bool):
+    if embeddings is None:
+        return None
     if concat_embeddings:
         return embeddings[index]
     return [per_model[index] for per_model in embeddings]
@@ -163,7 +170,7 @@ def _compute_batch_for_aligned_items(processor, aligned_items, *, needs_kps: boo
     # sessions are fed BGR crops.
     crops = _aligned_rgb_items_to_bgr_batch(aligned_items)
     keypoints_batch = _aligned_keypoints_batch(aligned_items) if needs_kps else None
-    return processor._recognition_runner().try_compute_batch(
+    return processor._aligned_face_runner().try_compute_batch(
         crops,
         aligned_keypoints_batch=keypoints_batch,
     )
@@ -177,4 +184,5 @@ def _assemble_result(processor, align_item, embeddings, fiqa_scores, index: int)
         models=processor.models,
         extended=processor.extended,
         concat_embeddings=processor.concat_embeddings,
+        enabled_tasks=getattr(processor, "enabled_tasks", None),
     )

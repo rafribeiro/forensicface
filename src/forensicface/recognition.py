@@ -1,4 +1,4 @@
-"""Recognition and FIQA inference helpers."""
+"""Embedding inference helpers."""
 
 from __future__ import annotations
 
@@ -66,6 +66,8 @@ def looks_like_cuda_oom(exc: BaseException) -> bool:
 
 
 def merge_batch_outputs(emb_a, emb_b):
+    if emb_a is None and emb_b is None:
+        return None
     if isinstance(emb_a, np.ndarray):
         return np.concatenate([emb_a, emb_b], axis=0)
     return [np.concatenate([a, b], axis=0) for a, b in zip(emb_a, emb_b)]
@@ -101,43 +103,36 @@ def try_compute_embeddings_batch(
             aligned_keypoints_batch[half:]
             if aligned_keypoints_batch is not None else None
         )
-        emb_a, fiqa_a = try_compute_embeddings_batch(
+        emb_a = try_compute_embeddings_batch(
             compute_batch,
             bgr_aligned_batch[:half],
             aligned_keypoints_batch=kps_a,
         )
-        emb_b, fiqa_b = try_compute_embeddings_batch(
+        emb_b = try_compute_embeddings_batch(
             compute_batch,
             bgr_aligned_batch[half:],
             aligned_keypoints_batch=kps_b,
         )
-        embeddings = merge_batch_outputs(emb_a, emb_b)
-        fiqa_scores = None
-        if fiqa_a is not None and fiqa_b is not None:
-            fiqa_scores = np.concatenate([fiqa_a, fiqa_b], axis=0)
-        return embeddings, fiqa_scores
+        return merge_batch_outputs(emb_a, emb_b)
 
 
 class RecognitionRunner:
-    """Runs recognition and optional FIQA sessions for aligned face crops."""
+    """Run only embedding inference for aligned face crops."""
 
     def __init__(
         self,
         *,
         models: list[str],
         rec_inference_sessions: list,
-        ort_fiqa=None,
-        extended: bool,
         concat_embeddings: bool,
         image_size: tuple[int, int] = (112, 112),
         keypoint_recognition_models: set[str] | None = None,
         image_input_name: str = SEPAELV6_IMAGE_INPUT,
         keypoints_input_name: str = SEPAELV6_KEYPOINTS_INPUT,
+        embedding_estimators: list | None = None,
     ):
         self.models = models
         self.rec_inference_sessions = rec_inference_sessions
-        self.ort_fiqa = ort_fiqa
-        self.extended = extended
         self.concat_embeddings = concat_embeddings
         self.image_size = image_size
         self.keypoint_recognition_models = (
@@ -145,6 +140,7 @@ class RecognitionRunner:
         )
         self.image_input_name = image_input_name
         self.keypoints_input_name = keypoints_input_name
+        self.embedding_estimators = embedding_estimators
 
     def to_input(self, aligned_bgr_img):
         return to_ada_input(aligned_bgr_img, image_size=self.image_size)
@@ -163,7 +159,23 @@ class RecognitionRunner:
         )
 
     def compute_one(self, bgr_aligned_face, aligned_keypoints=None):
-        """Compute embeddings and optional FIQA score for one aligned face."""
+        """Compute embeddings for one aligned face."""
+        if self.embedding_estimators is not None:
+            embeddings = [
+                estimator.embed_one(
+                    bgr_aligned_face,
+                    aligned_keypoints=aligned_keypoints,
+                )
+                for estimator in self.embedding_estimators
+            ]
+            if not embeddings:
+                combined = None
+            elif self.concat_embeddings:
+                combined = np.concatenate(embeddings)
+            else:
+                combined = embeddings
+            return combined
+
         img_to_input = self.to_input(bgr_aligned_face)
         embeddings = []
         for model_name, rec_ort in zip(self.models, self.rec_inference_sessions):
@@ -183,23 +195,14 @@ class RecognitionRunner:
                 embedding = model_output[0].flatten()
             embeddings.append(embedding)
 
-        fiqa_score = None
-        if self.extended:
-            _, fiqa_score = self.ort_fiqa.run(
-                None, {self.ort_fiqa.get_inputs()[0].name: img_to_input}
-            )
-
-        return (
-            np.concatenate(embeddings) if self.concat_embeddings else embeddings,
-            fiqa_score[0][0] if fiqa_score is not None else None,
-        )
+        return np.concatenate(embeddings) if self.concat_embeddings else embeddings
 
     def compute_batch(
         self,
         bgr_aligned_batch: np.ndarray,
         aligned_keypoints_batch: np.ndarray = None,
     ):
-        """Compute embeddings and optional FIQA scores for aligned face crops."""
+        """Compute embeddings for aligned face crops."""
         if (
             bgr_aligned_batch.ndim != 4
             or bgr_aligned_batch.shape[1:] != (*self.image_size, 3)
@@ -208,8 +211,6 @@ class RecognitionRunner:
                 f"Expected shape (N, {self.image_size[0]}, {self.image_size[1]}, 3); "
                 f"got {bgr_aligned_batch.shape}."
             )
-
-        batch_input = self.to_input(bgr_aligned_batch)
 
         keypoints_input = None
         if aligned_keypoints_batch is not None:
@@ -225,6 +226,24 @@ class RecognitionRunner:
                     f"bgr_aligned_batch has N={bgr_aligned_batch.shape[0]}."
                 )
             keypoints_input = kp
+
+        if self.embedding_estimators is not None:
+            embeddings_per_model = [
+                estimator.embed_batch(
+                    bgr_aligned_batch,
+                    aligned_keypoints_batch=keypoints_input,
+                )
+                for estimator in self.embedding_estimators
+            ]
+            if not embeddings_per_model:
+                embeddings = None
+            elif self.concat_embeddings:
+                embeddings = np.concatenate(embeddings_per_model, axis=1)
+            else:
+                embeddings = embeddings_per_model
+            return embeddings
+
+        batch_input = self.to_input(bgr_aligned_batch)
 
         embeddings_per_model = []
         for rec_ort, model_name in zip(self.rec_inference_sessions, self.models):
@@ -254,14 +273,7 @@ class RecognitionRunner:
         else:
             embeddings = embeddings_per_model
 
-        fiqa_scores = None
-        if self.extended and self.ort_fiqa is not None:
-            fiqa_output = self.ort_fiqa.run(
-                None, {self.ort_fiqa.get_inputs()[0].name: batch_input}
-            )
-            fiqa_scores = np.asarray(fiqa_output[-1]).reshape(-1)
-
-        return embeddings, fiqa_scores
+        return embeddings
 
     def try_compute_batch(self, bgr_aligned_batch, aligned_keypoints_batch=None):
         return try_compute_embeddings_batch(

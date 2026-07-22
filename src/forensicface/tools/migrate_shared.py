@@ -1,7 +1,10 @@
-"""Migrate a ``~/.forensicface/models`` tree from the legacy per-model
-layout to the new shared layout.
+"""Migrate a ``~/.forensicface/models`` tree to task/alias directories.
 
-Legacy layout (each model carries identical copies of shared files):
+The tool accepts both the original per-recognition-model layout and the flat
+shared layout introduced in forensicface 0.7.  It targets the extensible
+task/alias layout while keeping recognition directories unchanged.
+
+Original legacy layout (each model carries identical shared files):
 
     models_root/
       <model_name>/
@@ -11,13 +14,22 @@ Legacy layout (each model carries identical copies of shared files):
         cr_fiqa/cr_fiqa_l.onnx
         <recognition_subdir>/<*face*>.onnx
 
-New layout (shared files live once, recognition stays per-model):
+Forensicface 0.7 flat shared layout::
 
     models_root/
       detection/det_10g.onnx
       attributes/1k3d68.onnx
       attributes/genderage.onnx
       quality/cr_fiqa_l.onnx
+      recognition/<model_name>/<*face*>.onnx
+
+Extensible task/alias layout::
+
+    models_root/
+      detection/scrfd/det_10g.onnx
+      pose/insightface-3d68/1k3d68.onnx
+      attributes/insightface-genderage/genderage.onnx
+      quality/cr-fiqa/cr_fiqa_l.onnx
       recognition/<model_name>/<*face*>.onnx
 
 Usage::
@@ -45,12 +57,24 @@ from pathlib import Path
 from typing import Optional
 
 
-SHARED_FILE_KINDS: dict[str, tuple[str, str]] = {
-    # legacy_relative_path -> (shared_subdir, basename_in_shared)
-    "det_10g.onnx": ("detection", "det_10g.onnx"),
-    "1k3d68.onnx": ("attributes", "1k3d68.onnx"),
-    "genderage.onnx": ("attributes", "genderage.onnx"),
-    "cr_fiqa/cr_fiqa_l.onnx": ("quality", "cr_fiqa_l.onnx"),
+MODEL_FILE_LAYOUTS: dict[str, tuple[str, str]] = {
+    # legacy model-relative path -> (0.7 flat path, task/alias target path)
+    "det_10g.onnx": (
+        "detection/det_10g.onnx",
+        "detection/scrfd/det_10g.onnx",
+    ),
+    "1k3d68.onnx": (
+        "attributes/1k3d68.onnx",
+        "pose/insightface-3d68/1k3d68.onnx",
+    ),
+    "genderage.onnx": (
+        "attributes/genderage.onnx",
+        "attributes/insightface-genderage/genderage.onnx",
+    ),
+    "cr_fiqa/cr_fiqa_l.onnx": (
+        "quality/cr_fiqa_l.onnx",
+        "quality/cr-fiqa/cr_fiqa_l.onnx",
+    ),
 }
 
 
@@ -123,7 +147,7 @@ def _sha256(path: Path, _chunk: int = 1 << 20) -> str:
 def _discover_legacy_model_dirs(models_root: Path) -> list[Path]:
     """Returns subdirectories of ``models_root`` that look like legacy model
     folders (i.e. not the reserved shared names)."""
-    reserved = {"detection", "attributes", "quality", "recognition"}
+    reserved = {"detection", "pose", "attributes", "quality", "recognition"}
     if not models_root.is_dir():
         return []
     return sorted(
@@ -156,51 +180,9 @@ def build_plan(models_root: Path) -> MigrationPlan:
     plan = MigrationPlan()
     model_dirs = _discover_legacy_model_dirs(models_root)
 
-    canonical_shared_hash: dict[str, str] = {}
+    _plan_model_file_migrations(models_root, model_dirs, plan)
 
     for model_dir in model_dirs:
-        for legacy_rel, (shared_subdir, shared_name) in SHARED_FILE_KINDS.items():
-            legacy_path = model_dir / Path(legacy_rel)
-            if not legacy_path.is_file():
-                continue
-            shared_path = models_root / shared_subdir / shared_name
-            shared_key = str(shared_path)
-            legacy_hash = _sha256(legacy_path)
-
-            if shared_key not in canonical_shared_hash and shared_path.is_file():
-                canonical_shared_hash[shared_key] = _sha256(shared_path)
-
-            if shared_key in canonical_shared_hash:
-                shared_hash = canonical_shared_hash[shared_key]
-                if legacy_hash == shared_hash:
-                    plan.actions.append(
-                        Action(
-                            kind=ActionKind.DELETE_DUPLICATE,
-                            src=legacy_path,
-                            size=legacy_path.stat().st_size,
-                            note=f"duplicate of {shared_path}",
-                        )
-                    )
-                else:
-                    plan.conflicts.append(
-                        Conflict(
-                            legacy_path=legacy_path,
-                            shared_path=shared_path,
-                            legacy_hash=legacy_hash,
-                            shared_hash=shared_hash,
-                        )
-                    )
-            else:
-                plan.actions.append(
-                    Action(
-                        kind=ActionKind.MOVE_SHARED,
-                        src=legacy_path,
-                        dst=shared_path,
-                        size=legacy_path.stat().st_size,
-                    )
-                )
-                canonical_shared_hash[shared_key] = legacy_hash
-
         try:
             rec_file = _find_recognition_file(model_dir)
         except RuntimeError as exc:
@@ -249,6 +231,67 @@ def build_plan(models_root: Path) -> MigrationPlan:
 
     plan.actions.extend(_plan_empty_dir_cleanups(models_root, plan))
     return plan
+
+
+def _plan_model_file_migrations(
+    models_root: Path,
+    model_dirs: list[Path],
+    plan: MigrationPlan,
+) -> None:
+    """Plan shared model moves from either historical layout.
+
+    The flat 0.7 source is preferred when the task/alias target is absent.
+    Matching additional copies are deleted; differing copies are conflicts.
+    """
+    for legacy_relative, (flat_relative, target_relative) in MODEL_FILE_LAYOUTS.items():
+        target = models_root / target_relative
+        sources: list[Path] = []
+
+        flat_source = models_root / flat_relative
+        if flat_source != target and flat_source.is_file():
+            sources.append(flat_source)
+        sources.extend(
+            candidate
+            for model_dir in model_dirs
+            if (candidate := model_dir / legacy_relative).is_file()
+        )
+
+        canonical_hash: str | None = _sha256(target) if target.is_file() else None
+        if canonical_hash is None and sources:
+            primary_source = sources.pop(0)
+            canonical_hash = _sha256(primary_source)
+            plan.actions.append(
+                Action(
+                    kind=ActionKind.MOVE_SHARED,
+                    src=primary_source,
+                    dst=target,
+                    size=primary_source.stat().st_size,
+                )
+            )
+
+        if canonical_hash is None:
+            continue
+
+        for source in sources:
+            source_hash = _sha256(source)
+            if source_hash == canonical_hash:
+                plan.actions.append(
+                    Action(
+                        kind=ActionKind.DELETE_DUPLICATE,
+                        src=source,
+                        size=source.stat().st_size,
+                        note=f"duplicate of {target}",
+                    )
+                )
+            else:
+                plan.conflicts.append(
+                    Conflict(
+                        legacy_path=source,
+                        shared_path=target,
+                        legacy_hash=source_hash,
+                        shared_hash=canonical_hash,
+                    )
+                )
 
 
 def _plan_empty_dir_cleanups(
@@ -363,8 +406,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="forensicface.tools.migrate_shared",
         description=(
-            "Migrate ~/.forensicface/models from the legacy per-model "
-            "layout to the new shared layout."
+            "Migrate ~/.forensicface/models from the legacy per-model or "
+            "flat shared layout to task/alias directories."
         ),
     )
     parser.add_argument(
