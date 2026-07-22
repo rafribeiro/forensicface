@@ -23,14 +23,38 @@ For current extension-author instructions, see
 [`extending-models.md`](extending-models.md). For current user-facing examples,
 see the project [`README.md`](../README.md).
 
+## Final Outcome
+
+forensicface v0.8.0 completed the planned extensibility work while preserving
+the legacy initialization path and public result behavior. The release:
+
+- added independent `detection`, `pose`, `gender`, `age`, `quality`, and
+  `embedding` selectors;
+- added generic `ModelSpec` configuration and direct component-object
+  injection for every task;
+- introduced detector, face-estimator, embedding, and quality contracts with
+  an internal immutable component catalog;
+- wrapped the existing SCRFD, pose, joint gender-age, CR-FIQA, and SEPAEL
+  implementations as components without changing legacy defaults;
+- added CenterFace as the first alternative detector, using ONNX Runtime and a
+  reproducibly corrected offline ONNX artifact;
+- separated quality execution from recognition while retaining batching and
+  independent CUDA out-of-memory fallback for embeddings and quality;
+- added task/alias model directories, legacy-layout lookup fallbacks, an
+  offline model-layout migration tool, and the CenterFace conversion tool;
+- preserved legacy constructor forms, backend injection, public field names,
+  result shapes, and default behavior; and
+- documented extension authoring and added compatibility, component,
+  workflow, batching, parity, and real-model validation coverage.
+
 ## Starting Point Before v0.8.0
 
 The pre-v0.8.0 implementation had three important couplings:
 
-- Detection, pose, gender, and age are bundled into `ONNXOnlyBackend`. A
+- Detection, pose, gender, and age were bundled into `ONNXOnlyBackend`. A
   detector could not be selected independently from the attribute
   models. See [`backends.py`](../src/forensicface/backends.py).
-- Gender and age are produced by one InsightFace model and stored directly on
+- Gender and age were produced by one InsightFace model and stored directly on
   `FaceData`.
 - CR-FIQA was owned by `RecognitionRunner`, even though quality estimation is
   conceptually independent from recognition. See
@@ -106,7 +130,7 @@ class FaceEstimator:
 aligned keypoints, and the alignment transform. An adapter uses only what it
 needs.
 
-There must not be a common estimator image size. The context contains source
+No common estimator image size was introduced. The context contains source
 data with documented coordinate and color conventions, not a tensor already
 resized for every model. Each adapter is responsible for producing its own
 model input. For example:
@@ -182,9 +206,9 @@ The implemented task keywords are:
 - `embedding`
 
 The new configuration keyword and existing public result key are both
-`gender`. This deliberately preserves the current public terminology for the
-first implementation. The limitations and interpretation of the selected
-model is documented through component metadata.
+`gender`. This deliberately preserves the existing public terminology in
+v0.8.0. The limitations and interpretation of the selected
+model are documented through component metadata.
 
 If any new task selector is explicitly provided, `models` and the deprecated
 `model` argument cannot also be provided; the implementation raises a clear
@@ -261,7 +285,7 @@ and `det_thresh` so an explicit value can be distinguished from the historical
 default appearing in the function signature.
 
 `det_size` did not become a universal detector setting. Different detectors
-have different input-size policies. For example, CenterFace
+have different input-size policies. For example, the CenterFace
 implementation rounds the original height and width independently to
 multiples of 32, whereas the current SCRFD path uses the configured square
 detection size. Such settings belong in the selected detector's adapter or
@@ -287,8 +311,8 @@ models=["sepaelv2", "sepaelv4"]
 
 The internal component catalog is namespaced by task. This prevents alias
 collisions from making it unclear whether `scrfd` is a detector or an embedding
-model. The legacy directory fallback can still use the first embedding alias
-to find shared historical files, but this lookup detail should not define the
+model. The legacy directory fallback can use the first embedding alias to find
+shared historical files, but this lookup detail does not define the
 new component identities.
 
 v0.8.0 uses an internal immutable catalog only.
@@ -477,8 +501,8 @@ The initial recommendations were implemented as follows:
 
 ## Decisions
 
-Record accepted design decisions here. Do not remove superseded decisions;
-mark them as superseded and link or refer to the replacement.
+The table below preserves the accepted design decisions made during planning
+and implementation.
 
 | Date | Decision | Status | Rationale |
 | --- | --- | --- | --- |
@@ -508,12 +532,50 @@ mark them as superseded and link or refer to the replacement.
 | 2026-07-22 | Keep batching only for embeddings and quality; do not add a batch contract for face estimators. | Accepted | Keeps the initial pose/gender/age extension contract small while preserving the existing performance-critical batch paths. |
 | 2026-07-22 | Do not implement the previously deferred features in this implementation. | Accepted | Keeps this change focused on ONNX task replacement, compatibility, and CenterFace. |
 
-The excluded deferred features are box-only detectors, non-ONNX runtimes,
-public registries or automatic discovery, automatic model downloads, a public
-`FaceComponents` configuration object, a new `quality_score` result field, and
-an OpenCV DNN CenterFace fallback.
+## Possible Future Reconsideration
 
-## Open Questions and Tradeoffs
+The following items were deliberately excluded from v0.8.0. They are not
+commitments or an active roadmap, but future work may reconsider them if a
+concrete use case justifies the added API, runtime, packaging, or maintenance
+cost.
+
+- **Face-estimator batching:** pose, gender, and age execute per face. Only
+  embeddings and quality have batch contracts in v0.8.0. A future version may
+  add face-estimator batching if profiling demonstrates a material benefit and
+  there is a clear way to handle different native input sizes, joint
+  capabilities, dynamic shapes, and per-estimator fallback without making the
+  common contract unnecessarily complex.
+- **Box-only detectors:** these would require a configurable landmark or
+  alignment stage capable of producing the five points required by current
+  alignment and `sepaelv6`.
+- **Non-ONNX runtimes:** PyTorch or other runtimes may be considered after
+  weighing optional dependencies, device selection, packaging, and provider
+  diagnostics.
+- **Public registration and discovery:** the current catalog is internal and
+  immutable. A public registry, per-instance catalog overlay, or entry-point
+  discovery could be reconsidered if direct object injection proves
+  insufficient.
+- **Automatic model acquisition or wheel bundling:** v0.8.0 remains manual and
+  offline. Any future acquisition mechanism would need explicit integrity,
+  provenance, licensing, caching, and offline-use policies.
+- **A public `FaceComponents` configuration object:** direct task keywords were
+  preferred for v0.8.0. A reusable/serializable configuration object may be
+  useful if the constructor grows or complete configurations need to be shared.
+- **A model-neutral `quality_score` result field:** v0.8.0 retains
+  `fiqa_score`. A new name would require a separately versioned schema and
+  migration decision.
+- **OpenCV DNN as a CenterFace runtime fallback:** OpenCV remains a parity
+  reference. A fallback may be reconsidered only for a concrete deployment
+  need.
+- **Conflicting SCRFD-setting diagnostics:** `ModelSpec` values take precedence
+  over top-level SCRFD settings. A future version may add warnings when both
+  forms are explicitly supplied with different values.
+- **Required full provenance metadata:** checksum, license, citation, training
+  source, and detailed model-card fields remain recommended rather than
+  mandatory. Stronger requirements may be appropriate for future forensic
+  reproducibility workflows.
+
+## Historical Tradeoffs and Outcomes
 
 ### Public `FaceComponents` versus direct task keywords
 
@@ -545,9 +607,8 @@ Cons:
 - Requires a sentinel to distinguish omitted selectors from `None`.
 - Is less convenient for storing or reusing a complete configuration.
 
-**Current recommendation:** expose direct task keywords first. A reusable
-configuration object can be added later or used internally without making it
-the only user-facing path.
+**Implemented outcome:** direct task keywords were exposed. A public
+`FaceComponents` object was deferred for possible future reconsideration.
 
 ### Interaction between explicit selectors and `extended`
 
@@ -579,11 +640,11 @@ Cons:
 - Explicit `None` and omitted values must be distinguished.
 - Precedence must be documented carefully.
 
-**Current recommendation:** use the following precedence for each task:
-explicit selector, then the `extended` preset, then the current library
-default. Detection and embedding require separate rules because they are not
-optional extended attributes. An explicit selector should be able to enable a
-task even when `extended=False`; an explicit `None` should disable it.
+**Implemented outcome:** each task resolves through explicit selector, then the
+`extended` preset, then the library default. Detection and embedding have
+separate validation because they are not optional extended attributes. An
+explicit selector enables a task even when `extended=False`; explicit `None`
+disables supported tasks.
 
 ### Registry ownership
 
@@ -598,7 +659,7 @@ an already loaded model instance. For example:
 
 The ownership question is about where those alias-to-factory mappings live
 and who is allowed to mutate them. It is separate from model lifetime: each
-`ForensicFace` instance would still own the detector and estimator instances
+`ForensicFace` instance still owns the detector and estimator instances
 constructed from the selected factories.
 
 **Process-global mutable registry**
@@ -639,10 +700,10 @@ Cons:
 - More implementation and documentation complexity.
 - Override and collision rules still need to be explicit.
 
-**Accepted direction:** keep the built-in catalog internal and immutable.
-Expose direct object injection for custom implementations. Do not add a public
-registration API, process-global mutable registry, per-instance overlay, or
-automatic entry-point discovery in the first implementation.
+**Implemented outcome:** the built-in catalog is internal and immutable.
+Direct object injection is exposed for custom implementations. v0.8.0 did not
+add a public registration API, process-global mutable registry, per-instance
+overlay, or automatic entry-point discovery.
 
 ### Minimum component metadata
 
@@ -658,11 +719,11 @@ citation, training source, and preprocessing details. This is valuable in a
 forensic context, but some values are unavailable for programmatic or remote
 estimators and the burden could discourage adapters.
 
-**Current recommendation:** require component ID/name, capabilities,
+**Implemented outcome:** component ID/name, capabilities,
 implementation type, runtime/provider/device, model source/path when
-available, input-space declaration, and batch-support declaration. Make
-version, checksum, license, citation, and detailed model-card information
-strongly recommended optional metadata initially.
+available, input-space declaration, and batch-support declaration are
+required. Version, checksum, license, citation, and detailed model-card
+information remain strongly recommended but optional.
 
 ### Generic `quality_score` result name
 
@@ -709,10 +770,9 @@ Cons:
 
 - Permanently couples the public name to one quality method.
 
-**Current recommendation:** retain `fiqa_score` in the first extensibility
-implementation and expose the active quality model through component
-metadata. Plan `quality_score` as a separate versioned API decision after the
-component architecture is stable.
+**Implemented outcome:** `fiqa_score` was retained and the active quality model
+is exposed through component metadata. `quality_score` was deferred as a
+separate possible versioned API decision.
 
 ### First real alternative model
 
@@ -727,15 +787,14 @@ contracts are runtime-neutral.
 architecture, but introduces packaging, device, and optional-dependency work
 at the same time as the interfaces are being stabilized.
 
-**Accepted direction:** validate each task with fake adapters in CI, then use
-the ONNX CenterFace detector as the first real integration. Keep the current
-implementation scope ONNX-only. A different runtime can be reconsidered as a
-future expansion after the ONNX component contracts are stable.
+**Implemented outcome:** each task was validated with fake adapters in CI and
+the ONNX CenterFace detector became the first real integration. v0.8.0 remains
+ONNX-only; different runtimes are future reconsideration candidates.
 
 ## Progress Log
 
-Add entries chronologically. Entries should describe outcomes, compatibility
-effects, verification performed, and any divergence from the plan.
+This chronological log preserves planning, implementation, compatibility, and
+verification milestones.
 
 ### 2026-07-21 - Planning document created
 
@@ -793,17 +852,18 @@ effects, verification performed, and any divergence from the plan.
   preprocessing and decoder. It detected the face and produced five landmarks
   in the expected alignment-compatible pattern: two eyes, nose, and two mouth
   corners, with the paired points in left-to-right image order.
-- Before distribution, produce a corrected CenterFace artifact through a
-  reproducible conversion step: make batch/height/width dynamic, remove
-  initializers from graph inputs, preserve or deliberately rename outputs,
-  validate the graph, and compare numerical outputs with the source artifact.
+- Established the requirement for a reproducible corrected CenterFace
+  artifact: dynamic batch/height/width metadata, initializers removed from
+  graph inputs, semantic outputs, ONNX validation, and numerical comparison
+  with the source artifact. This was subsequently implemented by the offline
+  converter.
 - No attached model or implementation code was changed.
 
 ### 2026-07-22 - API decisions and CenterFace runtime comparison
 
 - Accepted generic `ModelSpec` and direct object injection for every task.
 - Kept `gender` as the new selector name and existing result-field name; no
-  `sex` selector will be added initially.
+  `sex` selector was added in v0.8.0.
 - Accepted omission of result fields for explicitly disabled tasks while
   preserving legacy result schemas.
 - Accepted common embedding selector syntax with a specialized internal
@@ -886,7 +946,7 @@ effects, verification performed, and any divergence from the plan.
 - Confirmed that all previously deferred features remain outside this
   implementation.
 - Added automated current-adapter versus legacy-backend parity coverage and
-  completed the suite with 149 passing tests.
+  completed the suite with 150 passing tests.
 - Repeated real-model CPU validation after the orchestration changes. The
   legacy and explicit SCRFD pipelines matched exactly for ordered keys,
   detection, pose, attributes, embeddings, and quality. CenterFace completed
@@ -897,3 +957,16 @@ effects, verification performed, and any divergence from the plan.
   `ModelSpec("scrfd", det_size=128)` updates both `ff.det_size` and the summary
   to `(128, 128)`. Dynamic CenterFace reports `dynamic (multiple of 32)` rather
   than the unrelated legacy SCRFD default.
+
+### 2026-07-22 - v0.8.0 release preparation and historical closeout
+
+- Updated the package version and release documentation for v0.8.0.
+- Updated README usage examples to use the task-selector API and documented
+  compatibility with legacy constructor forms.
+- Validated the final release state with 150 passing tests and successful
+  source-distribution and wheel builds.
+- Reclassified this document from an active plan to a historical
+  implementation record.
+- Recorded face-estimator batching and all other deliberately excluded
+  features as possible future reconsiderations rather than unfinished v0.8.0
+  work.
