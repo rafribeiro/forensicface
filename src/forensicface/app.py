@@ -31,6 +31,7 @@ from .utils import (
 from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
 from .geometry import select_best_face
+from .image_io import read_image
 from .model_store import resolve_quality_model, resolve_recognition_model
 from .mosaic import build_mosaic_from_aligned_faces, build_mosaic_from_images
 from .recognition import RecognitionRunner
@@ -692,7 +693,7 @@ class ForensicFace:
 
     def _load_image(self, imgpath):
         """Load image from file path or return the array if already loaded."""
-        return cv2.imread(imgpath) if isinstance(imgpath, str) else imgpath.copy()
+        return read_image(imgpath) if isinstance(imgpath, str) else imgpath.copy()
 
     def process_image_multiple_faces(
         self,

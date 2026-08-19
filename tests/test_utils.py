@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from forensicface.app import ForensicFace
+from forensicface.image_io import read_image, write_image
 from forensicface.mosaic import (
     build_mosaic_from_aligned_faces,
     build_mosaic_from_images,
@@ -15,6 +16,17 @@ from forensicface.utils import (
     cosine_score,
     cosine_similarity,
 )
+
+
+def test_image_io_supports_unicode_paths(tmp_path):
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+    image[:, :, 1] = 255
+    path = tmp_path / "imagem_acentuada_çã.png"
+
+    write_image(path, image)
+
+    assert path.is_file()
+    np.testing.assert_array_equal(read_image(path), image)
 
 
 def test_cosine_score_matches_single_pair_from_matrix_similarity():

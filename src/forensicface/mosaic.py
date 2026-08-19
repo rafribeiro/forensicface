@@ -7,6 +7,7 @@ import warnings
 import cv2
 import numpy as np
 
+from .image_io import write_image
 from .utils import DEFAULT_KEYPOINT_COLORS, annotate_img_with_kps
 
 
@@ -95,7 +96,7 @@ def _build_mosaic(
     tile_size = (height + 2 * border_y, width + 2 * border_x)
     mosaic = _tile_images(imgs, tile_size=tile_size, mosaic_shape=mosaic_shape)
     if save_to is not None:
-        cv2.imwrite(save_to, mosaic)
+        write_image(save_to, mosaic)
     return mosaic
 
 
