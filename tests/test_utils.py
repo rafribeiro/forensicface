@@ -29,6 +29,17 @@ def test_image_io_supports_unicode_paths(tmp_path):
     np.testing.assert_array_equal(read_image(path), image)
 
 
+def test_load_image_supports_unicode_pathlike(tmp_path):
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+    image[:, :, 2] = 255
+    path = tmp_path / "imagem_com_pathlib_çã.png"
+    write_image(path, image)
+
+    app = ForensicFace.__new__(ForensicFace)
+
+    np.testing.assert_array_equal(app._load_image(path), image)
+
+
 def test_cosine_score_matches_single_pair_from_matrix_similarity():
     x = np.array([1.0, 2.0, 3.0], dtype=np.float32)
     z = np.array([3.0, 2.0, 1.0], dtype=np.float32)

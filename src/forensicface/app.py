@@ -1,9 +1,11 @@
 __all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult', 'ModelSpec']
+from os import PathLike
+import os.path as osp
+import warnings
+
 import onnxruntime
 import cv2
 import numpy as np
-import os.path as osp
-import warnings
 from .backends import FaceBackend, create_backend
 from .aligned_processing import AlignedFaceRunner
 from .component_catalog import (
@@ -693,7 +695,11 @@ class ForensicFace:
 
     def _load_image(self, imgpath):
         """Load image from file path or return the array if already loaded."""
-        return read_image(imgpath) if isinstance(imgpath, str) else imgpath.copy()
+        return (
+            read_image(imgpath)
+            if isinstance(imgpath, (str, PathLike))
+            else imgpath.copy()
+        )
 
     def process_image_multiple_faces(
         self,

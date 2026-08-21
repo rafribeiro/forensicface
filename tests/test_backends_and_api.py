@@ -9,6 +9,7 @@ import forensicface.app as app_module
 import forensicface.model_store as model_store
 from forensicface.app import ForensicFace
 from forensicface.backends import FaceBackend, FaceData
+from forensicface.image_io import write_image
 from forensicface.results import FaceResult
 
 
@@ -374,7 +375,7 @@ def test_process_image_draw_keypoints_saves_aligned_image_onnx_backend(
 
     out_file = tmp_path / "aligned_onnx_draw_keypoints.png"
     aligned_bgr = cv2.cvtColor(result["aligned_face"], cv2.COLOR_RGB2BGR)
-    assert cv2.imwrite(str(out_file), aligned_bgr)
+    write_image(out_file, aligned_bgr)
     assert out_file.exists()
     assert out_file.stat().st_size > 0
 
