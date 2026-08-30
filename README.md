@@ -203,6 +203,10 @@ python -m forensicface.tools.migrate_shared --models-root /path/to/models
 Ainda não lançado:
 - Nenhuma alteração registrada até o momento.
 
+v0.8.1:
+- Corrigida a leitura e a escrita de imagens em caminhos com caracteres Unicode no Windows.
+- A gravação de mosaicos e de faces extraídas de vídeos agora propaga erros do sistema de arquivos. Em particular, um diretório de destino inexistente gera `FileNotFoundError` em vez de falhar silenciosamente.
+
 v0.8.0:
 - Adicionados os seletores por tarefa `detection`, `pose`, `gender`, `age`,
   `quality` e `embedding`, com precedência da configuração explícita sobre o
