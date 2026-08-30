@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from os import PathLike
 import warnings
 
 import cv2
 import numpy as np
 
+from .image_io import write_image
 from .utils import DEFAULT_KEYPOINT_COLORS, annotate_img_with_kps
 
 
@@ -88,23 +90,23 @@ def _build_mosaic(
     image_size: tuple[int, int],
     mosaic_shape: tuple[int, int],
     border: float,
-    save_to: str | None,
+    save_to: str | PathLike[str] | None,
 ) -> np.ndarray:
     height, width = image_size
     border_y, border_x = _border_widths(image_size, border)
     tile_size = (height + 2 * border_y, width + 2 * border_x)
     mosaic = _tile_images(imgs, tile_size=tile_size, mosaic_shape=mosaic_shape)
     if save_to is not None:
-        cv2.imwrite(save_to, mosaic)
+        write_image(save_to, mosaic)
     return mosaic
 
 
 def build_mosaic_from_images(
     processor,
-    img_path_list: list[str | np.ndarray],
+    img_path_list: list[str | PathLike[str] | np.ndarray],
     mosaic_shape: tuple[int, int],
     border: float = 0.03,
-    save_to: str | None = None,
+    save_to: str | PathLike[str] | None = None,
     draw_keypoints: bool = False,
     keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
 ) -> np.ndarray:
@@ -115,7 +117,7 @@ def build_mosaic_from_images(
     imgs = []
     list_of_arrays = False
     for img in img_path_list:
-        if not isinstance(img, str):
+        if isinstance(img, np.ndarray):
             list_of_arrays = True
 
         ret = processor.process_image(
@@ -151,7 +153,7 @@ def build_mosaic_from_aligned_faces(
     aligned_faces: list[np.ndarray] | np.ndarray,
     mosaic_shape: tuple[int, int],
     border: float = 0.03,
-    save_to: str | None = None,
+    save_to: str | PathLike[str] | None = None,
     draw_keypoints: bool = False,
     keypoints: list[np.ndarray] | np.ndarray | None = None,
     keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,

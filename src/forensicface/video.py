@@ -8,6 +8,7 @@ import cv2
 from tqdm import tqdm
 
 from .geometry import extend_bbox
+from .image_io import write_image
 
 
 __all__ = ["extract_faces_from_video"]
@@ -65,7 +66,7 @@ def extract_faces_from_video(
                 face_img_path = os.path.join(
                     dest_folder, f"frame_{current_frame:07}_face_{i:02}.png"
                 )
-                cv2.imwrite(face_img_path, face_crop)
+                write_image(face_img_path, face_crop)
                 if export_metadata:
                     metadata.append(
                         {

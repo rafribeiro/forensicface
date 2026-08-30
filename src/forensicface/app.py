@@ -1,9 +1,11 @@
 __all__ = ['custom_formatwarning', 'ForensicFace', 'FaceResult', 'ModelSpec']
+from os import PathLike
+import os.path as osp
+import warnings
+
 import onnxruntime
 import cv2
 import numpy as np
-import os.path as osp
-import warnings
 from .backends import FaceBackend, create_backend
 from .aligned_processing import AlignedFaceRunner
 from .component_catalog import (
@@ -31,6 +33,7 @@ from .utils import (
 from .ort_runtime_setup import configure_onnxruntime_acceleration
 from .runtime_summary import print_initialization_summary
 from .geometry import select_best_face
+from .image_io import read_image
 from .model_store import resolve_quality_model, resolve_recognition_model
 from .mosaic import build_mosaic_from_aligned_faces, build_mosaic_from_images
 from .recognition import RecognitionRunner
@@ -692,7 +695,11 @@ class ForensicFace:
 
     def _load_image(self, imgpath):
         """Load image from file path or return the array if already loaded."""
-        return cv2.imread(imgpath) if isinstance(imgpath, str) else imgpath.copy()
+        return (
+            read_image(imgpath)
+            if isinstance(imgpath, (str, PathLike))
+            else imgpath.copy()
+        )
 
     def process_image_multiple_faces(
         self,
@@ -719,10 +726,10 @@ class ForensicFace:
 
     def build_mosaic(
         self,
-        img_path_list: list[str | np.ndarray],
+        img_path_list: list[str | PathLike[str] | np.ndarray],
         mosaic_shape: tuple[int, int],
         border: float = 0.03,
-        save_to: str | None = None,
+        save_to: str | PathLike[str] | None = None,
         draw_keypoints: bool = False,
         keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ) -> np.ndarray:
@@ -756,7 +763,7 @@ class ForensicFace:
         aligned_faces: list[np.ndarray] | np.ndarray,
         mosaic_shape: tuple[int, int],
         border: float = 0.03,
-        save_to: str | None = None,
+        save_to: str | PathLike[str] | None = None,
         draw_keypoints: bool = False,
         keypoints: list[np.ndarray] | np.ndarray | None = None,
         keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
