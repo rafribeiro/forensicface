@@ -1,4 +1,6 @@
 import inspect
+import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -16,6 +18,21 @@ from forensicface.utils import (
     cosine_score,
     cosine_similarity,
 )
+
+
+def test_read_image_empty_file_returns_none(tmp_path):
+    path = tmp_path / "empty.png"
+    path.write_bytes(b"")
+
+    assert read_image(path) is None
+
+
+def test_write_image_missing_parent_raises(tmp_path):
+    path = tmp_path / "missing" / "image.png"
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+
+    with pytest.raises(FileNotFoundError):
+        write_image(path, image)
 
 
 def test_image_io_supports_unicode_paths(tmp_path):
@@ -416,7 +433,7 @@ def test_build_mosaic_from_aligned_faces_uses_custom_keypoint_colors():
     np.testing.assert_array_equal(mosaic[2, 8], [0, 0, 255])
 
 
-def test_build_mosaic_from_images_processes_original_images():
+def test_build_mosaic_from_images_processes_pathlike_images_without_warning():
     class _Processor:
         IMG_SIZE = (2, 2)
 
@@ -437,18 +454,21 @@ def test_build_mosaic_from_images_processes_original_images():
 
     processor = _Processor()
     keypoint_colors = ("blue", "white", "red", "green", "black")
-    mosaic = build_mosaic_from_images(
-        processor,
-        ["a.jpg", "b.jpg"],
-        mosaic_shape=(2, 1),
-        border=0,
-        draw_keypoints=True,
-        keypoint_colors=keypoint_colors,
-    )
+    image_paths = [Path("a.jpg"), Path("b.jpg")]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        mosaic = build_mosaic_from_images(
+            processor,
+            image_paths,
+            mosaic_shape=(2, 1),
+            border=0,
+            draw_keypoints=True,
+            keypoint_colors=keypoint_colors,
+        )
 
     assert processor.calls == [
-        ("a.jpg", True, keypoint_colors, True),
-        ("b.jpg", True, keypoint_colors, True),
+        (image_paths[0], True, keypoint_colors, True),
+        (image_paths[1], True, keypoint_colors, True),
     ]
     assert mosaic.shape == (2, 4, 3)
     np.testing.assert_array_equal(mosaic[0, 0], [30, 20, 10])

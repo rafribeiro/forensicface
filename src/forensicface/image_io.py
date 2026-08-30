@@ -15,10 +15,17 @@ __all__ = ["read_image", "write_image"]
 def read_image(path: str | os.PathLike[str]) -> np.ndarray | None:
     """Read an image without passing a potentially non-ASCII path to OpenCV."""
     try:
-        encoded = np.frombuffer(Path(path).read_bytes(), dtype=np.uint8)
+        data = Path(path).read_bytes()
     except OSError:
         return None
-    return cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+
+    if not data:
+        return None
+
+    return cv2.imdecode(
+        np.frombuffer(data, dtype=np.uint8),
+        cv2.IMREAD_COLOR,
+    )
 
 
 def write_image(path: str | os.PathLike[str], image: np.ndarray) -> None:

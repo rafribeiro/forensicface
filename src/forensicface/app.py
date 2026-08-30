@@ -726,10 +726,10 @@ class ForensicFace:
 
     def build_mosaic(
         self,
-        img_path_list: list[str | np.ndarray],
+        img_path_list: list[str | PathLike[str] | np.ndarray],
         mosaic_shape: tuple[int, int],
         border: float = 0.03,
-        save_to: str | None = None,
+        save_to: str | PathLike[str] | None = None,
         draw_keypoints: bool = False,
         keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
     ) -> np.ndarray:
@@ -763,7 +763,7 @@ class ForensicFace:
         aligned_faces: list[np.ndarray] | np.ndarray,
         mosaic_shape: tuple[int, int],
         border: float = 0.03,
-        save_to: str | None = None,
+        save_to: str | PathLike[str] | None = None,
         draw_keypoints: bool = False,
         keypoints: list[np.ndarray] | np.ndarray | None = None,
         keypoint_colors: tuple[str, str, str, str, str] = DEFAULT_KEYPOINT_COLORS,
