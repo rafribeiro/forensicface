@@ -25,7 +25,10 @@ dependencies = [
   "pandas",
   "onnx",
   "opencv-python-headless",
-  "onnxruntime-gpu[cuda,cudnn]>=1.25.0",
+  # onnxruntime-gpu has no macOS wheels; the CPU package ships the
+  # CoreMLExecutionProvider used on Apple Silicon.
+  "onnxruntime-gpu[cuda,cudnn]>=1.25.0; sys_platform != 'darwin'",
+  "onnxruntime>=1.25.0; sys_platform == 'darwin'",
   "scikit-image>=0.26.0",
   "tqdm",
 ]

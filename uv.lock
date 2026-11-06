@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_machine != 's390x' and sys_platform == 'win32'",
@@ -510,7 +510,8 @@ source = { editable = "." }
 dependencies = [
     { name = "numpy" },
     { name = "onnx" },
-    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"] },
+    { name = "onnxruntime", marker = "sys_platform == 'darwin'" },
+    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"], marker = "sys_platform != 'darwin'" },
     { name = "opencv-python-headless" },
     { name = "pandas" },
     { name = "scikit-image" },
@@ -533,7 +534,8 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'docs'", specifier = ">=3.9.0" },
     { name = "numpy" },
     { name = "onnx" },
-    { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], specifier = ">=1.25.0" },
+    { name = "onnxruntime", marker = "sys_platform == 'darwin'", specifier = ">=1.25.0" },
+    { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], marker = "sys_platform != 'darwin'", specifier = ">=1.25.0" },
     { name = "opencv-python-headless" },
     { name = "pandas" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -1572,6 +1574,21 @@ wheels = [
 ]
 
 [[package]]
+name = "onnxruntime"
+version = "1.31.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flatbuffers" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "protobuf" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/93/d2b855793302ef57d55cc0583b72a00a8dcb01d9bdb3adac380f09b050e8/onnxruntime-1.31.1-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:e4ad067d36e2220218e085d7223283b2ee1bc73d887e811fd14d21cf901a11ee", size = 20881825, upload-time = "2026-10-26T19:26:31.51Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/55/b511099a435972b86b5d04ef374cdca8de920311cc979180029b80145bf5/onnxruntime-1.31.1-cp314-cp314-macosx_14_0_arm64.whl", hash = "sha256:8536ac43682caa7492c46d6cfd4c3c8db288dcf0619508431a22170b670ee1d0", size = 20883427, upload-time = "2026-10-26T19:26:54.067Z" },
+]
+
+[[package]]
 name = "onnxruntime-gpu"
 version = "1.25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1704,7 +1721,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ptyprocess" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
